@@ -10,14 +10,14 @@
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/weishansu011017/DistortedDustyDiscAnalysisToolkits.git", subdir="Partia.jl")
+Pkg.add(url="https://github.com/AstroPostprocess/Partia.jl")
 ```
 
 If you already have this repository locally and want a development checkout, use
 
 ```julia
 using Pkg
-Pkg.develop(path="path/to/DistortedDustyDiscAnalysisToolkits/Partia.jl")
+Pkg.develop(path="path/to/Partia.jl")
 ```
 
 
@@ -31,7 +31,7 @@ For a sampling position $\mathbf{r}$, the density estimate is
 ```math
 \rho(\mathbf{r})
 =
-\sum_b m_b \, W\!\left(\lvert \mathbf{r} - \mathbf{r}_b \rvert, h\right),\rho(\mathbf{r})
+\sum_b m_b \, W\!\left(\lvert \mathbf{r} - \mathbf{r}_b \rvert, h\right).
 ```
 
 and a particle-carried scalar quantity $A_b$ is interpolated as
@@ -40,7 +40,7 @@ and a particle-carried scalar quantity $A_b$ is interpolated as
 A(\mathbf{r})
 =
 \sum_b \frac{m_b}{\rho_b} A_b \,
-W\!\left(\lvert \mathbf{r} - \mathbf{r}_b \rvert, h\right).A(\mathbf{r})
+W\!\left(\lvert \mathbf{r} - \mathbf{r}_b \rvert, h\right).
 ```
 
 When Shepard normalization is enabled, the interpolated value becomes
