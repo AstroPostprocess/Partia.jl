@@ -99,10 +99,18 @@ include(joinpath(@__DIR__, "line_integrated_interpolation", "accumulations", "li
 include(joinpath(@__DIR__, "line_integrated_interpolation", "kernels", "line_integrated_scalar_interpolation.jl"))
 
 ## Grid interpolation
-include(joinpath(@__DIR__, "grid_interpolation", "initialize_interpolation.jl"))
-include(joinpath(@__DIR__, "grid_interpolation", "PointSamples_interpolation.jl"))
-include(joinpath(@__DIR__, "grid_interpolation", "StructuredGrid_interpolation.jl"))
-include(joinpath(@__DIR__, "grid_interpolation", "LineSamples_interpolation.jl"))
+### Setup
+include(joinpath(@__DIR__, "grid_interpolation", "setup", "initialize_interpolation.jl"))
+
+### Kernels 
+include(joinpath(@__DIR__, "grid_interpolation", "kernels", "PointSamples_kernel.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "kernels", "LineSamples_kernel.jl"))
+
+### Drivers
+include(joinpath(@__DIR__, "grid_interpolation", "drivers", "PointSamples_driver.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "drivers", "LineSamples_driver.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "drivers", "StructuredGrid_driver.jl"))
+
 
 # Export function, marco, const...
 for name in filter(s -> !startswith(string(s), "#"), names(@__MODULE__, all = true))

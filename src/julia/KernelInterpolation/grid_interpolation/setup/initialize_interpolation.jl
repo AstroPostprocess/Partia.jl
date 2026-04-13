@@ -63,3 +63,59 @@ function initialize_interpolation(:: CPUComputeBackend, grid_template :: AS, inp
 
     return grids, LBVH, names, catalog_consice
 end
+
+
+"""
+    initialize_interpolation(::CPUComputeBackend, grid_template::AbstractSamples{D,T}, catalog::InterpolationCatalog{D, N, G, Div, C, L})
+
+Initialise the CPU-side interpolation outputs and compact catalog when the
+particle input data structures, such as the reordered `InterpolationInput` and
+its matching `LinearBVH`, are prepared externally.
+
+This method allocates one output sample container for each requested
+interpolated quantity and produces a concise interpolation catalog suitable for
+efficient kernel execution. Unlike the overload that also receives an
+`InterpolationInput`, this method does not build an LBVH or reorder particle
+data.
+
+The method applies to unstructured sample containers derived from
+`AbstractSamples`, such as `PointSamples` and `LineSamples`, provided that
+`similar(grid_template)` returns a compatible output container.
+
+# Parameters
+- `::CPUComputeBackend`
+  Dispatch tag indicating that interpolation will be executed on the CPU.
+
+- `grid_template::AbstractSamples{D,T}`
+  A template sample container providing dimensionality, element type, and output
+  container layout for all interpolated quantities.
+
+- `catalog::InterpolationCatalog{D, N, G, Div, C, L}`
+  Full interpolation catalog containing symbolic quantity names and the mapping
+  of scalar, gradient, divergence, and curl quantities.
+
+# Returns
+A tuple with:
+
+1. `grids::NTuple{L,<:AbstractSamples{D,T}}`
+   The allocated output sample containers for each interpolated quantity.
+
+2. `order::NTuple{L,Symbol}`
+   The ordered list of output quantity names.
+
+3. `catalog_consice::InterpolationCatalogConcise`
+   A compact version of the catalog containing only slot and normalization
+   information and suitable for efficient CPU/GPU execution.
+"""
+function initialize_interpolation(:: CPUComputeBackend, grid_template :: AS, catalog :: InterpolationCatalog{D, N, G, Div, C, L}) where {D, N, G, Div, C, L, T <: AbstractFloat, AS <: AbstractSamples{D, T}}
+    # Generate a grid array for result
+    @info "     SPH Interpolation: Allocating output grids..."
+    names = catalog.ordered_names
+    grids = ntuple(_ -> similar(grid_template), Val(L))
+    @info "     SPH Interpolation: End allocating output grids..."
+
+    # Consice catalog 
+    catalog_consice = to_concise_catalog(catalog)
+
+    return grids, names, catalog_consice
+end

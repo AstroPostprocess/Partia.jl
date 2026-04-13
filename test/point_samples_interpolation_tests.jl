@@ -6,6 +6,25 @@ using Partia
     include("grid_interpolation_test_common.jl")
 end
 
+@testset "PointSamples interpolation -- LBVH leaf-order matching" begin
+    input, catalog, LBVH = make_grid_interpolation_fixture()
+    @test matches_lbvh_leaf_order(input, LBVH)
+
+    mismatched_input = deepcopy(input)
+    p = [2, 1, 3, 4]
+    Base.permute!(mismatched_input.coord[1], p)
+    Base.permute!(mismatched_input.coord[2], p)
+    Base.permute!(mismatched_input.coord[3], p)
+    Base.permute!(mismatched_input.m, p)
+    Base.permute!(mismatched_input.h, p)
+    Base.permute!(mismatched_input.ρ, p)
+    for column in mismatched_input.quant
+        Base.permute!(column, p)
+    end
+
+    @test !matches_lbvh_leaf_order(mismatched_input, LBVH)
+end
+
 @testset "PointSamples interpolation -- CPU consistency" begin
     input, catalog, LBVH = make_grid_interpolation_fixture()
     grid_template = make_point_samples_template()
@@ -32,6 +51,42 @@ end
         @test isapprox(result.grids[1].grid[i], expected_scalar; atol = 1.0e-12, rtol = 1.0e-10)
         @test isapprox(result.grids[2].grid[i], expected_div; atol = 1.0e-12, rtol = 1.0e-10)
     end
+end
+
+@testset "PointSamples interpolation -- externally supplied LBVH" begin
+    input, catalog, LBVH = make_grid_interpolation_fixture()
+    grid_template = make_point_samples_template()
+
+    result_auto = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, itpSymmetric)
+    result_manual = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, LBVH, catalog, itpSymmetric)
+
+    @test result_manual.names == result_auto.names
+    @test length(result_manual.grids) == length(result_auto.grids)
+    for i in eachindex(result_auto.grids)
+        @test result_manual.grids[i].coor == result_auto.grids[i].coor
+        @test result_manual.grids[i].grid == result_auto.grids[i].grid
+    end
+
+    mismatched_input = deepcopy(input)
+    p = [2, 1, 3, 4]
+    Base.permute!(mismatched_input.coord[1], p)
+    Base.permute!(mismatched_input.coord[2], p)
+    Base.permute!(mismatched_input.coord[3], p)
+    Base.permute!(mismatched_input.m, p)
+    Base.permute!(mismatched_input.h, p)
+    Base.permute!(mismatched_input.ρ, p)
+    for column in mismatched_input.quant
+        Base.permute!(column, p)
+    end
+
+    @test_throws ArgumentError PointSamples_interpolation(
+        CPUComputeBackend(),
+        grid_template,
+        mismatched_input,
+        LBVH,
+        catalog,
+        itpSymmetric,
+    )
 end
 
 @testset "LineSamples interpolation -- CPU scatter consistency" begin
@@ -68,6 +123,43 @@ end
         @test isapprox(result.grids[1].grid[i], expected[1]; atol = 1.0e-12, rtol = 1.0e-10)
         @test isapprox(result.grids[2].grid[i], expected[2]; atol = 1.0e-12, rtol = 1.0e-10)
     end
+end
+
+@testset "LineSamples interpolation -- externally supplied LBVH" begin
+    input, catalog, LBVH = make_line_interpolation_fixture()
+    grid_template = make_line_samples_template()
+
+    result_auto = LineSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, itpScatter)
+    result_manual = LineSamples_interpolation(CPUComputeBackend(), grid_template, input, LBVH, catalog, itpScatter)
+
+    @test result_manual.names == result_auto.names
+    @test length(result_manual.grids) == length(result_auto.grids)
+    for i in eachindex(result_auto.grids)
+        @test result_manual.grids[i].origin == result_auto.grids[i].origin
+        @test result_manual.grids[i].direction == result_auto.grids[i].direction
+        @test result_manual.grids[i].grid == result_auto.grids[i].grid
+    end
+
+    mismatched_input = deepcopy(input)
+    p = [2, 1, 3, 4]
+    Base.permute!(mismatched_input.coord[1], p)
+    Base.permute!(mismatched_input.coord[2], p)
+    Base.permute!(mismatched_input.coord[3], p)
+    Base.permute!(mismatched_input.m, p)
+    Base.permute!(mismatched_input.h, p)
+    Base.permute!(mismatched_input.ρ, p)
+    for column in mismatched_input.quant
+        Base.permute!(column, p)
+    end
+
+    @test_throws ArgumentError LineSamples_interpolation(
+        CPUComputeBackend(),
+        grid_template,
+        mismatched_input,
+        LBVH,
+        catalog,
+        itpScatter,
+    )
 end
 
 @testset "LineSamples interpolation -- unsupported modes" begin

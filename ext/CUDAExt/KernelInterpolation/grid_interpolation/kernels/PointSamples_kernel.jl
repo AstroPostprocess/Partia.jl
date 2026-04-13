@@ -1,40 +1,14 @@
-"""
-    PointSamples_interpolation(backend::MetalComputeBackend, grid_template::PointSamples{3,TF},
-                          input::InterpolationInput{3,TF}, catalog::InterpolationCatalog{3, N, G, Div, C, L},
-                          itp_strategy::Type{ITPSTRATEGY} = itpSymmetric)
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy::Type{ITPSTRATEGY} = itpSymmetric) where {N, G, Div, C, L, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
+    tid    = Int(CUDA.threadIdx().x)
+    bid    = Int(CUDA.blockIdx().x)
+    bdim   = Int(CUDA.blockDim().x)
+    gdim   = Int(CUDA.gridDim().x)
 
-Performs SPH grid interpolation on the GPU using Apple's Metal backend.
-
-This routine mirrors the CPU `PointSamples_interpolation` path: it supports the
-same interpolation catalog and strategy combinations while offloading the point
-evaluation kernel to the GPU.
-"""
-function Partia.PointSamples_interpolation(::MetalComputeBackend, grid_template::PointSamples{3, TF}, input::InterpolationInput{3, TF}, catalog::InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy::Type{ITPSTRATEGY} = itpSymmetric) where {N, G, Div, C, L, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    grids, LBVH, names, catalog_consice = Partia.initialize_interpolation(Partia.CPUComputeBackend(), grid_template, input, catalog)
-    @info "     SPH Interpolation: Copying interpolated grids to device memory..."
-    input_Mtl = to_MtlVector(input)
-    grids_Mtl = ntuple(i -> to_MtlVector(grids[i]), Val(L))
-    LBVH_Mtl = to_MtlVector(LBVH)
-    @info "     SPH Interpolation: End copying interpolated grids to device memory."
-
-    npoints = length(grid_template)
-    @info "     SPH Interpolation: Start interpolation..."
-    @metal threads=(256,) groups=(cld(npoints, 256)) _point_samples_interpolation_kernel!(grids_Mtl, input_Mtl, catalog_consice, LBVH_Mtl, itp_strategy)
-    Metal.synchronize()
-    @info "     SPH Interpolation: End interpolation."
-    @info "     SPH Interpolation: Copying interpolated grids back to host memory..."
-    grids_result = ntuple(i -> Partia.to_HostVector(grids_Mtl[i]), Val(L))
-    @info "     SPH Interpolation: End copying interpolated grids back to host memory."
-    return GridBundle(grids_result, names)
-end
-
-
-@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy::Type{ITPSTRATEGY} = itpSymmetric) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    tid = Int(Metal.thread_position_in_grid().x)
-    stride = Int(Metal.threads_per_grid().x)
+    gid    = (bid - 1) * bdim + tid
+    stride = bdim * gdim
 
     npoints = length(grids[1])
-    i = tid
+    i = gid
     while i <= npoints
         @inbounds begin
             xa = grids[1].coor[1][i]
@@ -93,12 +67,17 @@ end
     return nothing
 end
 
-@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, ::Type{itpScatter}) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}}
-    tid = Int(Metal.thread_position_in_grid().x)
-    stride = Int(Metal.threads_per_grid().x)
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, ::Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat}
+    tid    = Int(CUDA.threadIdx().x)
+    bid    = Int(CUDA.blockIdx().x)
+    bdim   = Int(CUDA.blockDim().x)
+    gdim   = Int(CUDA.gridDim().x)
+
+    gid    = (bid - 1) * bdim + tid
+    stride = bdim * gdim
 
     npoints = length(grids[1])
-    i = tid
+    i = gid
     while i <= npoints
         @inbounds begin
             xa = grids[1].coor[1][i]

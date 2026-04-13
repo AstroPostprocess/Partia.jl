@@ -242,3 +242,28 @@ function LinearBVH!(input::InterpolationInput{2}, ::Val{2}; CodeType::Type{TI} =
     brt = BinaryRadixTree(enc)
     return LinearBVH(enc, brt)
 end
+"""
+    matches_lbvh_leaf_order(input::InterpolationInput{D}, lbvh::LinearBVH{D}) where {D}
+
+Check whether an interpolation input is already arranged in the same
+Morton-reordered leaf order as a given `LinearBVH`.
+
+This function is intended as a lightweight consistency check when an externally
+supplied `LinearBVH` is reused together with an `InterpolationInput`. It
+compares the reordered spatial arrays stored in `input` against the leaf data
+stored in `lbvh`.
+
+# Parameters
+- `input::InterpolationInput{D}`: Interpolation input whose current particle
+  ordering is to be validated.
+- `lbvh::LinearBVH{D}`: Linear bounding volume hierarchy whose leaf ordering is
+  treated as the reference ordering.
+
+# Returns
+- `Bool`: `true` if `input.coord[d] == lbvh.leaf_coor[d]` for every spatial
+  dimension `d` and `input.h == lbvh.leaf_h`; otherwise `false`.
+
+"""
+@inline function matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) :: Bool where {D}
+    all(input.coord[d] == lbvh.leaf_coor[d] for d in 1:D) && (input.h == lbvh.leaf_h)
+end

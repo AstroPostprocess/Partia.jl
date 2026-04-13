@@ -57,8 +57,6 @@ function LinearBVH(enc::MortonEncoding{D, TF, TI, VF, VI}, brt::BinaryRadixTree{
     ninternal = nleaf - 1
     ntotal = 2 * nleaf - 1
 
-    # (ninternal == 0) && return LBVH
-
     vproto = enc.coord[1]
 
     leaf_coor = ntuple(_ -> similar(vproto, nleaf), D)
