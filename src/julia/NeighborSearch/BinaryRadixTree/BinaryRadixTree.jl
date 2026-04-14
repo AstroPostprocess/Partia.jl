@@ -242,7 +242,7 @@ end
     return nothing
 end
 
-@inline function _build_escape!(escape::V, adj::V, range_hi::V, nleaf::Int,i::Int) where {V<:AbstractVector{Int32}}
+@inline function _build_escape!(escape :: V, adj :: V, range_hi :: V, nleaf :: Int, i :: Int) where {V <: AbstractVector{Int32}}
     # Escape for internal node
     leaf_offset = nleaf - 1
     @inbounds begin
@@ -259,7 +259,8 @@ end
     return nothing
 end
 
-@inline function _build_escape!(escape::V, parent::V, left::V, right::V, i::Int) where {V<:AbstractVector{Int32}}
+@inline function _build_escape!(escape :: V, parent :: V, left :: V, right :: V, i :: Int) where {V <: AbstractVector{Int32}}
+    # Escape for leafs
     @inbounds begin
         p = parent[i]              # unified internal id (1..nleaf-1) or 0
         if iszero(p)
@@ -279,37 +280,5 @@ end
     end
     return nothing
 end
-
-function _build_escape_stackless!(escape::V, left::V, right::V, parent::V, root::Int32, nleaf::Int) where {V<:AbstractVector{Int32}}
-    ntotal = 2nleaf - 1
-    @assert length(escape) == ntotal
-    @assert length(left) == ntotal
-    @assert length(right) == ntotal
-    @assert length(parent) == ntotal
-
-    fill!(escape, Int32(0))
-    root == 0 && return nothing
-
-    stack = Int32[root]
-    while !isempty(stack)
-        node = pop!(stack)
-        is_internal_id(node, nleaf) || continue
-
-        node_idx = internal_index(node)
-        l = left[node_idx]
-        r = right[node_idx]
-
-        # left subtree escapes to its sibling; right subtree inherits parent's escape
-        escape[Int(l)] = r
-        escape[Int(r)] = escape[Int(node)]
-
-        # process children; push right first so left is popped/visited first (preorder)
-        push!(stack, r)
-        push!(stack, l)
-    end
-
-    return nothing
-end
-
 
 
