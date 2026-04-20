@@ -1,6 +1,6 @@
 name = "Partia"
 uuid = "5c2dedaf-db9e-41c2-b778-b9f601995017"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Wei-Shan Su <weishansu011017@gmail.com>"]
 
 [deps]
