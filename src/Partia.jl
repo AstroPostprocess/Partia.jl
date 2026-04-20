@@ -5,6 +5,10 @@ using Pkg
 using Reexport
 
 ##################### Core #####################
+## EOS
+include(joinpath(@__DIR__, "julia", "EOS", "EOS.jl"))
+@reexport using .EOS
+
 ## Tools
 include(joinpath(@__DIR__, "julia", "Tools", "Tools.jl"))
 @reexport using .Tools

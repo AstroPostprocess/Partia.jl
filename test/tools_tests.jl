@@ -62,6 +62,77 @@ end
     @test isnan(Pressure(LocallyIsothermal, ρ, 0.0, cs0, q))
 end
 
+@testset "Temperature -- Adiabatic" begin
+    γ = 5.0 / 3.0
+    u = 2.0
+    μ = 2.3
+    @test Temperature(Adiabatic, SIUnit, u, γ, μ) ≈ 0.00012114751277768644 * μ * (γ - 1.0) * u
+    @test Temperature(Adiabatic, CGSUnit, u, γ, μ) ≈ 1.2114751277768644e-8 * μ * (γ - 1.0) * u
+    @test Temperature(Adiabatic, GalacticUnit, 2.0f0, γ, μ) isa Float64
+    @test isnan(Temperature(Adiabatic, SIUnit, u, 0.5, μ))
+end
+
+@testset "Temperature -- Isothermal" begin
+    cs = 0.3
+    μ = 2.3
+    @test Temperature(Isothermal, SIUnit, cs, μ) ≈ 0.00012114751277768644 * μ * cs^2
+    @test Temperature(Isothermal, GalacticUnit, cs, μ) ≈ 121.14751277768644 * μ * cs^2
+    @test isnan(Temperature(Isothermal, CGSUnit, -cs, μ))
+end
+
+@testset "Temperature -- LocallyIsothermal" begin
+    r = 2.0
+    cs0 = 1.0
+    q = 0.25
+    μ = 2.3
+    cs = cs0 * r^(-q)
+    @test Temperature(LocallyIsothermal, SIUnit, r, cs0, q, μ) ≈ 0.00012114751277768644 * μ * cs^2
+    @test Temperature(LocallyIsothermal, CGSUnit, 2.0f0, cs0, q, μ) isa Float64
+    @test isnan(Temperature(LocallyIsothermal, GalacticUnit, 0.0, cs0, q, μ))
+end
+
+@testset "Enthalpy -- Adiabatic" begin
+    γ = 5.0 / 3.0
+    u = 2.0
+    h = Enthalpy(Adiabatic, u, γ)
+    @test h ≈ γ * u
+
+    h_mixed = Enthalpy(Adiabatic, 2.0f0, γ)
+    @test h_mixed isa Float64
+
+    @test isnan(Enthalpy(Adiabatic, -1.0, γ))
+    @test isnan(Enthalpy(Adiabatic, u, 0.5))
+end
+
+@testset "Enthalpy -- Isothermal" begin
+    u = 2.0
+    cs = 0.3
+    h = Enthalpy(Isothermal, u, cs)
+    @test h ≈ u + cs^2
+
+    h_mixed = Enthalpy(Isothermal, 2.0f0, cs)
+    @test h_mixed isa Float64
+
+    @test isnan(Enthalpy(Isothermal, -1.0, cs))
+    @test isnan(Enthalpy(Isothermal, u, -cs))
+end
+
+@testset "Enthalpy -- LocallyIsothermal" begin
+    u = 2.0
+    r = 2.0
+    cs0 = 1.0
+    q = 0.25
+    h = Enthalpy(LocallyIsothermal, u, r, cs0, q)
+    @test h ≈ u + (cs0 * r^(-q))^2
+
+    h_mixed = Enthalpy(LocallyIsothermal, 2.0f0, r, cs0, q)
+    @test h_mixed isa Float64
+
+    @test isnan(Enthalpy(LocallyIsothermal, -1.0, r, cs0, q))
+    @test isnan(Enthalpy(LocallyIsothermal, u, 0.0, cs0, q))
+    @test isnan(Enthalpy(LocallyIsothermal, u, r, -cs0, q))
+end
+
 @testset "meshgrid -- 2D and 3D" begin
     xs = [1.0, 2.0, 3.0]
     ys = [10.0, 20.0]
