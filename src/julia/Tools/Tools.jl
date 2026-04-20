@@ -5,7 +5,6 @@ A collection of general-purpose utilities for numerical analysis and data handli
 This module provides functions commonly used across Partia,
 including:
 
-- Thermodynamic and equation-of-state properties (`eos_properties.jl`)
 - Logging and message control (`logging.jl`)
 - Coordinate transformation utilities (`coordinate_transformations.jl`)
 - Array and matrix operations (`array_operations.jl`)
@@ -23,7 +22,6 @@ using Dates
 
 
 # Tools
-include(joinpath(@__DIR__, "eos_properties.jl"))
 include(joinpath(@__DIR__, "logging.jl"))
 include(joinpath(@__DIR__, "coordinate_transformations.jl"))
 include(joinpath(@__DIR__, "array_operations.jl"))
