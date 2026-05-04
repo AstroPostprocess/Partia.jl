@@ -26,6 +26,7 @@ end
 ################# Constructing LBVH #################
 """
         LinearBVH(enc :: MortonEncoding, brt :: BinaryRadixTree, scale)
+        LinearBVH(enc :: MortonEncoding, brt :: BinaryRadixTree, box_scale :: BoxScale)
 
 Assemble a linear bounding volume hierarchy from a Morton-encoded particle set
 and its matching binary radix tree. This stores per-leaf particle coordinates,
@@ -37,6 +38,8 @@ precomputes the hierarchical extent data required for subsequent neighbor querie
 - `brt :: BinaryRadixTree`: Connectivity generated from the same `enc` instance.
 - `scale`: Per-particle scale vector. By default this is interpreted in the
     original particle order and reordered with `enc.order`.
+- `box_scale :: BoxScale`: Per-particle scale vector plus whether it is already
+    arranged in Morton order.
 
 # Returns
 - `LinearBVH`: Immutable hierarchy storing the tree topology, leaf particle
@@ -45,9 +48,17 @@ precomputes the hierarchical extent data required for subsequent neighbor querie
 function LinearBVH(
     enc :: MortonEncoding{D, TF, TI, VF, VI},
     brt :: BinaryRadixTree{VB},
-    scale :: VF;
-    scale_is_sorted :: Bool = false,
+    scale :: VF,
 ) where {D, TF <: AbstractFloat, TI <: Unsigned, VF <: AbstractVector{TF}, VI <: AbstractVector{TI}, VB <: AbstractVector{Int32}}
+    return LinearBVH(enc, brt, BoxScale(scale, false))
+end
+
+function LinearBVH(
+    enc :: MortonEncoding{D, TF, TI, VF, VI},
+    brt :: BinaryRadixTree{VB},
+    box_scale :: BoxScale{TF, VF},
+) where {D, TF <: AbstractFloat, TI <: Unsigned, VF <: AbstractVector{TF}, VI <: AbstractVector{TI}, VB <: AbstractVector{Int32}}
+    scale = box_scale.scale
     nleaf = brt.nleaf
     ninternal = nleaf - 1
     ntotal = 2 * nleaf - 1
@@ -69,7 +80,7 @@ function LinearBVH(
     end
 
     _build_leaf_coords!(LBVH, enc)
-    _build_leaf_scale!(LBVH, enc, scale, scale_is_sorted)
+    _build_leaf_scale!(LBVH, enc, box_scale)
 
     @threads for startid in Int32(nleaf):Int32(ntotal)                      # Karras: Each thread starts from one leaf node and walks up the tree using parent pointers that we record during radix tree construction.
         _build_internal_aabb!(LBVH, visited, startid)                       # Well I prefer to use id in 2n-1 space rather than the index of leaf

@@ -217,7 +217,7 @@ function LinearBVH!(input :: InterpolationInput{3}, :: Val{3}; CodeType :: Type{
     end
 
     brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt, input.h; scale_is_sorted = true)
+    return LinearBVH(enc, brt, BoxScale(input.h, true))
 end
 
 ## 2D path
@@ -238,7 +238,7 @@ function LinearBVH!(input :: InterpolationInput{2}, :: Val{2}; CodeType :: Type{
     end
 
     brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt, input.h; scale_is_sorted = true)
+    return LinearBVH(enc, brt, BoxScale(input.h, true))
 end
 """
     matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) where {D}

@@ -5,7 +5,7 @@ Provides Morton encoding, binary radix tree construction, and linear bounding
 volume hierarchy (LinearBVH) query routines for SPH data.
 
 Implementations live under the `MortonEncoding/`, `BinaryRadixTree/`,
-`AxisAlignedBoundingBox/`, and `LinearBVH/` directories.
+`AxisAlignedBoundingBox/`, `BoxScale/`, and `LinearBVH/` directories.
 
     by Wei-Shan Su,
     May 4, 2026
@@ -30,6 +30,9 @@ include(joinpath(@__DIR__, "NeighborSelection.jl"))
 # Axis-aligned bounding boxes
 include(joinpath(@__DIR__, "AxisAlignedBoundingBox", "AABB.jl"))
 include(joinpath(@__DIR__, "AxisAlignedBoundingBox", "toolbox.jl"))
+
+# Box scale descriptors
+include(joinpath(@__DIR__, "BoxScale", "BoxScale.jl"))
 
 # Linear bounding volume hierarchy (LinearBVH)
 include(joinpath(@__DIR__, "LinearBVH", "LinearBVH.jl"))

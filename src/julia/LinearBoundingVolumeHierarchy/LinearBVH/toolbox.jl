@@ -18,11 +18,11 @@ end
 function _build_leaf_scale!(
     LBVH :: LinearBVH,
     enc :: MortonEncoding,
-    scale :: AbstractVector,
-    scale_is_sorted :: Bool,
+    box_scale :: BoxScale,
 )
     leaf_scale = LBVH.leaf_scale
-    if scale_is_sorted
+    scale = box_scale.scale
+    if box_scale.is_morton_sorted
         copyto!(leaf_scale, 1, scale, 1, length(leaf_scale))
     else
         order = enc.order
