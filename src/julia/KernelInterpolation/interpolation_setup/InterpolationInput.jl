@@ -1,27 +1,25 @@
+######################################################################################
+
+# InterpolationInput.jl
+#     by Wei-Shan Su
+#     October 31, 2025
+# Definition of the immutable input structure for SPH interpolation.
+# This file defines the abstract interface and concrete implementation of
+# `InterpolationInput`, a statically-typed, GPU-compatible data container used by
+# the interpolation kernels in `KernelInterpolation`.
+# Coordinates are stored as `coord :: NTuple{D,V}` rather than separate `x/y/z`
+# fields. The storage is dimension-aware, while the current interpolation kernels
+# still mainly target the 3D path via `InterpolationInput{3,...}`.
+
+######################################################################################
 """
-InterpolationInput.jl
-    by Wei-Shan Su
-    October 31, 2025
-
-Definition of the immutable input structure for SPH interpolation.
-
-This file defines the abstract interface and concrete implementation of
-`InterpolationInput`, a statically-typed, GPU-compatible data container used by
-the interpolation kernels in `KernelInterpolation`.
-
-Coordinates are stored as `coord::NTuple{D,V}` rather than separate `x/y/z`
-fields. The storage is dimension-aware, while the current interpolation kernels
-still mainly target the 3D path via `InterpolationInput{3,...}`.
-"""
-
-"""
-    InterpolationInput{D, T<:AbstractFloat, V<:AbstractVector{T}, K<:AbstractSPHKernel, NCOLUMN}
+    InterpolationInput{D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN}
 
 Immutable SPH input container for read-only interpolation queries.
 
 This struct is designed for fast and safe interpolation on CPU and GPU. It
 contains all particle quantities required by the SPH interpolation kernels.
-Coordinates are stored as `coord::NTuple{D,V}`, so the spatial dimension is
+Coordinates are stored as `coord :: NTuple{D,V}`, so the spatial dimension is
 carried in the type rather than inferred from separate `x/y/z` fields.
 
 # Type Parameters
@@ -32,22 +30,22 @@ carried in the type rather than inferred from separate `x/y/z` fields.
 - `NCOLUMN`: Number of scalar fields stored in `quant`.
 
 # Fields
-- `Npart::Int64`: Number of active (valid) particles within the batch.
-- `smoothed_kernel::K`: SPH kernel function instance.
-- `coord::NTuple{D,V}`: Particle coordinates, e.g. `(x, y, z)` for `D == 3`.
-- `m::V`: Particle masses.
-- `h::V`: Particle smoothing lengths.
-- `ρ::V`: Particle densities.
-- `quant::NTuple{NCOLUMN,V}`: Tuple of per-field scalar data arrays.
+- `Npart :: Int64`: Number of active (valid) particles within the batch.
+- `smoothed_kernel :: K`: SPH kernel function instance.
+- `coord :: NTuple{D,V}`: Particle coordinates, e.g. `(x, y, z)` for `D == 3`.
+- `m :: V`: Particle masses.
+- `h :: V`: Particle smoothing lengths.
+- `ρ :: V`: Particle densities.
+- `quant :: NTuple{NCOLUMN,V}`: Tuple of per-field scalar data arrays.
 """
 struct InterpolationInput{D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN}
-    Npart           :: Int64
+    Npart :: Int64
     smoothed_kernel :: K
-    coord           :: NTuple{D, V}
-    m               :: V
-    h               :: V
-    ρ               :: V
-    quant           :: NTuple{NCOLUMN, V}
+    coord :: NTuple{D, V}
+    m :: V
+    h :: V
+    ρ :: V
+    quant :: NTuple{NCOLUMN, V}
 end
 
 function Adapt.adapt_structure(to, x :: InterpolationInput{D, T, V, K, NCOLUMN}) where {D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN}
@@ -63,16 +61,16 @@ function Adapt.adapt_structure(to, x :: InterpolationInput{D, T, V, K, NCOLUMN})
 end
 
 """
-    InterpolationInput(coord::NTuple{D,V}, m::V, h::V, ρ::V, quant::NTuple{NCOLUMN,V}; smoothed_kernel::Type{K} = M5_spline) where {D, NCOLUMN, T<:AbstractFloat, V<:AbstractVector{T}, K<:AbstractSPHKernel}
+    InterpolationInput(coord :: NTuple{D,V}, m :: V, h :: V, ρ :: V, quant :: NTuple{NCOLUMN,V}; smoothed_kernel :: Type{K} = M5_spline) where {D, NCOLUMN, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel}
 
 Construct an interpolation input from materialized particle columns.
 
 # Parameters
-- `coord::NTuple{D,V}`: Coordinate tuple, such as `(x, y, z)`.
-- `m::V`: Particle masses.
-- `h::V`: Particle smoothing lengths.
-- `ρ::V`: Particle densities.
-- `quant::NTuple{NCOLUMN,V}`: Tuple of scalar field columns.
+- `coord :: NTuple{D,V}`: Coordinate tuple, such as `(x, y, z)`.
+- `m :: V`: Particle masses.
+- `h :: V`: Particle smoothing lengths.
+- `ρ :: V`: Particle densities.
+- `quant :: NTuple{NCOLUMN,V}`: Tuple of scalar field columns.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
@@ -111,17 +109,17 @@ end
 
 # Basic constructors
 """
-    InterpolationInput(x::V, y::V, m::V, h::V, ρ::V, quant::NTuple{NCOLUMN,V}; smoothed_kernel::Type{K} = M5_spline) where {NCOLUMN, T<:AbstractFloat, V<:AbstractVector{T}, K<:AbstractSPHKernel}
+    InterpolationInput(x :: V, y :: V, m :: V, h :: V, ρ :: V, quant :: NTuple{NCOLUMN,V}; smoothed_kernel :: Type{K} = M5_spline) where {NCOLUMN, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel}
 
 Construct a 2D interpolation input from separate coordinate vectors.
 
 # Parameters
-- `x::V`: Particle x-coordinates.
-- `y::V`: Particle y-coordinates.
-- `m::V`: Particle masses.
-- `h::V`: Particle smoothing lengths.
-- `ρ::V`: Particle densities.
-- `quant::NTuple{NCOLUMN,V}`: Tuple of scalar field columns.
+- `x :: V`: Particle x-coordinates.
+- `y :: V`: Particle y-coordinates.
+- `m :: V`: Particle masses.
+- `h :: V`: Particle smoothing lengths.
+- `ρ :: V`: Particle densities.
+- `quant :: NTuple{NCOLUMN,V}`: Tuple of scalar field columns.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
@@ -131,23 +129,23 @@ Construct a 2D interpolation input from separate coordinate vectors.
 # Returns
 - `InterpolationInput{2,T,V,K,NCOLUMN}`: 2D interpolation input.
 """
-@inline function InterpolationInput(x :: V, y :: V, m :: V, h :: V, ρ :: V, quant :: NTuple{NCOLUMN, V}; smoothed_kernel::Type{K} = M5_spline) where {NCOLUMN, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel}
+@inline function InterpolationInput(x :: V, y :: V, m :: V, h :: V, ρ :: V, quant :: NTuple{NCOLUMN, V}; smoothed_kernel :: Type{K} = M5_spline) where {NCOLUMN, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel}
     return InterpolationInput((x, y), m, h, ρ, quant; smoothed_kernel = smoothed_kernel)
 end
 
 """
-    InterpolationInput(x::V, y::V, z::V, m::V, h::V, ρ::V, quant::NTuple{NCOLUMN,V}; smoothed_kernel::Type{K} = M5_spline) where {NCOLUMN, T<:AbstractFloat, V<:AbstractVector{T}, K<:AbstractSPHKernel}
+    InterpolationInput(x :: V, y :: V, z :: V, m :: V, h :: V, ρ :: V, quant :: NTuple{NCOLUMN,V}; smoothed_kernel :: Type{K} = M5_spline) where {NCOLUMN, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel}
 
 Construct a 3D interpolation input from separate coordinate vectors.
 
 # Parameters
-- `x::V`: Particle x-coordinates.
-- `y::V`: Particle y-coordinates.
-- `z::V`: Particle z-coordinates.
-- `m::V`: Particle masses.
-- `h::V`: Particle smoothing lengths.
-- `ρ::V`: Particle densities.
-- `quant::NTuple{NCOLUMN,V}`: Tuple of scalar field columns.
+- `x :: V`: Particle x-coordinates.
+- `y :: V`: Particle y-coordinates.
+- `z :: V`: Particle z-coordinates.
+- `m :: V`: Particle masses.
+- `h :: V`: Particle smoothing lengths.
+- `ρ :: V`: Particle densities.
+- `quant :: NTuple{NCOLUMN,V}`: Tuple of scalar field columns.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
@@ -167,10 +165,10 @@ end
 @inline Base.length(input :: InterpolationInput) = input.Npart
 
 ## Get element type of the input
-@inline Base.eltype(:: InterpolationInput{D, T}) where {D, T <: AbstractFloat} = T
+@inline Base.eltype( :: InterpolationInput{D, T}) where {D, T <: AbstractFloat} = T
 
 ## Get dimension of the input
-@inline spatial_dimension(:: InterpolationInput{D}) where {D} = D
+@inline spatial_dimension( :: InterpolationInput{D}) where {D} = D
 
 ## Coordinate accessors
 @inline get_coord(input :: InterpolationInput{D}) where {D} = input.coord
@@ -180,7 +178,7 @@ end
 
 
 # Check the "Valid" length of data for each fields
-function Base.checkbounds(input::InterpolationInput)
+function Base.checkbounds(input :: InterpolationInput)
     N = input.Npart
     @assert N isa Integer && N >= 0 "Invalid Npart: $N"
 
@@ -200,12 +198,12 @@ end
 
 # Input helper for LBVH
 ## 3D path
-function LinearBVH!(input::InterpolationInput{3}, ::Val{3}; CodeType::Type{TI} = UInt64) where {TI<:Unsigned}
+function LinearBVH!(input :: InterpolationInput{3}, :: Val{3}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
     z = get_zcoord(input)
 
-    enc = MortonEncoding(x, y, z, input.h, CodeType = CodeType)
+    enc = MortonEncoding(x, y, z, CodeType = CodeType)
     order = enc.order
 
     Base.permute!(x, order)
@@ -219,15 +217,15 @@ function LinearBVH!(input::InterpolationInput{3}, ::Val{3}; CodeType::Type{TI} =
     end
 
     brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt)
+    return LinearBVH(enc, brt, input.h; scale_is_sorted = true)
 end
 
 ## 2D path
-function LinearBVH!(input::InterpolationInput{2}, ::Val{2}; CodeType::Type{TI} = UInt64) where {TI<:Unsigned}
+function LinearBVH!(input :: InterpolationInput{2}, :: Val{2}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
 
-    enc = MortonEncoding(x, y, input.h, CodeType = CodeType)
+    enc = MortonEncoding(x, y, CodeType = CodeType)
     order = enc.order
 
     Base.permute!(x, order)
@@ -240,10 +238,10 @@ function LinearBVH!(input::InterpolationInput{2}, ::Val{2}; CodeType::Type{TI} =
     end
 
     brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt)
+    return LinearBVH(enc, brt, input.h; scale_is_sorted = true)
 end
 """
-    matches_lbvh_leaf_order(input::InterpolationInput{D}, lbvh::LinearBVH{D}) where {D}
+    matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) where {D}
 
 Check whether an interpolation input is already arranged in the same
 Morton-reordered leaf order as a given `LinearBVH`.
@@ -254,16 +252,16 @@ compares the reordered spatial arrays stored in `input` against the leaf data
 stored in `lbvh`.
 
 # Parameters
-- `input::InterpolationInput{D}`: Interpolation input whose current particle
+- `input :: InterpolationInput{D}`: Interpolation input whose current particle
   ordering is to be validated.
-- `lbvh::LinearBVH{D}`: Linear bounding volume hierarchy whose leaf ordering is
+- `lbvh :: LinearBVH{D}`: Linear bounding volume hierarchy whose leaf ordering is
   treated as the reference ordering.
 
 # Returns
 - `Bool`: `true` if `input.coord[d] == lbvh.leaf_coor[d]` for every spatial
-  dimension `d` and `input.h == lbvh.leaf_h`; otherwise `false`.
+  dimension `d` and `input.h == lbvh.leaf_scale`; otherwise `false`.
 
 """
 @inline function matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) :: Bool where {D}
-    all(input.coord[d] == lbvh.leaf_coor[d] for d in 1:D) && (input.h == lbvh.leaf_h)
+    all(input.coord[d] == lbvh.leaf_coor[d] for d in 1:D) && (input.h == lbvh.leaf_scale)
 end

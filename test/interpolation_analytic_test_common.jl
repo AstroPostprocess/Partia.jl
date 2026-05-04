@@ -4,12 +4,12 @@ using Partia
 """Shared analytic manufactured-field helpers for interpolation regression tests."""
 
 @inline analytic_scalar(x, y, z) = x + y + z
-@inline analytic_grad_scalar(::Float64, ::Float64, ::Float64) = (1.0, 1.0, 1.0)
+@inline analytic_grad_scalar( :: Float64, :: Float64, :: Float64) = (1.0, 1.0, 1.0)
 @inline analytic_vecA(x, y, z) = (x, y, z)
-@inline analytic_divA(::Float64, ::Float64, ::Float64) = 3.0
-@inline analytic_curlA(::Float64, ::Float64, ::Float64) = (0.0, 0.0, 0.0)
+@inline analytic_divA( :: Float64, :: Float64, :: Float64) = 3.0
+@inline analytic_curlA( :: Float64, :: Float64, :: Float64) = (0.0, 0.0, 0.0)
 
-function make_uniform_cloud_3d(nx::Int; eta::Float64, kernel::Type{K} = M4_spline, variable_h::Bool = false) where {K<:AbstractSPHKernel}
+function make_uniform_cloud_3d(nx :: Int; eta :: Float64, kernel :: Type{K} = M4_spline, variable_h :: Bool = false) where {K <: AbstractSPHKernel}
     dx = 1.0 / nx
     coords = collect(range(dx / 2, stop = 1.0 - dx / 2, step = dx))
     x = Float64[]
@@ -51,7 +51,7 @@ function make_uniform_cloud_3d(nx::Int; eta::Float64, kernel::Type{K} = M4_splin
     return input, catalog, h[1]
 end
 
-function sample_reference_points(rng::AbstractRNG, n::Int, h::Float64; kernel::Type{K} = M4_spline) where {K<:AbstractSPHKernel}
+function sample_reference_points(rng :: AbstractRNG, n :: Int, h :: Float64; kernel :: Type{K} = M4_spline) where {K <: AbstractSPHKernel}
     margin = 1.5 * KernelFunctionValid(kernel, Float64) * h
     lo = margin
     hi = 1.0 - margin

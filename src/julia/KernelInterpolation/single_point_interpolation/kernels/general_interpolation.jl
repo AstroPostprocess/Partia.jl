@@ -1,10 +1,10 @@
 @inline function _general_quantity_interpolate_kernel(
-                        input::InterpolationInput{3, T, V, Ktyp, NCOLUMN},
-                        reference_point::NTuple{3,T},
-                        ha::T,
-                        LBVH::LinearBVH,
-                        catalog::InterpolationCatalogConcise{3,N,G,D,C},
-                        ::Type{itpGather}) :: Tuple{NTuple{N,T}, NTuple{G,NTuple{3,T}}, NTuple{D,T}, NTuple{C,NTuple{3,T}}} where {N, G, D, C, T<:AbstractFloat, V<:AbstractVector{T}, Ktyp<:AbstractSPHKernel, NCOLUMN}
+                        input :: InterpolationInput{3, T, V, Ktyp, NCOLUMN},
+                        reference_point :: NTuple{3,T},
+                        ha :: T,
+                        LBVH :: LinearBVH,
+                        catalog :: InterpolationCatalogConcise{3,N,G,D,C},
+ :: Type{itpGather}) :: Tuple{NTuple{N,T}, NTuple{G,NTuple{3,T}}, NTuple{D,T}, NTuple{C,NTuple{3,T}}} where {N, G, D, C, T <: AbstractFloat, V <: AbstractVector{T}, Ktyp <: AbstractSPHKernel, NCOLUMN}
     # Prepare for interpolation
     K = input.smoothed_kernel
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -13,9 +13,9 @@
     y = get_ycoord(input)
     z = get_zcoord(input)
     @inbounds begin
-        xa = reference_point[1]; ya = reference_point[2]; za = reference_point[3]; 
+        xa = reference_point[1]; ya = reference_point[2]; za = reference_point[3];
     end
-           
+
     # For aabb test
     radius = Kvalid * ha
     radius2 = radius * radius
@@ -33,7 +33,7 @@
     gradients_scalars :: MVector{G, T} = zero(MVector{G, T})                                                                  # Scalar that is used for estimating gradients
 
     ## Divergences
-    divergences_f :: MVector{D, T} = zero(MVector{D, T})     
+    divergences_f :: MVector{D, T} = zero(MVector{D, T})
     divergences_b :: MVector{D, SVector{3,T}} = MVector{D, SVector{3,T}}(ntuple(_ -> zero(SVector{3,T}), Val(D)))
     divergences_scalars :: MVector{D, SVector{3,T}} = MVector{D, SVector{3,T}}(ntuple(_ -> zero(SVector{3,T}), Val(D)))       # Scalars that is used for estimating divergnece
 
@@ -43,15 +43,15 @@
     curls_scalars :: MVector{C, SVector{3,T}} = MVector{C, SVector{3,T}}(ntuple(_ -> zero(SVector{3,T}), Val(C)))             # Scalars that is used for estimating curls
 
     # Traversal
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
 
-    NeighborSearch.@LBVH_gather_point_traversal LBVH reference_point radius2 leaf_idx p2leaf_d2 begin
+    LinearBoundingVolumeHierarchy.@LBVH_gather_point_traversal LBVH reference_point radius2 leaf_idx p2leaf_d2 begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             xb = x[leaf_idx]; yb = y[leaf_idx]; zb = z[leaf_idx]
             Δx = xa - xb
-            Δy = ya - yb 
+            Δy = ya - yb
             Δz = za - zb
 
             Δr = sqrt(p2leaf_d2)
@@ -141,7 +141,7 @@
 
     # Initialize output containers
     gradients :: MVector{G, NTuple{3, T}} = MVector{G, NTuple{3, T}}(ntuple(_ -> (zero(T), zero(T), zero(T)), Val(G)))
-    divergences :: MVector{D, T} = zero(MVector{D, T}) 
+    divergences :: MVector{D, T} = zero(MVector{D, T})
     curls :: MVector{C, NTuple{3, T}} = MVector{C, NTuple{3, T}}(ntuple(_ -> (zero(T), zero(T), zero(T)), Val(C)))
 
     # Construct gradients
@@ -223,11 +223,11 @@
 end
 
 @inline function _general_quantity_interpolate_kernel(
-                        input::InterpolationInput{3, T, V, Ktyp, NCOLUMN},
-                        reference_point::NTuple{3,T},
-                        LBVH::LinearBVH,
-                        catalog::InterpolationCatalogConcise{3,N,G,D,C},
-                        ::Type{itpScatter}) :: Tuple{NTuple{N,T}, NTuple{G,NTuple{3,T}}, NTuple{D,T}, NTuple{C,NTuple{3,T}}} where {N, G, D, C, T<:AbstractFloat, V<:AbstractVector{T}, Ktyp<:AbstractSPHKernel, NCOLUMN}
+                        input :: InterpolationInput{3, T, V, Ktyp, NCOLUMN},
+                        reference_point :: NTuple{3,T},
+                        LBVH :: LinearBVH,
+                        catalog :: InterpolationCatalogConcise{3,N,G,D,C},
+ :: Type{itpScatter}) :: Tuple{NTuple{N,T}, NTuple{G,NTuple{3,T}}, NTuple{D,T}, NTuple{C,NTuple{3,T}}} where {N, G, D, C, T <: AbstractFloat, V <: AbstractVector{T}, Ktyp <: AbstractSPHKernel, NCOLUMN}
     # Prepare for interpolation
     K = input.smoothed_kernel
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -236,9 +236,9 @@ end
     y = get_ycoord(input)
     z = get_zcoord(input)
     @inbounds begin
-        xa = reference_point[1]; ya = reference_point[2]; za = reference_point[3]; 
+        xa = reference_point[1]; ya = reference_point[2]; za = reference_point[3];
     end
-           
+
     # Initialize counter
     ## Shepard Normalization
     S1 :: T = zero(T)
@@ -252,7 +252,7 @@ end
     gradients_scalars :: MVector{G, T} = zero(MVector{G, T})                                                                  # Scalar that is used for estimating gradients
 
     ## Divergences
-    divergences_f :: MVector{D, T} = zero(MVector{D, T})     
+    divergences_f :: MVector{D, T} = zero(MVector{D, T})
     divergences_b :: MVector{D, SVector{3,T}} = MVector{D, SVector{3,T}}(ntuple(_ -> zero(SVector{3,T}), Val(D)))
     divergences_scalars :: MVector{D, SVector{3,T}} = MVector{D, SVector{3,T}}(ntuple(_ -> zero(SVector{3,T}), Val(D)))       # Scalars that is used for estimating divergnece
 
@@ -262,18 +262,18 @@ end
     curls_scalars :: MVector{C, SVector{3,T}} = MVector{C, SVector{3,T}}(ntuple(_ -> zero(SVector{3,T}), Val(C)))             # Scalars that is used for estimating curls
 
     # Traversal
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
-    hb          :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T   = zero(T)
 
-    NeighborSearch.@LBVH_scatter_point_traversal LBVH reference_point Kvalid leaf_idx p2leaf_d2 hb begin
+    LinearBoundingVolumeHierarchy.@LBVH_scatter_point_traversal LBVH reference_point Kvalid leaf_idx p2leaf_d2 hb begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             xb = x[leaf_idx]; yb = y[leaf_idx]; zb = z[leaf_idx]
             Δx = xa - xb
-            Δy = ya - yb 
+            Δy = ya - yb
             Δz = za - zb
-            
+
             Δr = sqrt(p2leaf_d2)
 
             mb = input.m[leaf_idx]
@@ -342,7 +342,7 @@ end
             end
         end
         #########################################################
-        
+
     end
 
     # Preparing output
@@ -362,9 +362,9 @@ end
 
     # Initialize output containers
     gradients :: MVector{G, NTuple{3, T}} = MVector{G, NTuple{3, T}}(ntuple(_ -> (zero(T), zero(T), zero(T)), Val(G)))
-    divergences :: MVector{D, T} = zero(MVector{D, T}) 
+    divergences :: MVector{D, T} = zero(MVector{D, T})
     curls :: MVector{C, NTuple{3, T}} = MVector{C, NTuple{3, T}}(ntuple(_ -> (zero(T), zero(T), zero(T)), Val(C)))
-    
+
     # Construct gradients
     @inbounds for j in 1:G
         A    = gradients_scalars[j] * invS1
@@ -440,16 +440,16 @@ end
     curls_out = ntuple(i -> curls[i], Val(C))
 
     output = (scalars_out, gradients_out, divergences_out, curls_out)
-    return output 
+    return output
 end
 
 @inline function _general_quantity_interpolate_kernel(
-                        input::InterpolationInput{3, T, V, Ktyp, NCOLUMN},
-                        reference_point::NTuple{3,T},
-                        ha::T,
-                        LBVH::LinearBVH,
-                        catalog::InterpolationCatalogConcise{3,N,G,D,C},
-                        ::Type{itpSymmetric}) :: Tuple{NTuple{N,T}, NTuple{G,NTuple{3,T}}, NTuple{D,T}, NTuple{C,NTuple{3,T}}} where {N, G, D, C, T<:AbstractFloat, V<:AbstractVector{T}, Ktyp<:AbstractSPHKernel, NCOLUMN}
+                        input :: InterpolationInput{3, T, V, Ktyp, NCOLUMN},
+                        reference_point :: NTuple{3,T},
+                        ha :: T,
+                        LBVH :: LinearBVH,
+                        catalog :: InterpolationCatalogConcise{3,N,G,D,C},
+ :: Type{itpSymmetric}) :: Tuple{NTuple{N,T}, NTuple{G,NTuple{3,T}}, NTuple{D,T}, NTuple{C,NTuple{3,T}}} where {N, G, D, C, T <: AbstractFloat, V <: AbstractVector{T}, Ktyp <: AbstractSPHKernel, NCOLUMN}
     # Prepare for interpolation
     K = input.smoothed_kernel
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -458,9 +458,9 @@ end
     y = get_ycoord(input)
     z = get_zcoord(input)
     @inbounds begin
-        xa = reference_point[1]; ya = reference_point[2]; za = reference_point[3]; 
+        xa = reference_point[1]; ya = reference_point[2]; za = reference_point[3];
     end
-           
+
     # For aabb test
     radius = Kvalid * ha
     radius2 = radius * radius
@@ -468,7 +468,7 @@ end
     # Initialize counter
     ## Shepard Normalization
     S1 :: T = zero(T)
-     
+
     ## Scalars
     scalars :: MVector{N, T} = zero(MVector{N, T})
 
@@ -478,7 +478,7 @@ end
     gradients_scalars :: MVector{G, T} = zero(MVector{G, T})                                                                  # Scalar that is used for estimating gradients
 
     ## Divergences
-    divergences_f :: MVector{D, T} = zero(MVector{D, T})     
+    divergences_f :: MVector{D, T} = zero(MVector{D, T})
     divergences_b :: MVector{D, SVector{3,T}} = MVector{D, SVector{3,T}}(ntuple(_ -> zero(SVector{3,T}), Val(D)))
     divergences_scalars :: MVector{D, SVector{3,T}} = MVector{D, SVector{3,T}}(ntuple(_ -> zero(SVector{3,T}), Val(D)))       # Scalars that is used for estimating divergnece
 
@@ -488,16 +488,16 @@ end
     curls_scalars :: MVector{C, SVector{3,T}} = MVector{C, SVector{3,T}}(ntuple(_ -> zero(SVector{3,T}), Val(C)))             # Scalars that is used for estimating curls
 
     # Traversal
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
-    hb          :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T   = zero(T)
 
-    NeighborSearch.@LBVH_symmetric_point_traversal LBVH reference_point Kvalid radius2 leaf_idx p2leaf_d2 hb begin
+    LinearBoundingVolumeHierarchy.@LBVH_symmetric_point_traversal LBVH reference_point Kvalid radius2 leaf_idx p2leaf_d2 hb begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             xb = x[leaf_idx]; yb = y[leaf_idx]; zb = z[leaf_idx]
             Δx = xa - xb
-            Δy = ya - yb 
+            Δy = ya - yb
             Δz = za - zb
 
             Δr = sqrt(p2leaf_d2)
@@ -587,9 +587,9 @@ end
 
     # Initialize output containers
     gradients :: MVector{G, NTuple{3, T}} = MVector{G, NTuple{3, T}}(ntuple(_ -> (zero(T), zero(T), zero(T)), Val(G)))
-    divergences :: MVector{D, T} = zero(MVector{D, T}) 
+    divergences :: MVector{D, T} = zero(MVector{D, T})
     curls :: MVector{C, NTuple{3, T}} = MVector{C, NTuple{3, T}}(ntuple(_ -> (zero(T), zero(T), zero(T)), Val(C)))
-    
+
     # Construct gradients
     @inbounds for j in 1:G
         A    = gradients_scalars[j] * invS1

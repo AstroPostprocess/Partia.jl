@@ -54,12 +54,12 @@ Implemented under:
 - `grid_interpolation/`
 """
 module KernelInterpolation
-using .Threads 
+using .Threads
 using StaticArrays
 using Adapt
 
 using Partia.Grids
-using Partia.NeighborSearch
+using Partia.LinearBoundingVolumeHierarchy
 
 # KernelInterpolation
 include(joinpath(@__DIR__, "table", "line_integrated_kernel_tables.jl"))
@@ -102,7 +102,7 @@ include(joinpath(@__DIR__, "line_integrated_interpolation", "kernels", "line_int
 ### Setup
 include(joinpath(@__DIR__, "grid_interpolation", "setup", "initialize_interpolation.jl"))
 
-### Kernels 
+### Kernels
 include(joinpath(@__DIR__, "grid_interpolation", "kernels", "PointSamples_kernel.jl"))
 include(joinpath(@__DIR__, "grid_interpolation", "kernels", "LineSamples_kernel.jl"))
 

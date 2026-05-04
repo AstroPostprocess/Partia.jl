@@ -27,7 +27,7 @@
     return ∇ρxf, ∇ρyf, ∇ρzf, ∇ρxb, ∇ρyb, ∇ρzb
 end
 
-@inline function _gradient_density_accumulation(ra::NTuple{D, T}, rb::NTuple{D, T}, mb :: T, ρb :: T, h :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
+@inline function _gradient_density_accumulation(ra :: NTuple{D, T}, rb :: NTuple{D, T}, mb :: T, ρb :: T, h :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
     Ktyp = typeof(smoothed_kernel)
     ∇W = Smoothed_gradient_kernel_function(Ktyp, ra, rb, h)
     ∂xW = ∇W[1]
@@ -74,7 +74,7 @@ end
     return ∇ρxf, ∇ρyf, ∇ρzf, ∇ρxb, ∇ρyb, ∇ρzb
 end
 
-@inline function _gradient_density_accumulation(ra::NTuple{D, T}, rb::NTuple{D, T}, mb :: T, ρb :: T, ha :: T, hb :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
+@inline function _gradient_density_accumulation(ra :: NTuple{D, T}, rb :: NTuple{D, T}, mb :: T, ρb :: T, ha :: T, hb :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
     Ktyp = typeof(smoothed_kernel)
     ∇Wa = Smoothed_gradient_kernel_function(Ktyp, ra, rb, ha)
     ∇Wb = Smoothed_gradient_kernel_function(Ktyp, ra, rb, hb)
@@ -127,7 +127,7 @@ end
     return ∇Axf, ∇Ayf, ∇Azf, ∇Axb, ∇Ayb, ∇Azb
 end
 
-@inline function _gradient_quantity_accumulation(ra::NTuple{D, T}, rb::NTuple{D, T}, mb :: T, ρb :: T, Ab :: T, h :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
+@inline function _gradient_quantity_accumulation(ra :: NTuple{D, T}, rb :: NTuple{D, T}, mb :: T, ρb :: T, Ab :: T, h :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
     Ktyp = typeof(smoothed_kernel)
     ∇W = Smoothed_gradient_kernel_function(Ktyp, ra, rb, h)
     ∂xW = ∇W[1]
@@ -174,7 +174,7 @@ end
     return ∇Axf, ∇Ayf, ∇Azf, ∇Axb, ∇Ayb, ∇Azb
 end
 
-@inline function _gradient_quantity_accumulation(ra::NTuple{D, T}, rb::NTuple{D, T}, mb :: T, ρb :: T, Ab :: T, ha :: T, hb :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
+@inline function _gradient_quantity_accumulation(ra :: NTuple{D, T}, rb :: NTuple{D, T}, mb :: T, ρb :: T, Ab :: T, ha :: T, hb :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
     Ktyp = typeof(smoothed_kernel)
     ∇Wa = Smoothed_gradient_kernel_function(Ktyp, ra, rb, ha)
     ∇Wb = Smoothed_gradient_kernel_function(Ktyp, ra, rb, hb)

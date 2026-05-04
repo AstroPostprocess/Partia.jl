@@ -1,16 +1,16 @@
-"""
-Splash-style tabulated full line-integrated SPH kernel functions.
-    by Wei-Shan Su,
-    October 31, 2025
+######################################################################################
 
-This file provides tabulated full line-integrated versions of the standard 3D
-SPH smoothing kernels. It is intended for efficient evaluation of column
-density and related line-integrated quantities by replacing the 3D kernel
-`W(r, h)` with its full line-integrated counterpart.
-"""
+# Splash-style tabulated full line-integrated SPH kernel functions.
+#     by Wei-Shan Su,
+#     October 31, 2025
+# This file provides tabulated full line-integrated versions of the standard 3D
+# SPH smoothing kernels. It is intended for efficient evaluation of column
+# density and related line-integrated quantities by replacing the 3D kernel
+# `W(r, h)` with its full line-integrated counterpart.
 
+######################################################################################
 # Line-integrated kernel lookup
-@inline function _lin_lut(q::T, Q::SVector{N,T}, I::SVector{N,T}) where {N,T <: AbstractFloat}
+@inline function _lin_lut(q :: T, Q :: SVector{N,T}, I :: SVector{N,T}) where {N,T <: AbstractFloat}
     dq = Q[2] - Q[1]
     idxf = q / dq + one(T)
     i = Int(clamp(Base.unsafe_trunc(Int32, idxf), Int32(1), Int32(N - 1)))
@@ -39,22 +39,22 @@ for (K, Q64sym, I64sym, Q32sym, I32sym) in (
     (C4_Wendland, :_C4_Wendland_Q, :_C4_Wendland_Inorm, :_C4_Wendland_Q32, :_C4_Wendland_Inorm32),
     (C6_Wendland, :_C6_Wendland_Q, :_C6_Wendland_Inorm, :_C6_Wendland_Q32, :_C6_Wendland_Inorm32),
 )
-    @eval @inline lookup_line_integrated_kernel(::Type{$K}, q_perp::Float32) =
+    @eval @inline lookup_line_integrated_kernel( :: Type{$K}, q_perp :: Float32) =
     _lin_lut(q_perp, $Q32sym, $I32sym)
 
-    @eval @inline lookup_line_integrated_kernel(::Type{$K}, q_perp::Float64) =
+    @eval @inline lookup_line_integrated_kernel( :: Type{$K}, q_perp :: Float64) =
     _lin_lut(q_perp, $Q64sym, $I64sym)
 end
 
-@inline function lookup_line_integrated_kernel(::Type{K}, q_perp::T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
+@inline function lookup_line_integrated_kernel( :: Type{K}, q_perp :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     return T(lookup_line_integrated_kernel(K, Float64(q_perp)))
 end
 
 """
     line_integrated_kernel_function_dimensionless(
-        ::Type{K},
-        q_perp::T,
-    ) where {K<:AbstractSPHKernel, T<:AbstractFloat}
+ :: Type{K},
+        q_perp :: T,
+    ) where {K <: AbstractSPHKernel, T <: AbstractFloat}
 
 Evaluate the **dimensionless line-integrated SPH kernel**
 for a given dimensionless transverse separation `q_perp`.
@@ -71,9 +71,9 @@ kernel support radius.
 If `q_perp` exceeds the kernel support (`q_perp ≥ q_max`), the function returns zero.
 
 # Parameters
-- `::Type{K}`
+- ` :: Type{K}`
   SPH kernel type, where `K <: AbstractSPHKernel`.
-- `q_perp::T`
+- `q_perp :: T`
   Dimensionless transverse separation from the integration line.
 
 # Returns
@@ -87,7 +87,7 @@ If `q_perp` exceeds the kernel support (`q_perp ≥ q_max`), the function return
 - Intended for use in column-density or other line-integrated quantity calculations.
 - Performs no heap allocation and is suitable for hot loops.
 """
-@inline function line_integrated_kernel_function_dimensionless(::Type{K}, q_perp::T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
+@inline function line_integrated_kernel_function_dimensionless( :: Type{K}, q_perp :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     q_perp ≥ KernelFunctionValid(K, T) && return zero(T)
     Iq = lookup_line_integrated_kernel(K, q_perp)
     return Iq
@@ -95,10 +95,10 @@ end
 
 """
     line_integrated_kernel_function(
-        ::Type{<:AbstractSPHKernel},
-        r::T,
-        h::T
-    ) where {T<:AbstractFloat}
+ :: Type{ <: AbstractSPHKernel},
+        r :: T,
+        h :: T
+    ) where {T <: AbstractFloat}
 
 Evaluate the **line-integrated SPH kernel** at transverse distance `r`
 for smoothing length `h`.
@@ -117,37 +117,37 @@ column-density or other line-integrated quantity evaluations. It is not a
 replacement for the original 3D kernel in volumetric interactions.
 
 # Parameters
-- `::Type{<:AbstractSPHKernel}`  
+- ` :: Type{ <: AbstractSPHKernel}`
   SPH kernel type.
-- `r::T`  
+- `r :: T`
   Transverse distance from the integration line.
-- `h::T`  
+- `h :: T`
   Smoothing length.
 
 # Returns
-- `T`  
+- `T`
   Physical line-integrated kernel value, including the `1 / h` scaling.
 
 """
-@inline function line_integrated_kernel_function(::Type{K}, r::T, h::T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
+@inline function line_integrated_kernel_function( :: Type{K}, r :: T, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     invh = inv(h)
     q_perp = r * invh
     I_dimless = line_integrated_kernel_function_dimensionless(K, q_perp)
     return invh * I_dimless
 end
 
-@inline function line_integrated_kernel_function(::Type{K}, r::T, h::S) where {K <: AbstractSPHKernel, T <: AbstractFloat, S <: AbstractFloat}
+@inline function line_integrated_kernel_function( :: Type{K}, r :: T, h :: S) where {K <: AbstractSPHKernel, T <: AbstractFloat, S <: AbstractFloat}
     rp, hp = promote(r, h)
     return line_integrated_kernel_function(K, rp, hp)
 end
 
 """
     line_integrated_kernel_function(
-        ::Type{<:AbstractSPHKernel},
-        ra::NTuple{2,T},
-        rb::NTuple{2,T},
-        h::T
-    ) where {T<:AbstractFloat}
+ :: Type{ <: AbstractSPHKernel},
+        ra :: NTuple{2,T},
+        rb :: NTuple{2,T},
+        h :: T
+    ) where {T <: AbstractFloat}
 
 Evaluate the **line-integrated SPH kernel** from two transverse-plane
 coordinates and a smoothing length.
@@ -162,25 +162,25 @@ line-integrated kernel value
     I(r, h) = ∫ W(√(r² + s²), h) ds .
 
 # Parameters
-- `::Type{<:AbstractSPHKernel}`  
+- ` :: Type{ <: AbstractSPHKernel}`
   SPH kernel type.
-- `ra::NTuple{2,T}`  
+- `ra :: NTuple{2,T}`
   2D transverse-plane coordinates of the evaluation point.
-- `rb::NTuple{2,T}`  
+- `rb :: NTuple{2,T}`
   2D transverse-plane coordinates of the source point.
-- `h::T`  
+- `h :: T`
   Smoothing length.
 
 # Returns
-- `T`  
+- `T`
   Physical line-integrated kernel value, including the `1 / h` scaling.
 """
-@inline function line_integrated_kernel_function(::Type{K}, ra::NTuple{2,T}, rb::NTuple{2,T}, h::T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
+@inline function line_integrated_kernel_function( :: Type{K}, ra :: NTuple{2,T}, rb :: NTuple{2,T}, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     rax, ray = ra
     rbx, rby = rb
     Δx = rax - rbx
     Δy = ray - rby
     r2 = Δx * Δx + Δy * Δy
     r = sqrt(r2)
-    return line_integrated_kernel_function(K, r, h) 
+    return line_integrated_kernel_function(K, r, h)
 end

@@ -1,4 +1,4 @@
-@inline function _line_integrated_density_kernel(input::InterpolationInput{3, T}, origin::NTuple{3, T}, direction::NTuple{3, T}, ha :: T, LBVH :: LinearBVH, :: Type{itpGather} = itpGather) where {T <: AbstractFloat}
+@inline function _line_integrated_density_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, :: Type{itpGather} = itpGather) where {T <: AbstractFloat}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -8,10 +8,10 @@
     radius = Kvalid * ha
     radius2 = radius * radius
 
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
 
-    NeighborSearch.@LBVH_gather_line_traversal LBVH origin direction radius2 leaf_idx p2leaf_d2 begin
+    LinearBoundingVolumeHierarchy.@LBVH_gather_line_traversal LBVH origin direction radius2 leaf_idx p2leaf_d2 begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             Δr = sqrt(p2leaf_d2)
@@ -23,18 +23,18 @@
     return Sigma
 end
 
-@inline function _line_integrated_density_kernel(input::InterpolationInput{3, T}, origin::NTuple{3, T}, direction::NTuple{3, T}, LBVH :: LinearBVH, :: Type{itpScatter}) where {T <: AbstractFloat}
+@inline function _line_integrated_density_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, LBVH :: LinearBVH, :: Type{itpScatter}) where {T <: AbstractFloat}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
 
     Sigma :: T = zero(T)
 
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
-    hb          :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T   = zero(T)
 
-    NeighborSearch.@LBVH_scatter_line_traversal LBVH origin direction Kvalid leaf_idx p2leaf_d2 hb begin
+    LinearBoundingVolumeHierarchy.@LBVH_scatter_line_traversal LBVH origin direction Kvalid leaf_idx p2leaf_d2 hb begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             Δr = sqrt(p2leaf_d2)
@@ -46,7 +46,7 @@ end
     return Sigma
 end
 
-@inline function _line_integrated_density_kernel(input::InterpolationInput{3, T}, origin::NTuple{3, T}, direction::NTuple{3, T}, ha :: T, LBVH :: LinearBVH, :: Type{itpSymmetric}) where {T <: AbstractFloat}
+@inline function _line_integrated_density_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, :: Type{itpSymmetric}) where {T <: AbstractFloat}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -56,11 +56,11 @@ end
     radius = Kvalid * ha
     radius2 = radius * radius
 
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
-    hb          :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T   = zero(T)
 
-    NeighborSearch.@LBVH_symmetric_line_traversal LBVH origin direction Kvalid radius2 leaf_idx p2leaf_d2 hb begin
+    LinearBoundingVolumeHierarchy.@LBVH_symmetric_line_traversal LBVH origin direction Kvalid radius2 leaf_idx p2leaf_d2 hb begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             Δr = sqrt(p2leaf_d2)
@@ -73,7 +73,7 @@ end
 end
 
 ## Multi-column line-integrated interpolation
-@inline function _line_integrated_quantities_interpolate_kernel(input::InterpolationInput{3, T}, origin::NTuple{3, T}, direction::NTuple{3, T}, ha :: T, LBVH :: LinearBVH, columns::NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpGather} = itpGather) where {T <: AbstractFloat, M}
+@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, columns :: NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpGather} = itpGather) where {T <: AbstractFloat, M}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -84,10 +84,10 @@ end
     radius = Kvalid * ha
     radius2 = radius * radius
 
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
 
-    NeighborSearch.@LBVH_gather_line_traversal LBVH origin direction radius2 leaf_idx p2leaf_d2 begin
+    LinearBoundingVolumeHierarchy.@LBVH_gather_line_traversal LBVH origin direction radius2 leaf_idx p2leaf_d2 begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             Δr = sqrt(p2leaf_d2)
@@ -120,7 +120,7 @@ end
     return NTuple{M, T}(output)
 end
 
-@inline function _line_integrated_quantities_interpolate_kernel(input::InterpolationInput{3, T}, origin::NTuple{3, T}, direction::NTuple{3, T}, LBVH :: LinearBVH, columns::NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpScatter}) where {T <: AbstractFloat, M}
+@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, LBVH :: LinearBVH, columns :: NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpScatter}) where {T <: AbstractFloat, M}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -128,11 +128,11 @@ end
     output :: MVector{M, T} = zero(MVector{M, T})
     S1 :: T = zero(T)
 
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
-    hb          :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T   = zero(T)
 
-    NeighborSearch.@LBVH_scatter_line_traversal LBVH origin direction Kvalid leaf_idx p2leaf_d2 hb begin
+    LinearBoundingVolumeHierarchy.@LBVH_scatter_line_traversal LBVH origin direction Kvalid leaf_idx p2leaf_d2 hb begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             Δr = sqrt(p2leaf_d2)
@@ -165,7 +165,7 @@ end
     return NTuple{M, T}(output)
 end
 
-@inline function _line_integrated_quantities_interpolate_kernel(input::InterpolationInput{3, T}, origin::NTuple{3, T}, direction::NTuple{3, T}, ha :: T, LBVH :: LinearBVH, columns::NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpSymmetric}) where {T <: AbstractFloat, M}
+@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, columns :: NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpSymmetric}) where {T <: AbstractFloat, M}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -176,11 +176,11 @@ end
     radius = Kvalid * ha
     radius2 = radius * radius
 
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
-    hb          :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T   = zero(T)
 
-    NeighborSearch.@LBVH_symmetric_line_traversal LBVH origin direction Kvalid radius2 leaf_idx p2leaf_d2 hb begin
+    LinearBoundingVolumeHierarchy.@LBVH_symmetric_line_traversal LBVH origin direction Kvalid radius2 leaf_idx p2leaf_d2 hb begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             Δr = sqrt(p2leaf_d2)
@@ -213,7 +213,7 @@ end
     return NTuple{M, T}(output)
 end
 
-@inline function _line_integrated_quantities_interpolate_kernel(input::InterpolationInput{3, T}, origin::NTuple{3, T}, direction::NTuple{3, T}, ha :: T, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY} = itpSymmetric) where {T <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
+@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY} = itpSymmetric) where {T <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
     val_len = Val(length(input.quant))
     columns = ntuple(identity, val_len)
     ShepardNormalization = ntuple(_ -> true, val_len)

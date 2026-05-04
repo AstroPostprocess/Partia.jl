@@ -16,8 +16,7 @@ function Partia.to_CuVector(enc :: MortonEncoding{D, TF, TI, VF, VI}) where {D, 
     return MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}(
         CuVector{TI}(enc.order),
         CuVector{TI}(enc.codes),
-        ntuple(i -> CuVector{TF}(enc.coord[i]), D),
-        CuVector{Float32}(enc.h)
+        ntuple(i -> CuVector{TF}(enc.coord[i]), D)
     )
 end
 
@@ -43,9 +42,9 @@ function Partia.to_CuVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: Ab
     return LinearBVH{D, TF, CuVector{TF}, CuVector{Int32}}(
         to_CuVector(LBVH.brt),
         ntuple(i -> CuVector{TF}(LBVH.leaf_coor[i]), D),
-        CuVector{TF}(LBVH.leaf_h),
+        CuVector{TF}(LBVH.leaf_scale),
         to_CuVector(LBVH.node_aabb),
-        CuVector{TF}(LBVH.node_hmax)
+        CuVector{TF}(LBVH.node_scale)
     )
 end
 

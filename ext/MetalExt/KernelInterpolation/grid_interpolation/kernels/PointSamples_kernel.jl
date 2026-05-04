@@ -1,4 +1,4 @@
-@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy::Type{ITPSTRATEGY} = itpSymmetric) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY} = itpSymmetric) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     tid = Int(Metal.thread_position_in_grid().x)
     stride = Int(Metal.threads_per_grid().x)
 
@@ -62,7 +62,7 @@
     return nothing
 end
 
-@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, ::Type{itpScatter}) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}}
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}}
     tid = Int(Metal.thread_position_in_grid().x)
     stride = Int(Metal.threads_per_grid().x)
 

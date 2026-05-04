@@ -1,40 +1,31 @@
-# ──────────────────────────────────────────────────────────────────────────── #
+######################################################################################
+
 #  Test: Type Stability — Core Numerical Kernels and Hot Helpers
-# ──────────────────────────────────────────────────────────────────────────── #
-#
 #  What this file tests
-#  ─────────────────────
 #  Representative `@inferred` checks for concrete, performance-critical code
 #  paths that should stay type-stable:
-#
 #  1. SPH kernel evaluation
 #     • `Smoothed_kernel_function*`
 #     • `Smoothed_gradient_kernel_function`
 #     • `line_integrated_kernel_function*`
-#
 #  2. Neighbor-search query helpers
 #     • `LBVH_probe_neighbors`
 #     • `LBVH_find_nearest`
 #     • `LBVH_find_nearest_h`
 #     • `LBVH_query!`
-#
 #  3. Single-point interpolation kernels
 #     • density / quantity
 #     • gradient / divergence / curl
 #     • multi-quantity interpolation
-#
 #  4. Line-integrated interpolation kernels
 #     • density
 #     • single- and multi-quantity interpolation
-#
-#
 #  Deliberately excluded here:
 #  • I/O, logging, and orchestration-heavy wrappers
 #  • APIs that intentionally return flexible container shapes
 #  • broad generic method sweeps; only representative concrete inputs are used
-#
-# ──────────────────────────────────────────────────────────────────────────── #
 
+######################################################################################
 using Test
 using StaticArrays
 using Partia

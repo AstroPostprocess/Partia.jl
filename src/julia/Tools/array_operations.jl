@@ -1,9 +1,10 @@
-"""
-Useful operations for array
-    by Wei-Shan Su,
-    September 23, 2025
-"""
+######################################################################################
 
+# Useful operations for array
+#     by Wei-Shan Su,
+#     September 23, 2025
+
+######################################################################################
 """
     meshgrid(arrays :: Vararg{AbstractVector{T}, N})
 
@@ -13,7 +14,7 @@ Create N meshgrid arrays from N 1D coordinate vectors.
 - `arrays :: AbstractVector...` : One or more 1D coordinate vectors.
 
 # Returns
-- `NTuple{N, Array{T, N}}` : An N-tuple of N-dimensional arrays.  
+- `NTuple{N, Array{T, N}}` : An N-tuple of N-dimensional arrays.
   The `i`-th array varies along dimension `i` and is constant along other dimensions.
   Element type `T` follows the corresponding input vector’s element type.
 
@@ -46,8 +47,8 @@ Compute the mean of `array` along the specified dimension, and drop that
 dimension from the result.
 
 # Parameters
-- `array::AbstractArray` : Input array.
-- `dim::Int=1` : Dimension along which the mean is computed.
+- `array :: AbstractArray` : Input array.
+- `dim :: Int=1` : Dimension along which the mean is computed.
 
 # Returns
 - `AbstractArray` : Array with one less dimension, after averaging.
@@ -62,24 +63,24 @@ end
 Define a new `nan*` variant of the statistical function that ignores `NaN` values.
 
 This macro generates two method overloads:
-- `nanfunc(A::AbstractArray{T})`: returns the scalar result after removing all `NaN`s.
-- `nanfunc(A::AbstractArray{T}, dims::Integer)`: performs reduction along the specified dimension, skipping `NaN`s and returning `T(NaN)` if the slice is entirely `NaN`.
+- `nanfunc(A :: AbstractArray{T})`: returns the scalar result after removing all `NaN`s.
+- `nanfunc(A :: AbstractArray{T}, dims :: Integer)`: performs reduction along the specified dimension, skipping `NaN`s and returning `T(NaN)` if the slice is entirely `NaN`.
 
 # Parameters
-- `funcname::Symbol`: The base function name (e.g., `:mean`, `:maximum`) to wrap.
+- `funcname :: Symbol`: The base function name (e.g., `:mean`, `:maximum`) to wrap.
 
 # Generated
 - A new function named `nanfuncname` will be defined in the current scope.
 """
 macro _def_nanfunc(funcname)
-    fname = Symbol(:nan, funcname)          
+    fname = Symbol(:nan, funcname)
     quote
-        @inline function $(fname)(A::AbstractArray{T}) where {T<:Number}
+        @inline function $(fname)(A :: AbstractArray{T}) where {T <: Number}
             vals = filter(!isnan, A)
             return isempty(vals) ? T(NaN) : $(funcname)(vals)
         end
 
-        @inline function $(fname)(A::AbstractArray{T}, dims::Integer) where {T<:Number}
+        @inline function $(fname)(A :: AbstractArray{T}, dims :: Integer) where {T <: Number}
             if ndims(A) == 1
                 return [nanmean(A)]
             else
@@ -87,7 +88,7 @@ macro _def_nanfunc(funcname)
                 return dropdims(result, dims)
             end
         end
-    end |> esc        
+    end |> esc
 end
 
 
@@ -164,11 +165,11 @@ array `A` was permuted into `B` via `B = A[order]`, then the original array can
 be recovered by `A = B[invorder]`.
 
 # Parameters
-- `order::AbstractVector{<:Integer}`: A permutation vector of length `n`. All
+- `order :: AbstractVector{ <: Integer}`: A permutation vector of length `n`. All
   indices must form a valid permutation of `1:n`.
 
 # Returns
-- `invorder::AbstractVector{<:Integer}`: The inverse permutation, satisfying
+- `invorder :: AbstractVector{ <: Integer}`: The inverse permutation, satisfying
   `invorder[order[i]] = i` for all `i`.
 
 """
@@ -182,7 +183,7 @@ function invert_order(order :: V) where {TI <: Integer, V <: AbstractVector{TI}}
 end
 
 """
-    maxabs(array::A) where {T<:Complex, A<:AbstractArray{T}}
+    maxabs(array :: A) where {T <: Complex, A <: AbstractArray{T}}
 
 Compute the maximum absolute value of a complex array using a single-pass
 squared-magnitude reduction:
@@ -190,7 +191,7 @@ squared-magnitude reduction:
     ‖A‖ₘₐₓ = maxᵢ |aᵢ| = √( maxᵢ abs2(aᵢ) )
 
 # Parameters
-- `array::AbstractArray{T}`: Complex-valued array (`T <: Complex`).
+- `array :: AbstractArray{T}`: Complex-valued array (`T <: Complex`).
 
 # Returns
 - `Real`: The maximum absolute value of the elements of `array`,

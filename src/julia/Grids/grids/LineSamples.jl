@@ -1,6 +1,6 @@
 
 """
-    LineSamples{D, TF<:AbstractFloat, VG<:AbstractVector{TF}, VC<:NTuple{D, VG}} <: AbstractSamples{D, TF}
+    LineSamples{D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}} <: AbstractSamples{D, TF}
 
 A generic *unstructured* sample container for interpolation, storing grid values together with
 line primitives in structure-of-arrays (SoA) form.
@@ -34,7 +34,7 @@ struct LineSamples{D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTupl
     direction :: VC
 
     # Inner constructor
-    function LineSamples(grid::VG, origin::VC, direction::VC) where {D,TF<:AbstractFloat,VG<:AbstractVector{TF},VC<:NTuple{D,VG}}
+    function LineSamples(grid :: VG, origin :: VC, direction :: VC) where {D,TF <: AbstractFloat,VG <: AbstractVector{TF},VC <: NTuple{D,VG}}
         N = length(grid)
 
         @inbounds for d in 1:D
@@ -55,7 +55,7 @@ function Adapt.adapt_structure(to, x :: LineSamples{D}) where {D}
 end
 
 """
-    similar(grid::LineSamples)
+    similar(grid :: LineSamples)
 
 Construct a new `LineSamples` with fresh storage for sample values while
 sharing the same geometric containers as the input object.
@@ -64,7 +64,7 @@ The returned object allocates a new `grid` vector, but reuses
 `grid.origin` and `grid.direction` without copying them.
 
 # Parameters
-- `grid::LineSamples` :
+- `grid :: LineSamples` :
   Template sample container whose geometric layout is reused.
 
 # Returns
@@ -72,28 +72,28 @@ The returned object allocates a new `grid` vector, but reuses
   A new `LineSamples` object with independent value storage and shared
   origin/direction containers.
 """
-function Base.similar(grid::LineSamples)
-    # Geometry is taken from grids[1] under the contract that `similar(::LineSamples)`
+function Base.similar(grid :: LineSamples)
+    # Geometry is taken from grids[1] under the contract that `similar( :: LineSamples)`
     # shares `origin` and `direction` across all output grids.
     return LineSamples(similar(grid.grid), grid.origin, grid.direction)
 end
 
 """
-    similar(grid::LineSamples, ::Type{T}) where {T<:AbstractFloat}
+    similar(grid :: LineSamples, :: Type{T}) where {T <: AbstractFloat}
 
 Construct a new `LineSamples` with value storage of element type `T`, and with
 the origin and direction fields copied into newly allocated storage of the same
 element type.
 
-Unlike `similar(grid::LineSamples)`, this method does not share the geometric
+Unlike `similar(grid :: LineSamples)`, this method does not share the geometric
 containers. Instead, both `origin` and `direction` are reallocated and their
 contents are copied after conversion to `T`.
 
 # Parameters
-- `grid::LineSamples` :
+- `grid :: LineSamples` :
   Template sample container whose value and geometric data are used to initialise
   the new object.
-- `::Type{T}` :
+- ` :: Type{T}` :
   Target floating-point element type for the returned value, origin, and direction
   arrays.
 
@@ -102,7 +102,7 @@ contents are copied after conversion to `T`.
   A new `LineSamples` object whose `grid`, `origin`, and `direction` fields are
   stored in newly allocated arrays with element type `T`.
 """
-function Base.similar(grid::LineSamples{3,TF}, ::Type{T}) where {TF<:AbstractFloat,T<:AbstractFloat}
+function Base.similar(grid :: LineSamples{3,TF}, :: Type{T}) where {TF <: AbstractFloat,T <: AbstractFloat}
     new_grid = similar(grid.grid, T)
     new_origin = ntuple(i -> similar(grid.origin[i], T), 3)
     new_direction = ntuple(i -> similar(grid.direction[i], T), 3)
@@ -124,27 +124,27 @@ function Base.similar(grid::LineSamples{3,TF}, ::Type{T}) where {TF<:AbstractFlo
             new_direction[1][i] = xdi
             new_direction[2][i] = ydi
             new_direction[3][i] = zdi
-        end 
+        end
     end
     return LineSamples(new_grid, new_origin, new_direction)
 end
 
 """
-    similar(grid::LineSamples, ::Type{T}) where {T<:AbstractFloat}
+    similar(grid :: LineSamples, :: Type{T}) where {T <: AbstractFloat}
 
 Construct a new `LineSamples` with value storage of element type `T`, and with
 the origin and direction fields copied into newly allocated storage of the same
 element type.
 
-Unlike `similar(grid::LineSamples)`, this method does not share the geometric
+Unlike `similar(grid :: LineSamples)`, this method does not share the geometric
 containers. Instead, both `origin` and `direction` are reallocated and their
 contents are copied after conversion to `T`.
 
 # Parameters
-- `grid::LineSamples` :
+- `grid :: LineSamples` :
   Template sample container whose value and geometric data are used to initialise
   the new object.
-- `::Type{T}` :
+- ` :: Type{T}` :
   Target floating-point element type for the returned value, origin, and direction
   arrays.
 
@@ -153,7 +153,7 @@ contents are copied after conversion to `T`.
   A new `LineSamples` object whose `grid`, `origin`, and `direction` fields are
   stored in newly allocated arrays with element type `T`.
 """
-function Base.similar(grid::LineSamples{2,TF}, ::Type{T}) where {TF<:AbstractFloat,T<:AbstractFloat}
+function Base.similar(grid :: LineSamples{2,TF}, :: Type{T}) where {TF <: AbstractFloat,T <: AbstractFloat}
     new_grid = similar(grid.grid, T)
     new_origin = ntuple(i -> similar(grid.origin[i], T), 2)
     new_direction = ntuple(i -> similar(grid.direction[i], T), 2)
@@ -171,19 +171,19 @@ function Base.similar(grid::LineSamples{2,TF}, ::Type{T}) where {TF<:AbstractFlo
 
             new_direction[1][i] = xdi
             new_direction[2][i] = ydi
-        end 
+        end
     end
     return LineSamples(new_grid, new_origin, new_direction)
 end
 
 """
     Base.isapprox(
-        grid::LineSamples{D,TF},
-        origin_axes::NTuple{D,<:AbstractVector},
-        direction_axes::NTuple{D,<:AbstractVector};
-        atol::Real = 1.0e-8,
-        rtol::Real = 1.0e-8
-    ) :: Bool where {D,TF<:AbstractFloat}
+        grid :: LineSamples{D,TF},
+        origin_axes :: NTuple{D, <: AbstractVector},
+        direction_axes :: NTuple{D, <: AbstractVector};
+        atol :: Real = 1.0e-8,
+        rtol :: Real = 1.0e-8
+    ) :: Bool where {D,TF <: AbstractFloat}
 
 Check whether a `LineSamples` matches a tensor-product reference defined
 by `origin_axes` and `direction_axes`, up to numerical tolerance.
@@ -210,25 +210,25 @@ The function returns `true` if and only if both:
 hold for all `i` and all dimensions `d`, within the specified tolerances.
 
 # Parameters
-- `grid::LineSamples{D,TF}` :
+- `grid :: LineSamples{D,TF}` :
   The grid whose origin and direction fields are to be validated.
-- `origin_axes::NTuple{D,<:AbstractVector}` :
+- `origin_axes :: NTuple{D, <: AbstractVector}` :
   Per-dimension axes defining the expected origin positions via tensor-product expansion.
-- `direction_axes::NTuple{D,<:AbstractVector}` :
+- `direction_axes :: NTuple{D, <: AbstractVector}` :
   Per-dimension axes defining the expected direction field via tensor-product expansion.
 
 # Keyword Arguments
 | Name         | Default  | Description                                      |
 |--------------|----------|--------------------------------------------------|
-| `atol::Real` | `1e-8`   | Absolute tolerance for floating-point comparison |
-| `rtol::Real` | `1e-8`   | Relative tolerance for floating-point comparison |
+| `atol :: Real` | `1e-8`   | Absolute tolerance for floating-point comparison |
+| `rtol :: Real` | `1e-8`   | Relative tolerance for floating-point comparison |
 
 # Returns
 - `Bool` :
   `true` if both origin and direction fields match the expected tensor-product
   expansion within tolerance; otherwise `false`.
 """
-function Base.isapprox(grid::LineSamples{D,TF}, origin_axes::NTuple{D,<:AbstractVector}, direction_axes::NTuple{D,<:AbstractVector}; atol::Real = 1.0e-8, rtol::Real = 1.0e-8)::Bool where {D,TF<:AbstractFloat}
+function Base.isapprox(grid :: LineSamples{D,TF}, origin_axes :: NTuple{D, <: AbstractVector}, direction_axes :: NTuple{D, <: AbstractVector}; atol :: Real = 1.0e-8, rtol :: Real = 1.0e-8) :: Bool where {D,TF <: AbstractFloat}
 
     size_expected = ntuple(d -> length(origin_axes[d]), D)
     ntuple(d -> length(direction_axes[d]), D) == size_expected || return false
@@ -264,7 +264,7 @@ function Base.isapprox(grid::LineSamples{D,TF}, origin_axes::NTuple{D,<:Abstract
     return true
 end
 
-function Base.permute!(grid::LineSamples{D,TF}, p :: AbstractVector{TI}) where {D,TF<:AbstractFloat, TI<:Integer}
+function Base.permute!(grid :: LineSamples{D,TF}, p :: AbstractVector{TI}) where {D,TF <: AbstractFloat, TI <: Integer}
     Base.permute!(grid.grid, p)
     @inbounds for i in 1:D
         Base.permute!(grid.origin[i], p)
@@ -273,7 +273,7 @@ function Base.permute!(grid::LineSamples{D,TF}, p :: AbstractVector{TI}) where {
     return nothing
 end
 
-function Base.invpermute!(grid::LineSamples{D,TF}, p :: AbstractVector{TI}) where {D,TF<:AbstractFloat, TI<:Integer}
+function Base.invpermute!(grid :: LineSamples{D,TF}, p :: AbstractVector{TI}) where {D,TF <: AbstractFloat, TI <: Integer}
     Base.invpermute!(grid.grid, p)
     @inbounds for i in 1:D
         Base.invpermute!(grid.origin[i], p)
@@ -283,7 +283,7 @@ function Base.invpermute!(grid::LineSamples{D,TF}, p :: AbstractVector{TI}) wher
 end
 
 """
-    batch_LineSamples(grid::LineSamples{D, TF, VG, VC}, batch_size::Int)
+    batch_LineSamples(grid :: LineSamples{D, TF, VG, VC}, batch_size :: Int)
 
 Split a `LineSamples` into contiguous batches, each containing at most `batch_size` points.
 The function preserves the ordering of both `grid.grid` and coordinates `grid.origin` and `grid.direction`, returning
@@ -294,10 +294,10 @@ Batch `b` contains points from index
 where `N = length(grid)`.
 
 # Parameters
-- `grid::LineSamples{D, TF, VG, VC}` :
+- `grid :: LineSamples{D, TF, VG, VC}` :
   Input grid containing values `grid.grid` and coordinates `grid.origin` and `grid.direction` in SoA layout
   (`grid.origin[d][i]` is the `d`-th coordinate of the `i`-th point).
-- `batch_size::Int` :
+- `batch_size :: Int` :
   Maximum number of points in each batch.
 
 # Returns
@@ -310,7 +310,7 @@ Each returned `LineSamples` contains:
 
 with `start:stop` defined by the batch index `b`.
 """
-function batch_LineSamples(grid::LineSamples{D,TF,VG,VC}, batch_size::Int) where {D, TF<:AbstractFloat, VG<:AbstractVector{TF}, VC<:NTuple{D,VG}}
+function batch_LineSamples(grid :: LineSamples{D,TF,VG,VC}, batch_size :: Int) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}}
     npoints = length(grid)
     num_batches = cld(npoints, batch_size)
 
@@ -327,7 +327,7 @@ function batch_LineSamples(grid::LineSamples{D,TF,VG,VC}, batch_size::Int) where
 end
 
 """
-    merge_LineSamples(grids::AbstractVector{<:LineSamples{D,TF,VG,VC}}) where {D,TF<:AbstractFloat,VG<:AbstractVector{TF},VC<:NTuple{D,VG}}
+    merge_LineSamples(grids :: AbstractVector{ <: LineSamples{D,TF,VG,VC}}) where {D,TF <: AbstractFloat,VG <: AbstractVector{TF},VC <: NTuple{D,VG}}
 
 Merge a collection of `LineSamples` objects into a single `LineSamples`.
 
@@ -344,7 +344,7 @@ This preserves the original sample ordering when `grids` was produced by
 `batch_LineSamples` without any intervening reordering.
 
 # Parameters
-- `grids::AbstractVector{<:LineSamples{D,TF,VG,VC}}` :
+- `grids :: AbstractVector{ <: LineSamples{D,TF,VG,VC}}` :
   A vector of `LineSamples` objects to merge.
 
 # Returns
@@ -356,7 +356,7 @@ This preserves the original sample ordering when `grids` was produced by
 
   across all input grids, in order.
 """
-function merge_LineSamples(grids::V) where {D, TF<:AbstractFloat, VG<:AbstractVector{TF}, VC<:NTuple{D,VG}, GG<:LineSamples{D,TF,VG,VC}, V<:AbstractVector{GG}}
+function merge_LineSamples(grids :: V) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}, GG <: LineSamples{D,TF,VG,VC}, V <: AbstractVector{GG}}
     merged_grid = vcat((g.grid for g in grids)...)
     merged_origin = ntuple(d -> vcat((g.origin[d] for g in grids)...), D)
     merged_direction = ntuple(d -> vcat((g.direction[d] for g in grids)...), D)
@@ -366,7 +366,7 @@ end
 
 # Constructors
 """
-    LineSamples(xo::V, yo::V, zo::V, xd::V, yd::V, zd::V) where {T<:AbstractFloat, V<:AbstractVector{T}}
+    LineSamples(xo :: V, yo :: V, zo :: V, xd :: V, yd :: V, zd :: V) where {T <: AbstractFloat, V <: AbstractVector{T}}
 
 Construct a 3D `LineSamples` object from per-sample line origins and direction
 vectors.
@@ -403,7 +403,7 @@ function LineSamples(xo :: V, yo :: V, zo :: V, xd :: V, yd :: V, zd :: V) where
 end
 
 """
-    LineSamples(xo::V, yo::V, xd::V, yd::V) where {T<:AbstractFloat, V<:AbstractVector{T}}
+    LineSamples(xo :: V, yo :: V, xd :: V, yd :: V) where {T <: AbstractFloat, V <: AbstractVector{T}}
 
 Construct a 2D `LineSamples` object from per-sample line origins and direction
 vectors.

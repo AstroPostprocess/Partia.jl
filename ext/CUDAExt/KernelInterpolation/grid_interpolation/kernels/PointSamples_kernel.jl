@@ -1,4 +1,4 @@
-@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy::Type{ITPSTRATEGY} = itpSymmetric) where {N, G, Div, C, L, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY} = itpSymmetric) where {N, G, Div, C, L, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
     tid    = Int(CUDA.threadIdx().x)
     bid    = Int(CUDA.blockIdx().x)
     bdim   = Int(CUDA.blockDim().x)
@@ -67,7 +67,7 @@
     return nothing
 end
 
-@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, ::Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat}
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat}
     tid    = Int(CUDA.threadIdx().x)
     bid    = Int(CUDA.blockIdx().x)
     bdim   = Int(CUDA.blockDim().x)

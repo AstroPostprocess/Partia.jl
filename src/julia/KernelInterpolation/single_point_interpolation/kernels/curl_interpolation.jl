@@ -1,4 +1,4 @@
-@inline function _curl_quantity_interpolate_kernel(input::InterpolationInput{3, T}, reference_point::NTuple{3, T}, ha :: T, LBVH :: LinearBVH, Ax_column_idx :: Int, Ay_column_idx :: Int, Az_column_idx :: Int, :: Type{itpGather}) where {T <: AbstractFloat}
+@inline function _curl_quantity_interpolate_kernel(input :: InterpolationInput{3, T}, reference_point :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, Ax_column_idx :: Int, Ay_column_idx :: Int, Az_column_idx :: Int, :: Type{itpGather}) where {T <: AbstractFloat}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -22,14 +22,14 @@
     Ay :: T = zero(T)
     Az :: T = zero(T)
     S1 :: T = zero(T)
-     
 
-    
+
+
     # Traversal
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
 
-    NeighborSearch.@LBVH_gather_point_traversal LBVH reference_point radius2 leaf_idx p2leaf_d2 begin
+    LinearBoundingVolumeHierarchy.@LBVH_gather_point_traversal LBVH reference_point radius2 leaf_idx p2leaf_d2 begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             rb = (x[leaf_idx], y[leaf_idx], z[leaf_idx])
@@ -49,10 +49,10 @@
             mlρ∂xW += mblρb∂xW
             mlρ∂yW += mblρb∂yW
             mlρ∂zW += mblρb∂zW
-            
+
             S1b = _ShepardNormalization_accumulation(reference_point, rb, mb, ρb, ha, K)
             S1 += S1b
-             
+
         end
         #########################################################
     end
@@ -71,11 +71,11 @@
     ∇Ay = -(∇Ayf - ∇Ayb)
     ∇Az = -(∇Azf - ∇Azb)
 
-     
-    return (∇Ax, ∇Ay, ∇Az) 
+
+    return (∇Ax, ∇Ay, ∇Az)
 end
 
-@inline function _curl_quantity_interpolate_kernel(input::InterpolationInput{3, T}, reference_point::NTuple{3, T}, LBVH :: LinearBVH, Ax_column_idx :: Int, Ay_column_idx :: Int, Az_column_idx :: Int, :: Type{itpScatter}) where {T <: AbstractFloat}
+@inline function _curl_quantity_interpolate_kernel(input :: InterpolationInput{3, T}, reference_point :: NTuple{3, T}, LBVH :: LinearBVH, Ax_column_idx :: Int, Ay_column_idx :: Int, Az_column_idx :: Int, :: Type{itpScatter}) where {T <: AbstractFloat}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -96,15 +96,15 @@ end
     Ay :: T = zero(T)
     Az :: T = zero(T)
     S1 :: T = zero(T)
-     
 
-    
+
+
     # Traversal
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
-    hb          :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T   = zero(T)
 
-    NeighborSearch.@LBVH_scatter_point_traversal LBVH reference_point Kvalid leaf_idx p2leaf_d2 hb begin
+    LinearBoundingVolumeHierarchy.@LBVH_scatter_point_traversal LBVH reference_point Kvalid leaf_idx p2leaf_d2 hb begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             rb = (x[leaf_idx], y[leaf_idx], z[leaf_idx])
@@ -123,10 +123,10 @@ end
             mlρ∂xW += mblρb∂xW
             mlρ∂yW += mblρb∂yW
             mlρ∂zW += mblρb∂zW
-            
+
             S1b = _ShepardNormalization_accumulation(reference_point, rb, mb, ρb, hb, K)
             S1 += S1b
-             
+
         end
         #########################################################
     end
@@ -145,11 +145,11 @@ end
     ∇Ay = -(∇Ayf - ∇Ayb)
     ∇Az = -(∇Azf - ∇Azb)
 
-     
-    return (∇Ax, ∇Ay, ∇Az) 
+
+    return (∇Ax, ∇Ay, ∇Az)
 end
 
-@inline function _curl_quantity_interpolate_kernel(input::InterpolationInput{3, T}, reference_point::NTuple{3, T}, ha :: T, LBVH :: LinearBVH, Ax_column_idx :: Int, Ay_column_idx :: Int, Az_column_idx :: Int, :: Type{itpSymmetric}) where {T <: AbstractFloat}
+@inline function _curl_quantity_interpolate_kernel(input :: InterpolationInput{3, T}, reference_point :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, Ax_column_idx :: Int, Ay_column_idx :: Int, Az_column_idx :: Int, :: Type{itpSymmetric}) where {T <: AbstractFloat}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -173,15 +173,15 @@ end
     Ay :: T = zero(T)
     Az :: T = zero(T)
     S1 :: T = zero(T)
-     
 
-    
+
+
     # Traversal
-    leaf_idx    :: Int = zero(Int)
-    p2leaf_d2   :: T   = zero(T)
-    hb          :: T   = zero(T)
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T   = zero(T)
 
-    NeighborSearch.@LBVH_symmetric_point_traversal LBVH reference_point Kvalid radius2 leaf_idx p2leaf_d2 hb begin
+    LinearBoundingVolumeHierarchy.@LBVH_symmetric_point_traversal LBVH reference_point Kvalid radius2 leaf_idx p2leaf_d2 hb begin
         ########### Found a neighbor, do accumulation ###########
         @inbounds begin
             rb = (x[leaf_idx], y[leaf_idx], z[leaf_idx])
@@ -200,10 +200,10 @@ end
             mlρ∂xW += mblρb∂xW
             mlρ∂yW += mblρb∂yW
             mlρ∂zW += mblρb∂zW
-            
+
             S1b = _ShepardNormalization_accumulation(reference_point, rb, mb, ρb, ha, hb, K)
             S1 += S1b
-             
+
         end
         #########################################################
     end
@@ -222,6 +222,6 @@ end
     ∇Ay = -(∇Ayf - ∇Ayb)
     ∇Az = -(∇Azf - ∇Azb)
 
-     
-    return (∇Ax, ∇Ay, ∇Az) 
+
+    return (∇Ax, ∇Ay, ∇Az)
 end

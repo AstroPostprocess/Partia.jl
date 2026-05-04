@@ -16,8 +16,7 @@ function Partia.to_HostVector(enc :: MortonEncoding{D, TF, TI, VF, VI}) where {D
     return MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}(
         Vector{TI}(enc.order),
         Vector{TI}(enc.codes),
-        ntuple(i -> Vector{TF}(enc.coord[i]), D),
-        Vector{TF}(enc.h)
+        ntuple(i -> Vector{TF}(enc.coord[i]), D)
     )
 end
 
@@ -43,9 +42,9 @@ function Partia.to_HostVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: 
     return LinearBVH{D, TF, Vector{TF}, Vector{Int32}}(
         to_HostVector(LBVH.brt),
         ntuple(i -> Vector{TF}(LBVH.leaf_coor[i]), D),
-        Vector{TF}(LBVH.leaf_h),
+        Vector{TF}(LBVH.leaf_scale),
         to_HostVector(LBVH.node_aabb),
-        Vector{TF}(LBVH.node_hmax)
+        Vector{TF}(LBVH.node_scale)
     )
 end
 

@@ -1,16 +1,20 @@
+######################################################################################
+
 # Interpolation kernels
-## Need providing smoothed radius
-@inline function _point_samples_interpolation_kernel!(:: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy::Type{ITPSTRATEGY} = itpSymmetric) where {N, G, Div, C, L, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
+# # Need providing smoothed radius
+
+######################################################################################
+@inline function _point_samples_interpolation_kernel!( :: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY} = itpSymmetric) where {N, G, Div, C, L, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
     # Get point
     @inbounds begin
         geometry = grids[1]
-        
+
         xa = geometry.coor[1][i]
         ya = geometry.coor[2][i]
         za = geometry.coor[3][i]
         point :: NTuple{3, TF} = (xa, ya, za)
     end
-    
+
     # Particles searching
     ha = LBVH_find_nearest_h(LBVH, point)
 
@@ -69,7 +73,7 @@
 end
 
 ## Not providing smoothed radius
-@inline function _point_samples_interpolation_kernel!(:: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, ::Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat}
+@inline function _point_samples_interpolation_kernel!( :: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat}
     # Get point
     @inbounds begin
         geometry = grids[1]

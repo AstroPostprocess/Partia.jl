@@ -1,12 +1,9 @@
-# ──────────────────────────────────────────────────────────────────────────── #
+######################################################################################
+
 #  Test: SPH Kernel Functions — Numerical Correctness
-# ──────────────────────────────────────────────────────────────────────────── #
-#
 #  What this file tests
-#  ─────────────────────
 #  Validates all six SPH kernel families (M4, M5, M6, C2, C4, C6 Wendland)
 #  and their associated operations against hand-verified reference values:
-#
 #  1. Support radius — `KernelFunctionValid` returns correct q_max.
 #  2. Normalisation  — `KernelFunctionnorm` returns correct σ_D.
 #  3. Kernel values  — `Smoothed_kernel_function_dimensionless` at specific
@@ -16,18 +13,15 @@
 #     difference approximation.
 #  6. Line-integrated kernel — numerical column-integral of M4 matches the
 #     tabulated `line_integrated_kernel_function`.
-#
 #  Reference formulas
-#  ──────────────────
 #  • M4:  Monaghan (1985)   q_max = 2
 #  • M5:  Morris (1996)     q_max = 2.5
 #  • M6:  Morris (1996)     q_max = 3
 #  • C2:  Wendland (1995)   q_max = 2
 #  • C4:  Wendland (1995)   q_max = 2
 #  • C6:  Wendland (1995)   q_max = 2
-#
-# ──────────────────────────────────────────────────────────────────────────── #
 
+######################################################################################
 using Test
 using Partia
 
@@ -39,13 +33,13 @@ all_kernels = (M4_spline, M5_spline, M6_spline,
 # ========================== Helper functions ================================ #
 
 """Analytic dimensionless kernel value f(q) for verification."""
-function analytic_kernel(::Type{M4_spline}, q::Float64)
+function analytic_kernel( :: Type{M4_spline}, q :: Float64)
     q < 0 && return NaN
     q >= 2 && return 0.0
     q < 1 ? 0.25 * (2 - q)^3 - (1 - q)^3 : 0.25 * (2 - q)^3
 end
 
-function analytic_kernel(::Type{M5_spline}, q::Float64)
+function analytic_kernel( :: Type{M5_spline}, q :: Float64)
     q < 0 && return NaN
     q >= 2.5 && return 0.0
     if q < 0.5
@@ -57,7 +51,7 @@ function analytic_kernel(::Type{M5_spline}, q::Float64)
     end
 end
 
-function analytic_kernel(::Type{M6_spline}, q::Float64)
+function analytic_kernel( :: Type{M6_spline}, q :: Float64)
     q < 0 && return NaN
     q >= 3.0 && return 0.0
     if q < 1
@@ -69,19 +63,19 @@ function analytic_kernel(::Type{M6_spline}, q::Float64)
     end
 end
 
-function analytic_kernel(::Type{C2_Wendland}, q::Float64)
+function analytic_kernel( :: Type{C2_Wendland}, q :: Float64)
     q < 0 && return NaN
     q >= 2 && return 0.0
     (1 - 0.5q)^4 * (2q + 1)
 end
 
-function analytic_kernel(::Type{C4_Wendland}, q::Float64)
+function analytic_kernel( :: Type{C4_Wendland}, q :: Float64)
     q < 0 && return NaN
     q >= 2 && return 0.0
     (1 - 0.5q)^6 * (35 / 12 * q^2 + 3q + 1)
 end
 
-function analytic_kernel(::Type{C6_Wendland}, q::Float64)
+function analytic_kernel( :: Type{C6_Wendland}, q :: Float64)
     q < 0 && return NaN
     q >= 2 && return 0.0
     (1 - 0.5q)^8 * (4q^3 + 6.25q^2 + 4q + 1)

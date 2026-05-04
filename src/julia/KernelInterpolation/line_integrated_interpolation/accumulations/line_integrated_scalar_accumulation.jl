@@ -1,4 +1,8 @@
-## Line-integrated density interpolation (Column / Surface density)
+######################################################################################
+
+# # Line-integrated density interpolation (Column / Surface density)
+
+######################################################################################
 @inline function _line_integrated_density_accumulation(Δr :: T, mb :: T, h :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel}
     Ktyp = typeof(smoothed_kernel)
     W = line_integrated_kernel_function(Ktyp, Δr, h)

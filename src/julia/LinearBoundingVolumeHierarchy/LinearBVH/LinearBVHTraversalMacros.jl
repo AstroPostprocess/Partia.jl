@@ -8,7 +8,7 @@ This is the **gather** variant: the pruning radius is given by the `radius2` inp
 
 # Arguments
 - `LBVH`:
-  A `LinearBVH` whose `brt` provides `root::Int32`, `left::Vector{Int32}`, `escape::Vector{Int32}`, `nleaf::Int`,
+  A `LinearBVH` whose `brt` provides `root :: Int32`, `left :: Vector{Int32}`, `escape :: Vector{Int32}`, `nleaf :: Int`,
   and whose internal-node AABBs are stored in `LBVH.node_aabb` while leaf
   primitives are stored in `LBVH.leaf_coor`.
 - `reference_point`:
@@ -44,7 +44,7 @@ macro LBVH_gather_point_traversal(LBVH, reference_point, radius2, leafsym, d2sym
     rp_         = esc(reference_point)
     r2_         = esc(radius2)
     leafsym_    = esc(leafsym)
-    d2sym_      = esc(d2sym) 
+    d2sym_      = esc(d2sym)
 
     # the user-provided code must run in caller scope
     hit_  = esc(leaf_hit)
@@ -63,7 +63,7 @@ macro LBVH_gather_point_traversal(LBVH, reference_point, radius2, leafsym, d2sym
 
         ## Other information
         $root_        = $brt_.root
-        $nleaf_       = $brt_.nleaf     
+        $nleaf_       = $brt_.nleaf
 
         # No internal node: brute force leaves
         if iszero($root_)
@@ -114,11 +114,11 @@ Stackless DFS traversal over a LinearBVH/BinaryRadixTree using
 `left` + `escape` links (no explicit stack, no recursion).
 
 This is the **scatter** variant: the pruning radius is **node-dependent**.
-For each leaf, the acceptance radius is `r = Kvalid * leaf_h[leaf_idx]`.
-For each internal node, subtree pruning uses `r = Kvalid * node_hmax[node_idx]`.
+For each leaf, the acceptance radius is `r = Kvalid * leaf_scale[leaf_idx]`.
+For each internal node, subtree pruning uses `r = Kvalid * node_scale[node_idx]`.
 
 # Arguments
-- `LBVH`: `LinearBVH` holding `leaf_coor`, `node_aabb`, `leaf_h`, `node_hmax`, and `brt`.
+- `LBVH`: `LinearBVH` holding `leaf_coor`, `node_aabb`, `leaf_scale`, `node_scale`, and `brt`.
 - `reference_point`: query point used in AABB distance tests.
 - `Kvalid`: scalar multiplier converting smoothing length to search radius.
 - `leafsym`:
@@ -128,7 +128,7 @@ For each internal node, subtree pruning uses `r = Kvalid * node_hmax[node_idx]`.
 - `hbsym`:
   Caller-scope symbol that receives the smoothing length associated with the
   accepted leaf.
-- `leaf_hit`: 
+- `leaf_hit`:
    An expression executed on each accepted leaf after assigning `leafsym`,
    `d2sym`, and `hbsym` in caller scope.
 """
@@ -149,8 +149,8 @@ macro LBVH_scatter_point_traversal(LBVH, reference_point, Kvalid, leafsym, d2sym
     d2_node_        = gensym(:d2_node)
     r_              = gensym(:r)
     r2_             = gensym(:r2)
-    leaf_h_         = gensym(:leaf_h)
-    node_hmax_      = gensym(:node_hmax)
+    leaf_scale_     = gensym(:leaf_scale)
+    node_scale_     = gensym(:node_scale)
     hb_             = gensym(:hb)
 
     # hygiene: avoid capturing user locals
@@ -158,7 +158,7 @@ macro LBVH_scatter_point_traversal(LBVH, reference_point, Kvalid, leafsym, d2sym
     Kvalid_     = esc(Kvalid)
     rp_         = esc(reference_point)
     leafsym_    = esc(leafsym)
-    d2sym_      = esc(d2sym) 
+    d2sym_      = esc(d2sym)
     hbsym_      = esc(hbsym)
 
     # the user-provided code must run in caller scope
@@ -178,14 +178,14 @@ macro LBVH_scatter_point_traversal(LBVH, reference_point, Kvalid, leafsym, d2sym
 
         ## Other information
         $root_        = $brt_.root
-        $nleaf_       = $brt_.nleaf     
-        $leaf_h_      = $LBVH_.leaf_h
-        $node_hmax_   = $LBVH_.node_hmax
+        $nleaf_       = $brt_.nleaf
+        $leaf_scale_  = $LBVH_.leaf_scale
+        $node_scale_  = $LBVH_.node_scale
 
         # No internal node: brute force leaves
         if iszero($root_)
             @inbounds for $leaf_idx_ in 1:$nleaf_
-                $hb_    = $leaf_h_[$leaf_idx_]
+                $hb_    = $leaf_scale_[$leaf_idx_]
                 $r_     = $Kvalid_ * $hb_
                 $r2_    = $r_ * $r_
                 $d2_ = _squared_distance_point_coords($rp_, $leaf_coor_, $leaf_idx_)
@@ -202,7 +202,7 @@ macro LBVH_scatter_point_traversal(LBVH, reference_point, Kvalid, leafsym, d2sym
                 # Leaf: process then jump by escape
                 if is_leaf_id($node_, $nleaf_)
                     $leaf_idx_ = leaf_index($node_, $nleaf_)
-                    $hb_    = $leaf_h_[$leaf_idx_]
+                    $hb_    = $leaf_scale_[$leaf_idx_]
                     $r_     = $Kvalid_ * $hb_
                     $r2_    = $r_ * $r_
                     $d2_ = _squared_distance_point_coords($rp_, $leaf_coor_, $leaf_idx_)
@@ -218,7 +218,7 @@ macro LBVH_scatter_point_traversal(LBVH, reference_point, Kvalid, leafsym, d2sym
 
                 # Internal: AABB reject => prune subtree
                 $node_idx_ = internal_index($node_)
-                $hb_    = $node_hmax_[$node_idx_]
+                $hb_    = $node_scale_[$node_idx_]
                 $r_     = $Kvalid_ * $hb_
                 $r2_    = $r_ * $r_
                 $d2_node_ = _squared_distance_point_aabb($rp_, $node_min_, $node_max_, $node_idx_)
@@ -245,12 +245,12 @@ This is the **symmetric** variant: each candidate uses a per-node acceptance rad
 
     r2 = max(radius2, (Kvalid * h)^2)
 
-where `h = leaf_h[leaf_idx]` for leaves and `h = node_hmax[node_idx]` for internal nodes.
+where `h = leaf_scale[leaf_idx]` for leaves and `h = node_scale[node_idx]` for internal nodes.
 This implements a symmetric gate between a fixed query radius (`radius2`) and an
 SPH smoothing-radius scale (`Kvalid*h`).
 
 # Arguments
-- `LBVH`: `LinearBVH` holding `leaf_coor`, `node_aabb`, `leaf_h`, `node_hmax`, and `brt`.
+- `LBVH`: `LinearBVH` holding `leaf_coor`, `node_aabb`, `leaf_scale`, `node_scale`, and `brt`.
 - `reference_point`: query point used in AABB distance tests.
 - `Kvalid`: scalar multiplier converting smoothing length to search radius.
 - `radius2`: base squared radius for the query.
@@ -261,7 +261,7 @@ SPH smoothing-radius scale (`Kvalid*h`).
 - `hbsym`:
   Caller-scope symbol that receives the smoothing length associated with the
   accepted leaf.
-- `leaf_hit`: 
+- `leaf_hit`:
    An expression executed on each accepted leaf after assigning `leafsym`,
    `d2sym`, and `hbsym` in caller scope.
 """
@@ -282,10 +282,10 @@ macro LBVH_symmetric_point_traversal(LBVH, reference_point, Kvalid, radius2, lea
     d2_node_        = gensym(:d2_node)
     r_              = gensym(:r)
     r2_             = gensym(:r2)
-    leaf_h_         = gensym(:leaf_h)
-    node_hmax_      = gensym(:node_hmax)
+    leaf_scale_     = gensym(:leaf_scale)
+    node_scale_     = gensym(:node_scale)
     hb_             = gensym(:hb)
-    
+
 
     # hygiene: avoid capturing user locals
     LBVH_       = esc(LBVH)
@@ -293,7 +293,7 @@ macro LBVH_symmetric_point_traversal(LBVH, reference_point, Kvalid, radius2, lea
     radius2_    = esc(radius2)
     rp_         = esc(reference_point)
     leafsym_    = esc(leafsym)
-    d2sym_      = esc(d2sym) 
+    d2sym_      = esc(d2sym)
     hbsym_      = esc(hbsym)
 
     # the user-provided code must run in caller scope
@@ -313,14 +313,14 @@ macro LBVH_symmetric_point_traversal(LBVH, reference_point, Kvalid, radius2, lea
 
         ## Other information
         $root_        = $brt_.root
-        $nleaf_       = $brt_.nleaf     
-        $leaf_h_      = $LBVH_.leaf_h
-        $node_hmax_   = $LBVH_.node_hmax
+        $nleaf_       = $brt_.nleaf
+        $leaf_scale_  = $LBVH_.leaf_scale
+        $node_scale_  = $LBVH_.node_scale
 
         # No internal node: brute force leaves
         if iszero($root_)
             @inbounds for $leaf_idx_ in 1:$nleaf_
-                $hb_    = $leaf_h_[$leaf_idx_]
+                $hb_    = $leaf_scale_[$leaf_idx_]
                 $r_     = $Kvalid_ * $hb_
                 $r2_    = max($radius2_, $r_ * $r_)
                 $d2_    = _squared_distance_point_coords($rp_, $leaf_coor_, $leaf_idx_)
@@ -337,7 +337,7 @@ macro LBVH_symmetric_point_traversal(LBVH, reference_point, Kvalid, radius2, lea
                 # Leaf: process then jump by escape
                 if is_leaf_id($node_, $nleaf_)
                     $leaf_idx_ = leaf_index($node_, $nleaf_)
-                    $hb_    = $leaf_h_[$leaf_idx_]
+                    $hb_    = $leaf_scale_[$leaf_idx_]
                     $r_     = $Kvalid_ * $hb_
                     $r2_    = max($radius2_, $r_ * $r_)
                     $d2_ = _squared_distance_point_coords($rp_, $leaf_coor_, $leaf_idx_)
@@ -353,7 +353,7 @@ macro LBVH_symmetric_point_traversal(LBVH, reference_point, Kvalid, radius2, lea
 
                 # Internal: AABB reject => prune subtree
                 $node_idx_ = internal_index($node_)
-                $hb_    = $node_hmax_[$node_idx_]
+                $hb_    = $node_scale_[$node_idx_]
                 $r_     = $Kvalid_ * $hb_
                 $r2_    = max($radius2_, $r_ * $r_)
                 $d2_node_ = _squared_distance_point_aabb($rp_, $node_min_, $node_max_, $node_idx_)
@@ -384,8 +384,8 @@ distance between the query line and the leaf particle coordinate.
 
 # Parameters
 - `LBVH`:
-  A `LinearBVH` whose `brt` provides `root::Int32`, `left::Vector{Int32}`,
-  `escape::Vector{Int32}`, and `nleaf::Int`, whose internal-node AABBs are
+  A `LinearBVH` whose `brt` provides `root :: Int32`, `left :: Vector{Int32}`,
+  `escape :: Vector{Int32}`, and `nleaf :: Int`, whose internal-node AABBs are
   stored in `LBVH.node_aabb`, and whose leaf primitives are stored in
   `LBVH.leaf_coor`.
 - `line_origin`:
@@ -430,7 +430,7 @@ macro LBVH_gather_line_traversal(LBVH, line_origin, line_direction, radius2, lea
     direction_  = esc(line_direction)
     r2_         = esc(radius2)
     leafsym_    = esc(leafsym)
-    d2sym_      = esc(d2sym) 
+    d2sym_      = esc(d2sym)
 
     # the user-provided code must run in caller scope
     hit_  = esc(leaf_hit)
@@ -449,7 +449,7 @@ macro LBVH_gather_line_traversal(LBVH, line_origin, line_direction, radius2, lea
 
         ## Other information
         $root_        = $brt_.root
-        $nleaf_       = $brt_.nleaf     
+        $nleaf_       = $brt_.nleaf
 
         # No internal node: brute force leaves
         if iszero($root_)
@@ -502,11 +502,11 @@ Stackless DFS traversal over a `LinearBVH`/`BinaryRadixTree` using
 This is the **scatter** line-traversal variant: the acceptance radius is
 node-dependent. For each leaf, the acceptance radius is
 
-    r = Kvalid * leaf_h[leaf_idx]
+    r = Kvalid * leaf_scale[leaf_idx]
 
 and for each internal node, subtree pruning uses
 
-    r = Kvalid * node_hmax[node_idx]
+    r = Kvalid * node_scale[node_idx]
 
 Leaf primitives are tested using the exact squared distance between the query
 line and the leaf particle coordinate, while internal nodes are pruned using
@@ -515,7 +515,7 @@ the node AABB.
 
 # Parameters
 - `LBVH`:
-  A `LinearBVH` holding `leaf_coor`, `node_aabb`, `leaf_h`, `node_hmax`, and
+  A `LinearBVH` holding `leaf_coor`, `node_aabb`, `leaf_scale`, `node_scale`, and
   `brt`.
 - `line_origin`:
   `NTuple{D,T}` giving the origin of the query line.
@@ -556,8 +556,8 @@ macro LBVH_scatter_line_traversal(LBVH, line_origin, line_direction, Kvalid, lea
     d2_node_        = gensym(:d2_node)
     r_              = gensym(:r)
     r2_             = gensym(:r2)
-    leaf_h_         = gensym(:leaf_h)
-    node_hmax_      = gensym(:node_hmax)
+    leaf_scale_     = gensym(:leaf_scale)
+    node_scale_     = gensym(:node_scale)
     hb_             = gensym(:hb)
 
     # hygiene: avoid capturing user locals
@@ -566,7 +566,7 @@ macro LBVH_scatter_line_traversal(LBVH, line_origin, line_direction, Kvalid, lea
     origin_     = esc(line_origin)
     direction_  = esc(line_direction)
     leafsym_    = esc(leafsym)
-    d2sym_      = esc(d2sym) 
+    d2sym_      = esc(d2sym)
     hbsym_      = esc(hbsym)
 
     # the user-provided code must run in caller scope
@@ -586,14 +586,14 @@ macro LBVH_scatter_line_traversal(LBVH, line_origin, line_direction, Kvalid, lea
 
         ## Other information
         $root_        = $brt_.root
-        $nleaf_       = $brt_.nleaf     
-        $leaf_h_      = $LBVH_.leaf_h
-        $node_hmax_   = $LBVH_.node_hmax
+        $nleaf_       = $brt_.nleaf
+        $leaf_scale_  = $LBVH_.leaf_scale
+        $node_scale_  = $LBVH_.node_scale
 
         # No internal node: brute force leaves
         if iszero($root_)
             @inbounds for $leaf_idx_ in 1:$nleaf_
-                $hb_    = $leaf_h_[$leaf_idx_]
+                $hb_    = $leaf_scale_[$leaf_idx_]
                 $r_     = $Kvalid_ * $hb_
                 $r2_    = $r_ * $r_
                 $d2_ = _squared_distance_line_coords($origin_, $direction_, $leaf_coor_, $leaf_idx_)
@@ -610,7 +610,7 @@ macro LBVH_scatter_line_traversal(LBVH, line_origin, line_direction, Kvalid, lea
                 # Leaf: process then jump by escape
                 if is_leaf_id($node_, $nleaf_)
                     $leaf_idx_ = leaf_index($node_, $nleaf_)
-                    $hb_    = $leaf_h_[$leaf_idx_]
+                    $hb_    = $leaf_scale_[$leaf_idx_]
                     $r_     = $Kvalid_ * $hb_
                     $r2_    = $r_ * $r_
                     $d2_ = _squared_distance_line_coords($origin_, $direction_, $leaf_coor_, $leaf_idx_)
@@ -626,7 +626,7 @@ macro LBVH_scatter_line_traversal(LBVH, line_origin, line_direction, Kvalid, lea
 
                 # Internal: AABB reject => prune subtree
                 $node_idx_ = internal_index($node_)
-                $hb_    = $node_hmax_[$node_idx_]
+                $hb_    = $node_scale_[$node_idx_]
                 $r_     = $Kvalid_ * $hb_
                 $r2_    = $r_ * $r_
                 $d2_node_ = _squared_distance_line_aabb_lower_bound($origin_, $direction_, $node_min_, $node_max_, $node_idx_)
@@ -654,7 +654,7 @@ per-node acceptance radius
 
     r2 = max(radius2, (Kvalid * h)^2)
 
-where `h = leaf_h[leaf_idx]` for leaves and `h = node_hmax[node_idx]` for
+where `h = leaf_scale[leaf_idx]` for leaves and `h = node_scale[node_idx]` for
 internal nodes. This implements a symmetric gate between a fixed query radius
 (`radius2`) and an SPH smoothing-radius scale (`Kvalid*h`).
 
@@ -665,7 +665,7 @@ the node AABB.
 
 # Parameters
 - `LBVH`:
-  A `LinearBVH` holding `leaf_coor`, `node_aabb`, `leaf_h`, `node_hmax`, and
+  A `LinearBVH` holding `leaf_coor`, `node_aabb`, `leaf_scale`, `node_scale`, and
   `brt`.
 - `line_origin`:
   `NTuple{D,T}` giving the origin of the query line.
@@ -708,8 +708,8 @@ macro LBVH_symmetric_line_traversal(LBVH, line_origin, line_direction, Kvalid, r
     d2_node_        = gensym(:d2_node)
     r_              = gensym(:r)
     r2_             = gensym(:r2)
-    leaf_h_         = gensym(:leaf_h)
-    node_hmax_      = gensym(:node_hmax)
+    leaf_scale_     = gensym(:leaf_scale)
+    node_scale_     = gensym(:node_scale)
     hb_             = gensym(:hb)
 
     # hygiene: avoid capturing user locals
@@ -719,7 +719,7 @@ macro LBVH_symmetric_line_traversal(LBVH, line_origin, line_direction, Kvalid, r
     origin_     = esc(line_origin)
     direction_  = esc(line_direction)
     leafsym_    = esc(leafsym)
-    d2sym_      = esc(d2sym) 
+    d2sym_      = esc(d2sym)
     hbsym_      = esc(hbsym)
 
     # the user-provided code must run in caller scope
@@ -738,14 +738,14 @@ macro LBVH_symmetric_line_traversal(LBVH, line_origin, line_direction, Kvalid, r
 
         ## Other information
         $root_        = $brt_.root
-        $nleaf_       = $brt_.nleaf     
-        $leaf_h_      = $LBVH_.leaf_h
-        $node_hmax_   = $LBVH_.node_hmax
+        $nleaf_       = $brt_.nleaf
+        $leaf_scale_  = $LBVH_.leaf_scale
+        $node_scale_  = $LBVH_.node_scale
 
         # No internal node: brute force leaves
         if iszero($root_)
             @inbounds for $leaf_idx_ in 1:$nleaf_
-                $hb_    = $leaf_h_[$leaf_idx_]
+                $hb_    = $leaf_scale_[$leaf_idx_]
                 $r_     = $Kvalid_ * $hb_
                 $r2_    = max($radius2_, $r_ * $r_)
                 $d2_ = _squared_distance_line_coords($origin_, $direction_, $leaf_coor_, $leaf_idx_)
@@ -762,7 +762,7 @@ macro LBVH_symmetric_line_traversal(LBVH, line_origin, line_direction, Kvalid, r
                 # Leaf: process then jump by escape
                 if is_leaf_id($node_, $nleaf_)
                     $leaf_idx_ = leaf_index($node_, $nleaf_)
-                    $hb_    = $leaf_h_[$leaf_idx_]
+                    $hb_    = $leaf_scale_[$leaf_idx_]
                     $r_     = $Kvalid_ * $hb_
                     $r2_    = max($radius2_, $r_ * $r_)
                     $d2_ = _squared_distance_line_coords($origin_, $direction_, $leaf_coor_, $leaf_idx_)
@@ -778,7 +778,7 @@ macro LBVH_symmetric_line_traversal(LBVH, line_origin, line_direction, Kvalid, r
 
                 # Internal: AABB reject => prune subtree
                 $node_idx_ = internal_index($node_)
-                $hb_    = $node_hmax_[$node_idx_]
+                $hb_    = $node_scale_[$node_idx_]
                 $r_     = $Kvalid_ * $hb_
                 $r2_    = max($radius2_, $r_ * $r_)
                 $d2_node_ = _squared_distance_line_aabb_lower_bound($origin_, $direction_, $node_min_, $node_max_, $node_idx_)
@@ -936,7 +936,7 @@ end
 
     r2 = zero_T
     @inbounds for d in 1:D
-        h = (aabb_max[d][idx] - aabb_min[d][idx]) * half_T 
+        h = (aabb_max[d][idx] - aabb_min[d][idx]) * half_T
         r2 += h * h
     end
 

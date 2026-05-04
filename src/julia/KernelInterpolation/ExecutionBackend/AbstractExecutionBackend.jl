@@ -1,2 +1,2 @@
-abstract type AbstractExecutionBackend end 
+abstract type AbstractExecutionBackend end
 struct CPUComputeBackend <: AbstractExecutionBackend end
