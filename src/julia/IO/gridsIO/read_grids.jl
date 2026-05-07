@@ -1,5 +1,5 @@
 """
-    read_GridDataset(filename::String="PRGridDataset.h5")
+    read_GridDataset(filename :: String="PRGridDataset.h5")
 
 Read an HDF5 file produced by `write_GridDataset` / `write_GridBundle` and reconstruct a
 fully-typed `GridDataset{L,TF,G}`.
@@ -15,18 +15,18 @@ Shared vectors (`axes` or `coord`) are read once and reused across all grids, ma
 writer-side assumption that coordinate/axes vectors are shared among grids.
 
 # Parameters
-- `filename::String="PRGridDataset.h5"`  
+- `filename :: String="PRGridDataset.h5"`
   Input HDF5 filename.
 
 # Returns
-- `GridDataset{L,TF,G}`  
+- `GridDataset{L,TF,G}`
   A reconstructed dataset where:
   - `L` is inferred from the number of entries under `data/grids`
   - `TF` is inferred from `params[:dtype]`
   - `G` is inferred from `params[:grid_type]` and concretized from file contents
   - `D` is inferred from the number of stored coordinate/axes vectors
 """
-function read_GridDataset(filename::String="PRGridDataset.h5")
+function read_GridDataset(filename :: String="PRGridDataset.h5")
     h5open(filename, "r") do f
         haskey(f, "params") || throw(ArgumentError("Schema error: missing /params"))
         haskey(f, "data")   || throw(ArgumentError("Schema error: missing /data"))
@@ -48,9 +48,9 @@ function read_GridDataset(filename::String="PRGridDataset.h5")
             arrays, L = _read_dense_grids(dg, TF)
             length(names_vec) == L || throw(ArgumentError("names length != number of grids"))
 
-            V = typeof(shared_vecs[1])          
-            A = typeof(arrays[1])               
-            G = Partia.StructuredGrid{D, TF, V, A} 
+            V = typeof(shared_vecs[1])
+            A = typeof(arrays[1])
+            G = Partia.StructuredGrid{D, TF, V, A}
 
             grids = ntuple(i -> G(arrays[i], shared_vecs, size), Val(L))
             names = ntuple(i -> names_vec[i], Val(L))
@@ -63,9 +63,9 @@ function read_GridDataset(filename::String="PRGridDataset.h5")
             arrays, L = _read_dense_grids(dg, TF)
             length(names_vec) == L || throw(ArgumentError("names length != number of grids"))
 
-            VG = typeof(shared_vecs[1])         
-            VC = typeof(shared_vecs)           
-            G  = Partia.PointSamples{D, TF, VG, VC} 
+            VG = typeof(shared_vecs[1])
+            VC = typeof(shared_vecs)
+            G  = Partia.PointSamples{D, TF, VG, VC}
 
             grids = ntuple(i -> G(arrays[i], shared_vecs), Val(L))
             names = ntuple(i -> names_vec[i], Val(L))
@@ -79,7 +79,7 @@ function read_GridDataset(filename::String="PRGridDataset.h5")
     end
 end
 
-function _ordered_keys(g::HDF5.Group)
+function _ordered_keys(g :: HDF5.Group)
     ks = String.(keys(g))
     if all(k -> k in ks, _COORDINATE)
         return collect(_COORDINATE[1:length(ks)])
@@ -89,7 +89,7 @@ function _ordered_keys(g::HDF5.Group)
     end
 end
 
-function _read_params(pg::HDF5.Group)
+function _read_params(pg :: HDF5.Group)
     p = Dict{Symbol, Any}()
     for k in keys(pg)
         p[Symbol(k)] = read(pg, k)
@@ -97,7 +97,7 @@ function _read_params(pg::HDF5.Group)
     return p
 end
 
-function _parse_float_type(s::AbstractString)
+function _parse_float_type(s :: AbstractString)
     s = strip(s)
     s == "Float16"  && return Float16
     s == "Float32"  && return Float32
@@ -106,7 +106,7 @@ function _parse_float_type(s::AbstractString)
     throw(ArgumentError("Unsupported dtype string in params[:dtype]: $s"))
 end
 
-function _grid_type_from_params(s::AbstractString)
+function _grid_type_from_params(s :: AbstractString)
     s = Symbol(s)
 
     isdefined(Partia, s) || throw(ArgumentError("Unknown grid_type in params[:grid_type]: $(repr(s))"))
@@ -117,7 +117,7 @@ function _grid_type_from_params(s::AbstractString)
     return G
 end
 
-function _read_shared_vectors(dg::HDF5.Group, groupname::String)
+function _read_shared_vectors(dg :: HDF5.Group, groupname :: String)
     haskey(dg, groupname) || throw(ArgumentError("Schema error: missing data/$groupname"))
     vg = dg[groupname]
     ord = _ordered_keys(vg)
@@ -127,7 +127,7 @@ function _read_shared_vectors(dg::HDF5.Group, groupname::String)
     return Tuple(vecs), length(vecs) # (shared_vecs, D)
 end
 
-function _read_dense_grids(dg::HDF5.Group, ::Type{TF}) where {TF <: AbstractFloat}
+function _read_dense_grids(dg :: HDF5.Group, :: Type{TF}) where {TF <: AbstractFloat}
     haskey(dg, "grids") || throw(ArgumentError("Schema error: missing data/grids"))
     gg = dg["grids"]
     L = length(keys(gg))

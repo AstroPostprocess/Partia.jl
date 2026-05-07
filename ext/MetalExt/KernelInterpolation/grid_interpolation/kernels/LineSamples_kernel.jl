@@ -17,7 +17,7 @@
 end
 
 
-@inline function _lin_lut_Mtl(q::TF, Q::VF, I::VF) where {TF <: Float32, VF <: MtlDeviceVector{TF}}
+@inline function _lin_lut_Mtl(q :: TF, Q :: VF, I :: VF) where {TF <: Float32, VF <: MtlDeviceVector{TF}}
     dq = Q[2] - Q[1]
     idxf = q / dq + 1.0f0
     i = Int(clamp(Base.unsafe_trunc(Int32, idxf), Int32(1), Int32(length(Q) - 1)))
@@ -26,33 +26,33 @@ end
 end
 
 
-@inline function _lookup_line_integrated_kernel_Mtl(::Type{M4_spline}, q_perp::TF, tables) where {TF <: Float32}
+@inline function _lookup_line_integrated_kernel_Mtl( :: Type{M4_spline}, q_perp :: TF, tables) where {TF <: Float32}
     return _lin_lut_Mtl(q_perp, tables[1], tables[2])
 end
-@inline function _lookup_line_integrated_kernel_Mtl(::Type{M5_spline}, q_perp::TF, tables) where {TF <: Float32}
+@inline function _lookup_line_integrated_kernel_Mtl( :: Type{M5_spline}, q_perp :: TF, tables) where {TF <: Float32}
     return _lin_lut_Mtl(q_perp, tables[3], tables[4])
 end
-@inline function _lookup_line_integrated_kernel_Mtl(::Type{M6_spline}, q_perp::TF, tables) where {TF <: Float32}
+@inline function _lookup_line_integrated_kernel_Mtl( :: Type{M6_spline}, q_perp :: TF, tables) where {TF <: Float32}
     return _lin_lut_Mtl(q_perp, tables[5], tables[6])
 end
-@inline function _lookup_line_integrated_kernel_Mtl(::Type{C2_Wendland}, q_perp::TF, tables) where {TF <: Float32}
+@inline function _lookup_line_integrated_kernel_Mtl( :: Type{C2_Wendland}, q_perp :: TF, tables) where {TF <: Float32}
     return _lin_lut_Mtl(q_perp, tables[7], tables[8])
 end
-@inline function _lookup_line_integrated_kernel_Mtl(::Type{C4_Wendland}, q_perp::TF, tables) where {TF <: Float32}
+@inline function _lookup_line_integrated_kernel_Mtl( :: Type{C4_Wendland}, q_perp :: TF, tables) where {TF <: Float32}
     return _lin_lut_Mtl(q_perp, tables[9], tables[10])
 end
-@inline function _lookup_line_integrated_kernel_Mtl(::Type{C6_Wendland}, q_perp::TF, tables) where {TF <: Float32}
+@inline function _lookup_line_integrated_kernel_Mtl( :: Type{C6_Wendland}, q_perp :: TF, tables) where {TF <: Float32}
     return _lin_lut_Mtl(q_perp, tables[11], tables[12])
 end
 
 
-@inline function _line_integrated_kernel_function_dimensionless_Mtl(::Type{K}, q_perp::TF, tables) where {K <: AbstractSPHKernel, TF <: Float32}
+@inline function _line_integrated_kernel_function_dimensionless_Mtl( :: Type{K}, q_perp :: TF, tables) where {K <: AbstractSPHKernel, TF <: Float32}
     q_perp > KernelFunctionValid(K, TF) && return zero(TF)
     return _lookup_line_integrated_kernel_Mtl(K, q_perp, tables)
 end
 
 
-@inline function _line_integrated_kernel_function_Mtl(::Type{K}, r::TF, h::TF, tables) where {K <: AbstractSPHKernel, TF <: Float32}
+@inline function _line_integrated_kernel_function_Mtl( :: Type{K}, r :: TF, h :: TF, tables) where {K <: AbstractSPHKernel, TF <: Float32}
     invh = inv(h)
     q_perp = r * invh
     I_dimless = _line_integrated_kernel_function_dimensionless_Mtl(K, q_perp, tables)
@@ -60,17 +60,17 @@ end
 end
 
 
-@inline function _line_integrated_quantities_interpolate_kernel_Mtl(input::InterpolationInput{3, TF, VF, K, NCOLUMN}, origin::NTuple{3, TF}, direction::NTuple{3, TF}, LBVH :: LinearBVH, columns::NTuple{M, Int}, ShepardNormalization :: NTuple{M, Bool}, tables, :: Type{itpScatter}) where {TF <: Float32, VF <: MtlDeviceVector{TF}, K <: AbstractSPHKernel, NCOLUMN, M}
+@inline function _line_integrated_quantities_interpolate_kernel_Mtl(input :: InterpolationInput{3, TF, VF, K, NCOLUMN}, origin :: NTuple{3, TF}, direction :: NTuple{3, TF}, LBVH :: LinearBVH, columns :: NTuple{M, Int}, ShepardNormalization :: NTuple{M, Bool}, tables, :: Type{itpScatter}) where {TF <: Float32, VF <: MtlDeviceVector{TF}, K <: AbstractSPHKernel, NCOLUMN, M}
     Kvalid = KernelFunctionValid(K, TF)
 
     output :: MVector{M, TF} = zero(MVector{M, TF})
     S1 :: TF = zero(TF)
 
-    leaf_idx  :: Int = zero(Int)
+    leaf_idx :: Int = zero(Int)
     p2leaf_d2 :: TF = zero(TF)
-    hb        :: TF = zero(TF)
+    hb :: TF = zero(TF)
 
-    NeighborSearch.@LBVH_scatter_line_traversal LBVH origin direction Kvalid leaf_idx p2leaf_d2 hb begin
+    LinearBoundingVolumeHierarchy.@LBVH_scatter_line_traversal LBVH origin direction Kvalid leaf_idx p2leaf_d2 hb begin
         @inbounds begin
             r = sqrt(p2leaf_d2)
             mb = input.m[leaf_idx]
@@ -103,7 +103,7 @@ end
 end
 
 
-@inline function _line_samples_interpolation_kernel!(grids :: NTuple{N, LineSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH, tables, ::Type{itpScatter}) where {N, TF <: Float32, VF <: MtlDeviceVector{TF}}
+@inline function _line_samples_interpolation_kernel!(grids :: NTuple{N, LineSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH, tables, :: Type{itpScatter}) where {N, TF <: Float32, VF <: MtlDeviceVector{TF}}
     tid = Int(Metal.thread_position_in_grid().x)
     stride = Int(Metal.threads_per_grid().x)
 

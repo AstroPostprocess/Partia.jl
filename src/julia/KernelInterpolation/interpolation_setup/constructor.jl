@@ -1,30 +1,29 @@
-"""
-Constructors for `InterpolationInput`
-    by Wei-Shan Su,
-    November 3, 2025
+######################################################################################
 
-This file provides core helpers for constructing `InterpolationInput` objects
-from already-materialized particle columns.
+# Constructors for `InterpolationInput`
+#     by Wei-Shan Su,
+#     November 3, 2025
+# This file provides core helpers for constructing `InterpolationInput` objects
+# from already-materialized particle columns.
+# Package-specific front-ends, such as `ParticleIO`, are expected to gather data
+# from their own container types and then call the internal helpers defined here.
 
-Package-specific front-ends, such as `ParticleIO`, are expected to gather data
-from their own container types and then call the internal helpers defined here.
+######################################################################################
 """
-
-"""
-    build_input(::CPUComputeBackend,
-                x_col::AbstractVector,
-                y_col::AbstractVector,
-                z_col::AbstractVector,
-                m_col::AbstractVector,
-                h_col::AbstractVector,
-                ρ_col::AbstractVector,
-                quantity_columns::NTuple{NCOLUMN,<:AbstractVector};
-                column_names::NTuple{NCOLUMN,Symbol},
-                scalars::Tuple{Vararg{Symbol}}=(),
-                gradients::Tuple{Vararg{Symbol}}=(),
-                divergences::Tuple{Vararg{Symbol}}=(),
-                curls::Tuple{Vararg{Symbol}}=(),
-                smoothed_kernel::Type{K}=M5_spline) where {K<:AbstractSPHKernel,NCOLUMN}
+    build_input( :: CPUComputeBackend,
+                x_col :: AbstractVector,
+                y_col :: AbstractVector,
+                z_col :: AbstractVector,
+                m_col :: AbstractVector,
+                h_col :: AbstractVector,
+                ρ_col :: AbstractVector,
+                quantity_columns :: NTuple{NCOLUMN, <: AbstractVector};
+                column_names :: NTuple{NCOLUMN,Symbol},
+                scalars :: Tuple{Vararg{Symbol}}=(),
+                gradients :: Tuple{Vararg{Symbol}}=(),
+                divergences :: Tuple{Vararg{Symbol}}=(),
+                curls :: Tuple{Vararg{Symbol}}=(),
+                smoothed_kernel :: Type{K}=M5_spline) where {K <: AbstractSPHKernel,NCOLUMN}
 
 Construct a CPU-side `InterpolationInput` and its corresponding
 `InterpolationCatalog` from already-materialized particle columns.
@@ -40,15 +39,15 @@ explicitly through positional arguments and are not part of the catalog lookup
 namespace.
 
 # Parameters
-- `::CPUComputeBackend`: Compute backend selector for the CPU interpolation
+- ` :: CPUComputeBackend`: Compute backend selector for the CPU interpolation
   path.
-- `x_col::AbstractVector`: Particle `x` coordinates.
-- `y_col::AbstractVector`: Particle `y` coordinates.
-- `z_col::AbstractVector`: Particle `z` coordinates.
-- `m_col::AbstractVector`: Particle masses.
-- `h_col::AbstractVector`: Particle smoothing lengths.
-- `ρ_col::AbstractVector`: Particle densities.
-- `quantity_columns::NTuple{NCOLUMN,<:AbstractVector}`: Extra particle
+- `x_col :: AbstractVector`: Particle `x` coordinates.
+- `y_col :: AbstractVector`: Particle `y` coordinates.
+- `z_col :: AbstractVector`: Particle `z` coordinates.
+- `m_col :: AbstractVector`: Particle masses.
+- `h_col :: AbstractVector`: Particle smoothing lengths.
+- `ρ_col :: AbstractVector`: Particle densities.
+- `quantity_columns :: NTuple{NCOLUMN, <: AbstractVector}`: Extra particle
   quantity columns to be attached to the interpolation input.
 
 # Keyword Arguments
@@ -59,7 +58,7 @@ namespace.
 | `gradients` | `Tuple{Vararg{Symbol}}` | `()` | Names of extra scalar quantities whose spatial gradients should be computed. |
 | `divergences` | `Tuple{Vararg{Symbol}}` | `()` | Base names of extra vector quantities whose divergences should be computed. |
 | `curls` | `Tuple{Vararg{Symbol}}` | `()` | Base names of extra vector quantities whose curls should be computed. |
-| `smoothed_kernel` | `Type{K}` where `K<:AbstractSPHKernel` | `M5_spline` | SPH kernel type used when constructing the `InterpolationInput`. |
+| `smoothed_kernel` | `Type{K}` where `K <: AbstractSPHKernel` | `M5_spline` | SPH kernel type used when constructing the `InterpolationInput`. |
 
 # Returns
 - `Tuple{InterpolationInput,InterpolationCatalog{3,N,G,Div,C,L}}`: A pair
@@ -67,21 +66,21 @@ namespace.
   3D interpolation catalog for the requested extra quantities.
 """
 function build_input(
-    ::CPUComputeBackend,
-    x_col::AbstractVector,
-    y_col::AbstractVector,
-    z_col::AbstractVector,
-    m_col::AbstractVector,
-    h_col::AbstractVector,
-    ρ_col::AbstractVector,
-    quantity_columns::NTuple{NCOLUMN,<:AbstractVector};
-    column_names::NTuple{NCOLUMN,Symbol},
-    scalars::Tuple{Vararg{Symbol}} = (),
-    gradients::Tuple{Vararg{Symbol}} = (),
-    divergences::Tuple{Vararg{Symbol}} = (),
-    curls::Tuple{Vararg{Symbol}} = (),
-    smoothed_kernel::Type{K} = M5_spline,
-) where {K<:AbstractSPHKernel,NCOLUMN}
+ :: CPUComputeBackend,
+    x_col :: AbstractVector,
+    y_col :: AbstractVector,
+    z_col :: AbstractVector,
+    m_col :: AbstractVector,
+    h_col :: AbstractVector,
+    ρ_col :: AbstractVector,
+    quantity_columns :: NTuple{NCOLUMN, <: AbstractVector};
+    column_names :: NTuple{NCOLUMN,Symbol},
+    scalars :: Tuple{Vararg{Symbol}} = (),
+    gradients :: Tuple{Vararg{Symbol}} = (),
+    divergences :: Tuple{Vararg{Symbol}} = (),
+    curls :: Tuple{Vararg{Symbol}} = (),
+    smoothed_kernel :: Type{K} = M5_spline,
+) where {K <: AbstractSPHKernel,NCOLUMN}
 
     # Promote all columns to a common floating-point type before materialization.
     Tprom = if isempty(quantity_columns)

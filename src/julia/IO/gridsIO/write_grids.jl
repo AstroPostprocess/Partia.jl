@@ -1,32 +1,32 @@
 const _COORDINATE = ("x", "y", "z")
 
 """
-    write_GridDataset(gd::GridDataset{L,TF,G}, filename::String="PRGridDataset.h5") where {L,D,TF<:AbstractFloat, VG<:AbstractVector{TF}, VC<:NTuple{D,VG}, G<:PointSamples{D,TF,VG,VC}}
+    write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PRGridDataset.h5") where {L,D,TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}, G <: PointSamples{D,TF,VG,VC}}
 
-Serialize a `GridDataset` and write it to an HDF5 file.  
+Serialize a `GridDataset` and write it to an HDF5 file.
 All grids in the dataset **must share the same coordinate vectors**, verified by
 strict identity comparison (`===`). If any grid does not share coordinates with
 the first grid, an `ArgumentError` is thrown.
 
 The resulting HDF5 file has the following structure:
 
-- `params/`  
+- `params/`
   Stores all key–value pairs from `gd.params`
-- `data/names`  
+- `data/names`
   Names associated with each grid
-- `data/coord/<x|y|z>`  
+- `data/coord/<x|y|z>`
   Shared coordinate vectors (taken from the first grid)
-- `data/grids/<i>`  
+- `data/grids/<i>`
   The numerical array of the `i`-th grid
 
 # Parameters
-- `gd::GridDataset{L,TF,G}`  
+- `gd :: GridDataset{L,TF,G}`
   A dataset containing multiple `PointSamples` objects that must share identical coordinates
-- `filename::String="PRGridDataset.h5"`  
+- `filename :: String="PRGridDataset.h5"`
   Output HDF5 filename
 
 """
-function write_GridDataset(gd::GridDataset{L,TF,G}, filename::String="PRGridDataset.h5") where {L,D,TF<:AbstractFloat, VG<:AbstractVector{TF}, VC<:NTuple{D,VG}, G <: PointSamples{D,TF,VG,VC}}
+function write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PRGridDataset.h5") where {L,D,TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}, G <: PointSamples{D,TF,VG,VC}}
     # Check whether all the grid share the same coor
     g1 = gd.data.grids[1]
     @inbounds for i in 2:L
@@ -70,32 +70,32 @@ function write_GridDataset(gd::GridDataset{L,TF,G}, filename::String="PRGridData
 end
 
 """
-    write_GridDataset(gd::GridDataset{L,TF,G}, filename::String="PRGridDataset.h5") where
-{L,D,TF<:AbstractFloat, V<:AbstractVector{TF}, A<:AbstractArray{TF,D}, G<:StructuredGrid{D,TF,V,A}}
+    write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PRGridDataset.h5") where
+{L,D,TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF,D}, G <: StructuredGrid{D,TF,V,A}}
 
-Serialize a `GridDataset` composed of `StructuredGrid`s and write it to an HDF5 file.  
+Serialize a `GridDataset` composed of `StructuredGrid`s and write it to an HDF5 file.
 All grids in the dataset **must share the same axes vectors**, verified by strict
 identity comparison (`===`). If any grid does not share axes with the first grid,
 an `ArgumentError` is thrown.
 
 The resulting HDF5 file has the following structure:
 
-- `params/`  
+- `params/`
   Stores all key–value pairs from `gd.params`
-- `data/names`  
+- `data/names`
   Names associated with each grid
-- `data/axes/<x|y|z>`  
+- `data/axes/<x|y|z>`
   Shared axes vectors (taken from the first grid)
-- `data/grids/<i>`  
+- `data/grids/<i>`
   The numerical array of the `i`-th grid
 
 # Parameters
-- `gd::GridDataset{L,TF,G}`  
+- `gd :: GridDataset{L,TF,G}`
   A dataset containing multiple `StructuredGrid` objects that must share identical axes
-- `filename::String="PRGridDataset.h5"`  
+- `filename :: String="PRGridDataset.h5"`
   Output HDF5 filename
 """
-function write_GridDataset(gd::GridDataset{L,TF,G}, filename::String="PRGridDataset.h5") where {L,D,TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}, G <: StructuredGrid{D,TF,V, A}}
+function write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PRGridDataset.h5") where {L,D,TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}, G <: StructuredGrid{D,TF,V, A}}
     # Check whether all the grid share the same coor
     g1 = gd.data.grids[1]
     @inbounds for i in 2:L
@@ -140,12 +140,12 @@ end
 
 """
     write_GridBundle(
-        gb::GridBundle{L,G},
-        filename::String="PRGridDataset.h5";
-        code_units::Dict{Symbol,TF},
-        operation_name::String="",
-        params::Union{Nothing,Dict{Symbol,Union{String,Int,Bool,TF}}}=nothing
-    ) where {L,TF<:AbstractFloat,G<:AbstractGrid{TF}}
+        gb :: GridBundle{L,G},
+        filename :: String="PRGridDataset.h5";
+        code_units :: Dict{Symbol,TF},
+        operation_name :: String="",
+        params :: Union{Nothing,Dict{Symbol,Union{String,Int,Bool,TF}}}=nothing
+    ) where {L,TF <: AbstractFloat,G <: AbstractGrid{TF}}
 
 Construct a `GridDataset` from a `GridBundle` and write it to an HDF5 file.
 This function augments metadata, validates required code units, and records
@@ -165,9 +165,9 @@ The `code_units` dictionary **must** contain all required unit keys; otherwise,
 an `ArgumentError` is thrown.
 
 # Parameters
-- `gb::GridBundle{L,G}`  
+- `gb :: GridBundle{L,G}`
   A bundle of grids to be serialized
-- `filename::String="PRGridDataset.h5"`  
+- `filename :: String="PRGridDataset.h5"`
   Output HDF5 filename
 
 # Keyword Arguments
@@ -180,15 +180,15 @@ an `ArgumentError` is thrown.
 """
 function write_GridBundle(gb :: GridBundle{L, G}, filename :: String = "PRGridDataset.h5"; code_units :: Dict{Symbol, TF}, operation_name :: String = "", params :: Union{Nothing, Dict{Symbol, Union{String, Int, Bool, TF}}} = nothing) where {L, TF <: AbstractFloat, G <: AbstractGrid{TF}}
     p = isnothing(params) ? GridDataset_params_TYPE(TF)() : copy(params)
-    
+
     # Check required code units
     required = (:umass, :udist, :utime, :umagfd)
     notfound  = Tuple(k for k in required if !haskey(code_units, k))
     isempty(notfound) || throw(ArgumentError("code_units missing required keys: $(notfound)"))
-    
+
     # Record the name of schema
     p[:schema_name]      = "GridDataset"
-    p[:schema_id]        = "GridDataset.v1"         
+    p[:schema_id]        = "GridDataset.v1"
 
     # Record current system
     p[:system_kernel] = string(Sys.KERNEL)

@@ -21,9 +21,9 @@ include(joinpath(@__DIR__, "julia", "Grids", "Grids.jl"))
 include(joinpath(@__DIR__, "julia", "IO", "IO.jl"))
 @reexport using .IO
 
-## NeighborSearch 
-include(joinpath(@__DIR__, "julia", "NeighborSearch", "NeighborSearch.jl"))
-@reexport using .NeighborSearch
+## Linear bounding volume hierarchy
+include(joinpath(@__DIR__, "julia", "LinearBoundingVolumeHierarchy", "LinearBoundingVolumeHierarchy.jl"))
+@reexport using .LinearBoundingVolumeHierarchy
 
 ## KernelInterpolation
 include(joinpath(@__DIR__, "julia", "KernelInterpolation", "KernelInterpolation.jl"))
@@ -33,14 +33,14 @@ include(joinpath(@__DIR__, "julia", "KernelInterpolation", "KernelInterpolation.
 # Dummy file (similar to a C/C++ header) used to declare the module interface.
 # Enables precompilation even when CUDA is not available.
 # Named with .jlh to prevent accidental inclusion at runtime.
-include(joinpath(@__DIR__, "julia", "ExtDummy", "CUDAExtDummy.jlh"))        
+include(joinpath(@__DIR__, "julia", "ExtDummy", "CUDAExtDummy.jlh"))
 @reexport using .CUDAExtDummy
 
 #################### Metal Extension #####################
 # Dummy file (similar to a C/C++ header) used to declare the module interface.
 # Enables precompilation even when CUDA is not available.
 # Named with .jlh to prevent accidental inclusion at runtime.
-include(joinpath(@__DIR__, "julia", "ExtDummy", "MetalExtDummy.jlh"))        
+include(joinpath(@__DIR__, "julia", "ExtDummy", "MetalExtDummy.jlh"))
 @reexport using .MetalExtDummy
 
 ################################################

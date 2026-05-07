@@ -8,7 +8,7 @@ kern = M4_spline()
 # Small comparison utilities
 
 approx_with_nan(a, b; atol, rtol) = isequal(a, b) || isapprox(a, b; atol = atol, rtol = rtol)
-approx_with_nan(a::Tuple, b::Tuple; atol, rtol) = all(approx_with_nan(ai, bi; atol = atol, rtol = rtol) for (ai, bi) in zip(a, b))
+approx_with_nan(a :: Tuple, b :: Tuple; atol, rtol) = all(approx_with_nan(ai, bi; atol = atol, rtol = rtol) for (ai, bi) in zip(a, b))
 
 # Kernel support and geometric helpers
 
@@ -20,7 +20,7 @@ end
 
 @inline within_radius(d2, radius) = d2 <= radius * radius
 
-@inline function kernel_weight(ref::NTuple{3,T}, rb::NTuple{3,T}, ha::T, hb::T, strategy) where {T<:AbstractFloat}
+@inline function kernel_weight(ref :: NTuple{3,T}, rb :: NTuple{3,T}, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
     if strategy === itpSymmetric
         return T(0.5) * (
             Smoothed_kernel_function(typeof(kern), ref, rb, ha) +
@@ -31,7 +31,7 @@ end
     return Smoothed_kernel_function(typeof(kern), ref, rb, hsel)
 end
 
-@inline function kernel_gradient(ref::NTuple{3,T}, rb::NTuple{3,T}, ha::T, hb::T, strategy) where {T<:AbstractFloat}
+@inline function kernel_gradient(ref :: NTuple{3,T}, rb :: NTuple{3,T}, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
     if strategy === itpSymmetric
         ∇Wa = Smoothed_gradient_kernel_function(typeof(kern), ref, rb, ha)
         ∇Wb = Smoothed_gradient_kernel_function(typeof(kern), ref, rb, hb)
@@ -45,7 +45,7 @@ end
     return Smoothed_gradient_kernel_function(typeof(kern), ref, rb, hsel)
 end
 
-@inline function line_integrated_weight(Δr::T, ha::T, hb::T, strategy) where {T<:AbstractFloat}
+@inline function line_integrated_weight(Δr :: T, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
     if strategy === itpSymmetric
         return T(0.5) * (
             line_integrated_kernel_function(typeof(kern), Δr, ha) +
@@ -56,7 +56,7 @@ end
     return line_integrated_kernel_function(typeof(kern), Δr, hsel)
 end
 
-@inline function squared_distance_point_line(point::NTuple{3,T}, origin::NTuple{3,T}, direction::NTuple{3,T}) where {T<:AbstractFloat}
+@inline function squared_distance_point_line(point :: NTuple{3,T}, origin :: NTuple{3,T}, direction :: NTuple{3,T}) where {T <: AbstractFloat}
     Δ2 = zero(T)
     Δm = zero(T)
     @inbounds for d in 1:3
@@ -69,7 +69,7 @@ end
 
 # Brute-force reference evaluators for single-point interpolation
 
-function brute_density(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::T, strategy) where {T}
+function brute_density(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ρ = zero(T)
     @inbounds for i in 1:input.Npart
@@ -85,7 +85,7 @@ function brute_density(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::T, 
     return ρ
 end
 
-function brute_number_density(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::T, strategy) where {T}
+function brute_number_density(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     n = zero(T)
     @inbounds for i in 1:input.Npart
@@ -101,7 +101,7 @@ function brute_number_density(input::InterpolationInput{3,T}, ref::NTuple{3,T}, 
     return n
 end
 
-function brute_quantity(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::T, col::Int, strategy) where {T}
+function brute_quantity(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, col :: Int, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     numer = zero(T)
     denom = zero(T)
@@ -120,7 +120,7 @@ function brute_quantity(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::T,
     return iszero(denom) ? T(NaN) : numer / denom
 end
 
-function brute_line_integrated_density(input::InterpolationInput{3,T}, origin::NTuple{3,T}, direction::NTuple{3,T}, ha::T, strategy) where {T}
+function brute_line_integrated_density(input :: InterpolationInput{3,T}, origin :: NTuple{3,T}, direction :: NTuple{3,T}, ha :: T, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     Sigma = zero(T)
     @inbounds for i in 1:input.Npart
@@ -137,7 +137,7 @@ function brute_line_integrated_density(input::InterpolationInput{3,T}, origin::N
     return Sigma
 end
 
-function brute_gradient_density(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::T, strategy) where {T}
+function brute_gradient_density(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ∇ρf = zeros(T, 3)
     ∇ρb = zeros(T, 3)
@@ -170,7 +170,7 @@ function brute_gradient_density(input::InterpolationInput{3,T}, ref::NTuple{3,T}
     )
 end
 
-function brute_gradient_quantity(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::T, col::Int, strategy) where {T}
+function brute_gradient_quantity(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, col :: Int, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ∇Af = zeros(T, 3)
     ∇Ab = zeros(T, 3)
@@ -211,7 +211,7 @@ function brute_gradient_quantity(input::InterpolationInput{3,T}, ref::NTuple{3,T
     )
 end
 
-function brute_divergence(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::T, cols::NTuple{3,Int}, strategy) where {T}
+function brute_divergence(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, cols :: NTuple{3,Int}, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ∇Af = zero(T)
     ∇Axb = zero(T)
@@ -256,7 +256,7 @@ function brute_divergence(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::
     return ∇Af - (Ax * ∇Axb + Ay * ∇Ayb + Az * ∇Azb)
 end
 
-function brute_curl(input::InterpolationInput{3,T}, ref::NTuple{3,T}, ha::T, cols::NTuple{3,Int}, strategy) where {T}
+function brute_curl(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, cols :: NTuple{3,Int}, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ∇Axf = zero(T)
     ∇Ayf = zero(T)
@@ -314,7 +314,7 @@ end
 
 # Brute-force reference evaluators for line-integrated interpolation
 
-function brute_line_integrated_quantity(input::InterpolationInput{3,T}, origin::NTuple{3,T}, direction::NTuple{3,T}, ha::T, col::Int, strategy) where {T}
+function brute_line_integrated_quantity(input :: InterpolationInput{3,T}, origin :: NTuple{3,T}, direction :: NTuple{3,T}, ha :: T, col :: Int, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     numer = zero(T)
     denom = zero(T)
@@ -336,7 +336,7 @@ end
 
 # Synthetic fixtures
 
-function random_input_3d(rng::AbstractRNG, n::Int)
+function random_input_3d(rng :: AbstractRNG, n :: Int)
     x = rand(rng, n)
     y = rand(rng, n)
     z = rand(rng, n)
@@ -351,7 +351,7 @@ function random_input_3d(rng::AbstractRNG, n::Int)
     return input, LBVH
 end
 
-function random_input_line_integrated(rng::AbstractRNG, n::Int)
+function random_input_line_integrated(rng :: AbstractRNG, n :: Int)
     x = rand(rng, n)
     y = rand(rng, n)
     z = rand(rng, n)

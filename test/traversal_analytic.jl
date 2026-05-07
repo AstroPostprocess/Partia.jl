@@ -1,24 +1,19 @@
-# ──────────────────────────────────────────────────────────────────────────── #
+######################################################################################
+
 #  Test: Traversal Kernels - Analytic Linear-Field Regression
-# ──────────────────────────────────────────────────────────────────────────── #
-#
 #  What this file tests
-#  ────────────────────
 #  Verifies the public traversal interpolation routines against manufactured
 #  linear fields on a uniform particle cloud.
-#
 #  1. Scalar interpolation
 #  2. Gradient interpolation
 #  3. Divergence interpolation
 #  4. Curl interpolation
 #  5. Density consistency
 #  6. Vanishing density-gradient error for a uniform-density cloud
-#
 #  The goal here is not brute-force equality, but regression-level accuracy
 #  against analytic expectations for smooth fields sampled away from boundaries.
-#
-# ──────────────────────────────────────────────────────────────────────────── #
 
+######################################################################################
 using Test
 using Random
 using Partia

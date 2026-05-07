@@ -25,7 +25,7 @@ extension layer and prints an exhaustive snapshot of your CUDA environment.
 # Overview
 `Greeting_CUDA()` is intentionally simple: it serves one purpose—to prove that
 `Partia`’s CUDA extension is alive and able to communicate with
-`CUDA.jl`.  
+`CUDA.jl`.
 It does so by logging `"Hello from CUDAExt!"` and then calling
 `CUDA.versioninfo()`, which dumps every detectable component of your CUDA stack.
 
@@ -41,22 +41,22 @@ It does so by logging `"Hello from CUDAExt!"` and then calling
 
 # Why It Exists
 This function is the software equivalent of shouting into the void and hearing
-an echo.  If you see version output, your extension linkage works.  
+an echo.  If you see version output, your extension linkage works.
 If you do not, something in the dependency chain (`CUDA.jl`, drivers, or
 Partia’s weak-dep mechanism) is broken.
 
 # Behaviour and Guarantees
-- **Inputs:** none.  
-- **Outputs:** none (side effects only).  
-- **Side effects:** console log and environment report.  
-- **Performance:** near-zero cost aside from context initialization.  
+- **Inputs:** none.
+- **Outputs:** none (side effects only).
+- **Side effects:** console log and environment report.
+- **Performance:** near-zero cost aside from context initialization.
 - **State changes:** none. The call is read-only with respect to both
   Partia and CUDA contexts.
 
 # When To Use
-- After installing `CUDA.jl`, to verify GPU accessibility.  
-- During CI or cluster deployment, to record the CUDA stack configuration.  
-- When filing bug reports, to attach reproducible environment data.  
+- After installing `CUDA.jl`, to verify GPU accessibility.
+- During CI or cluster deployment, to record the CUDA stack configuration.
+- When filing bug reports, to attach reproducible environment data.
 - When you just need reassurance that something, somewhere, still speaks CUDA.
 
 # Example

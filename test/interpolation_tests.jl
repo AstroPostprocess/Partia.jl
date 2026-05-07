@@ -1,32 +1,25 @@
-# ────────────────────────────────────────────────────────────────────────────
+######################################################################################
+
 #  Test: SPH Interpolation -- Constructors, Traversal, and Physical Checks
-# ────────────────────────────────────────────────────────────────────────────
-#
 #  What this file tests
-#  ────────────────────
 #  End-to-end validation of the core KernelInterpolation pipeline:
-#
 #  1. Core `build_input` constructor
 #     -- Builds `InterpolationInput` and `InterpolationCatalog` directly from
 #        already-materialized particle columns.
 #     -- Verifies particle count, element-type promotion, catalog slot lookup,
 #        quantity storage, and error paths for missing requested columns.
-#
 #  2. BVH traversal interpolation vs brute-force references
 #     -- Density, number density, quantity, gradient, divergence, and curl
 #        interpolation (3D) against O(N) brute-force baselines for all three
 #        strategies (Gather, Scatter, Symmetric).
 #     -- Line-integrated column-density and quantity interpolation.
-#
 #  3. Physical sanity checks
 #     -- Divergence and curl of a uniform vector field must vanish to machine
 #        epsilon.
-#
 #  Brute-force reference implementations live in `interpolation_test_common.jl`,
 #  which is included by this file.
-#
-# ────────────────────────────────────────────────────────────────────────────
 
+######################################################################################
 using Test
 using Random
 using Partia

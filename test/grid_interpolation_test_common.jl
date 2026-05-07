@@ -154,7 +154,7 @@ function make_analytic_spherical_grid()
     )
 end
 
-function explicit_cartesian_coords(::Type{Cartesian}, grid::StructuredGrid{3,TF}) where {TF<:AbstractFloat}
+function explicit_cartesian_coords( :: Type{Cartesian}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
     return ntuple(d -> begin
         out = similar(vec(grid.grid))
         L = LinearIndices(grid.size)
@@ -165,7 +165,7 @@ function explicit_cartesian_coords(::Type{Cartesian}, grid::StructuredGrid{3,TF}
     end, 3)
 end
 
-function explicit_cartesian_coords(::Type{Polar}, grid::StructuredGrid{2,TF}) where {TF<:AbstractFloat}
+function explicit_cartesian_coords( :: Type{Polar}, grid :: StructuredGrid{2,TF}) where {TF <: AbstractFloat}
     x = similar(vec(grid.grid))
     y = similar(vec(grid.grid))
     L = LinearIndices(grid.size)
@@ -179,7 +179,7 @@ function explicit_cartesian_coords(::Type{Polar}, grid::StructuredGrid{2,TF}) wh
     return (x, y)
 end
 
-function explicit_cartesian_coords(::Type{Cylindrical}, grid::StructuredGrid{3,TF}) where {TF<:AbstractFloat}
+function explicit_cartesian_coords( :: Type{Cylindrical}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
     x = similar(vec(grid.grid))
     y = similar(vec(grid.grid))
     z = similar(vec(grid.grid))
@@ -196,7 +196,7 @@ function explicit_cartesian_coords(::Type{Cylindrical}, grid::StructuredGrid{3,T
     return (x, y, z)
 end
 
-function explicit_cartesian_coords(::Type{Spherical}, grid::StructuredGrid{3,TF}) where {TF<:AbstractFloat}
+function explicit_cartesian_coords( :: Type{Spherical}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
     x = similar(vec(grid.grid))
     y = similar(vec(grid.grid))
     z = similar(vec(grid.grid))
@@ -216,7 +216,7 @@ end
 
 # =========================== Brute-force references ========================== #
 
-@inline function brute_nearest_h(input, point::NTuple{3,T}) where {T<:AbstractFloat}
+@inline function brute_nearest_h(input, point :: NTuple{3,T}) where {T <: AbstractFloat}
     x = get_xcoord(input)
     y = get_ycoord(input)
     z = get_zcoord(input)

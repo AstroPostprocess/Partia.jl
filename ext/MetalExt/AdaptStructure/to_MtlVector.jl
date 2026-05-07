@@ -16,8 +16,7 @@ function Partia.to_MtlVector(enc :: MortonEncoding{D, TF, TI, VF, VI}) where {D,
     return MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}(
         MtlVector{TI}(enc.order),
         MtlVector{TI}(enc.codes),
-        ntuple(i -> MtlVector{Float32}(enc.coord[i]), D),
-        MtlVector{Float32}(enc.h)
+        ntuple(i -> MtlVector{Float32}(enc.coord[i]), D)
     )
 end
 
@@ -43,9 +42,9 @@ function Partia.to_MtlVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: A
     return LinearBVH{D, Float32, MtlVector{Float32}, MtlVector{Int32}}(
         to_MtlVector(LBVH.brt),
         ntuple(i -> MtlVector{Float32}(LBVH.leaf_coor[i]), D),
-        MtlVector{Float32}(LBVH.leaf_h),
+        MtlVector{Float32}(LBVH.leaf_scale),
         to_MtlVector(LBVH.node_aabb),
-        MtlVector{Float32}(LBVH.node_hmax)
+        MtlVector{Float32}(LBVH.node_scale)
     )
 end
 

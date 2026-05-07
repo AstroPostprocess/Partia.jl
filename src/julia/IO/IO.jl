@@ -21,7 +21,7 @@ Implemented in:
 """
 module IO
 
-using .Threads 
+using .Threads
 using HDF5
 using Partia.Grids
 

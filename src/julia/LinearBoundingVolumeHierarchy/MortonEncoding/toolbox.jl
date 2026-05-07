@@ -1,174 +1,13 @@
+######################################################################################
+
+# Morton encoding helper routines for bit interleaving, coordinate quantization,
+# and Morton-order permutation.
+#     by Wei-Shan Su,
+#     May 4, 2026
+
+######################################################################################
 """
-Morton code encoding/decoding utilities for particle spatial indexing  
-    by Wei-Shan Su,  
-    November 6, 2025
-"""
-
-################# Define structures #################
-struct MortonEncoding{D, TF <: AbstractFloat, TI <: Unsigned, VF <: AbstractVector{TF}, VI <: AbstractVector{TI}}
-    order    :: VI             # Order of corresponding particles
-    codes    :: VI             # Morton code
-    coord    :: NTuple{D, VF}  # Original data points
-    h        :: VF             # Smoothed length
-end
-
-function Adapt.adapt_structure(to, x :: ME) where {D, ME <: MortonEncoding{D}}
-    MortonEncoding(
-        Adapt.adapt(to, x.order),
-        Adapt.adapt(to, x.codes),
-        ntuple(i -> Adapt.adapt(to, x.coord[i]), D),
-        Adapt.adapt(to, x.h)
-    )
-end
-
-################# Encoding Morton code #################
-"""
-    MortonEncoding(x::V, y::V, z::V, h :: V; CodeType::Type{TI}=UInt64)
-
-Encode a set of 3D particle coordinates into Morton codes.
-
-# Parameters
-- `x, y, z :: AbstractVector{T}`: Particle positions along each axis (floating-point).
-- `h :: AbstractVector{T}`: The smoothed length of particles
-- `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`).
-
-# Returns
-- `MortonEncoding{3, T, TI, V, typeof(order)}`: Struct containing Morton codes, particle order, and coordinates, ordered by Morton codes
-"""
-function MortonEncoding(x :: V, y :: V, z :: V, h :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
-    xcopy = copy(x); ycopy = copy(y); zcopy = copy(z); hcopy = copy(h)
-    ix, iy, iz = _quantize_coords(xcopy, ycopy, zcopy, CodeType=CodeType)
-    codes, order  = _encode_morton_code3D(ix, iy, iz)
-    enc = MortonEncoding{3, T, TI, V, typeof(order)}(order, codes, (xcopy, ycopy, zcopy), hcopy)
-    sort_by_morton!(enc)
-    return enc
-end
-
-"""
-    MortonEncoding(points::NTuple{3,V}, h::V; CodeType::Type{TI}=UInt64) where {TI<:Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
-
-Encode a set of 3D particle coordinates into Morton codes.
-
-This overload accepts particle positions in a structure-of-arrays (SoA) layout, where
-`points = (x, y, z)` and each component vector has the same storage type/back-end as `h`.
-It forwards to `MortonEncoding(x, y, z, h; CodeType=CodeType)`.
-
-# Parameters
-- `points::NTuple{3,V}` :
-  Particle coordinates in 3D, stored as `(x, y, z)`, where each vector has length `N`.
-- `h::V` :
-  Smoothing length vector of length `N`.
-- `CodeType::Type{TI}=UInt64` :
-  Unsigned integer type used for Morton encoding (typically `UInt32` or `UInt64`).
-
-# Returns
-The same return value as `MortonEncoding(x, y, z, h; CodeType=CodeType)`.
-"""
-function MortonEncoding(points :: NTuple{3, V}, h :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
-    x = points[1]; y = points[2]; z = points[3]
-    return MortonEncoding(x, y, z, h, CodeType = CodeType)
-end
-
-"""
-    MortonEncoding(points::NTuple{3,V}; CodeType::Type{TI}=UInt64) where {TI<:Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
-
-Encode a set of 3D particle coordinates into Morton codes.
-
-This overload accepts particle positions in a structure-of-arrays (SoA) layout, where
-`points = (x, y, z)`. Since no smoothing-length vector is provided, it internally creates a
-dummy `h` (all zeros) and forwards to `MortonEncoding(x, y, z, h; CodeType=CodeType)`.
-
-# Parameters
-- `points::NTuple{3,V}` :
-  Particle coordinates in 3D, stored as `(x, y, z)`, where each vector has length `N`.
-- `CodeType::Type{TI}=UInt64` :
-  Unsigned integer type used for Morton encoding (typically `UInt32` or `UInt64`).
-
-# Returns
-The same return value as `MortonEncoding(x, y, z, h; CodeType=CodeType)` with the internally
-constructed dummy `h`.
-"""
-function MortonEncoding(points :: NTuple{3, V}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V <: AbstractVector{T}}
-    fake_h = similar(points[1])
-    x = points[1]; y = points[2]; z = points[3]
-    return MortonEncoding(x, y, z, fake_h, CodeType = CodeType)
-end
-
-"""
-    MortonEncoding(x::V, y::V, h:: V; CodeType::Type{TI}=UInt64)
-
-Encode a set of 2D particle coordinates into Morton codes.
-
-# Parameters
-- `x, y :: AbstractVector{T}`: Particle positions along each axis (floating-point).
-- `h :: AbstractVector{T}`: The smoothed length of particles
-- `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`).
-
-# Returns
-- `MortonEncoding{2, T, TI, V, typeof(order)}`: Struct containing Morton codes, particle order, and coordinates, ordered by Morton codes
-"""
-function MortonEncoding(x :: V, y :: V, h :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
-    xcopy = copy(x); ycopy = copy(y); hcopy = copy(h)
-    ix, iy = _quantize_coords(xcopy, ycopy, CodeType=CodeType)
-    codes, order  = _encode_morton_code2D(ix, iy)
-    enc = MortonEncoding{2, T, TI, V, typeof(order)}(order, codes, (xcopy, ycopy), hcopy)
-    sort_by_morton!(enc)
-    return enc
-end
-
-"""
-    MortonEncoding(points::NTuple{3,V}, h::V; CodeType::Type{TI}=UInt64) where {TI<:Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
-
-Encode a set of 2D particle coordinates into Morton codes.
-
-This overload accepts particle positions in a structure-of-arrays (SoA) layout, where
-`points = (x, y)` and each component vector has the same storage type/back-end as `h`.
-It forwards to `MortonEncoding(x, y, h; CodeType=CodeType)`.
-
-# Parameters
-- `points::NTuple{3,V}` :
-  Particle coordinates in 2D, stored as `(x, y)`, where each vector has length `N`.
-- `h::V` :
-  Smoothing length vector of length `N`.
-- `CodeType::Type{TI}=UInt64` :
-  Unsigned integer type used for Morton encoding (typically `UInt32` or `UInt64`).
-
-# Returns
-The same return value as `MortonEncoding(x, y, h; CodeType=CodeType)`.
-"""
-function MortonEncoding(points :: NTuple{2, V}, h :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
-    x = points[1]; y = points[2]
-    return MortonEncoding(x, y, h, CodeType = CodeType)
-end
-
-"""
-    MortonEncoding(points::NTuple{2,V}; CodeType::Type{TI}=UInt64) where {TI<:Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
-
-Encode a set of 2D particle coordinates into Morton codes.
-
-This overload accepts particle positions in a structure-of-arrays (SoA) layout, where
-`points = (x, y)`. Since no smoothing-length vector is provided, it internally creates a
-dummy `h` (all zeros) and forwards to `MortonEncoding(x, y, h; CodeType=CodeType)`.
-
-# Parameters
-- `points::NTuple{2,V}` :
-  Particle coordinates in 3D, stored as `(x, y)`, where each vector has length `N`.
-- `CodeType::Type{TI}=UInt64` :
-  Unsigned integer type used for Morton encoding (typically `UInt32` or `UInt64`).
-
-# Returns
-The same return value as `MortonEncoding(x, y, h; CodeType=CodeType)` with the internally
-constructed dummy `h`.
-"""
-function MortonEncoding(points :: NTuple{2, V}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V <: AbstractVector{T}}
-    fake_h = similar(points[1])
-    x = points[1]; y = points[2]
-    return MortonEncoding(x, y, fake_h, CodeType = CodeType)
-end
-
-# Toolbox
-"""
-    sort_by_morton!(enc::MortonEncoding)
+    sort_by_morton!(enc :: MortonEncoding)
 
 Sort particles by Morton code in-place.
 
@@ -178,11 +17,10 @@ Sort particles by Morton code in-place.
 # Returns
 - `p :: Vector{Int}`: The permutation indices used for sorting.
 """
-@inline function sort_by_morton!(enc::MortonEncoding)
+@inline function sort_by_morton!(enc :: MortonEncoding)
     p = sortperm(enc.codes; alg=QuickSort)
     Base.permute!(enc.codes, p)
     Base.permute!(enc.order, p)
-    Base.permute!(enc.h, p)
     for dir in enc.coord
         Base.permute!(dir, p)
     end
@@ -195,18 +33,18 @@ Sort particles by Morton code in-place.
 end
 
 
-# Encoding & decoding morton code 
+# Encoding & decoding morton code
 ## The 3D morton code we used is (UInt64)(0(x0)(y0)(z0)(x1)(y1)......(z20)(x21)(y21)(z21)) or (UInt32)(00(x0)(y0)(z0)...(z9)(x10)(y10)(z10))
-@inline function _expand_bits3D(x::UInt32)
+@inline function _expand_bits3D(x :: UInt32)
     # Copied from https://stackoverflow.com/questions/1024754/how-to-compute-a-3d-morton-number-interleave-the-bits-of-3-ints
-    x = (x | (x << 16)) & 0x30000ff   
+    x = (x | (x << 16)) & 0x30000ff
     x = (x | (x << 8)) & 0x300f00f
     x = (x | (x << 4)) & 0x30c30c3
     x = (x | (x << 2)) & 0x9249249
     return x
 end
 
-@inline function _expand_bits3D(x::UInt64)
+@inline function _expand_bits3D(x :: UInt64)
     # Copied from https://stackoverflow.com/questions/1024754/how-to-compute-a-3d-morton-number-interleave-the-bits-of-3-ints
     x = (x | (x << 32)) & 0x1f00000000ffff
     x = (x | (x << 16)) & 0x1f0000ff0000ff
@@ -216,7 +54,7 @@ end
     return x
 end
 
-@inline function _compact_bits3D(x::UInt32)
+@inline function _compact_bits3D(x :: UInt32)
     x &= 0x09249249
     x = (x ⊻ (x >>  2)) & 0x030C30C3
     x = (x ⊻ (x >>  4)) & 0x0300F00F
@@ -225,7 +63,7 @@ end
     return x
 end
 
-@inline function _compact_bits3D(x::UInt64)
+@inline function _compact_bits3D(x :: UInt64)
     x &= 0x1249249249249249
     x = (x ⊻ (x >> 2)) & 0x10c30c30c30c30c3
     x = (x ⊻ (x >> 4)) & 0x100f00f00f00f00f
@@ -236,7 +74,7 @@ end
 end
 
 ## The 2D morton code we used is ((x0)(y0)(x1)(y1)....)
-@inline function _expand_bits2D(x::UInt32)
+@inline function _expand_bits2D(x :: UInt32)
     x = (x | (x << 8))  & 0x00FF00FF
     x = (x | (x << 4))  & 0x0F0F0F0F
     x = (x | (x << 2))  & 0x33333333
@@ -244,7 +82,7 @@ end
     return x
 end
 
-@inline function _expand_bits2D(x::UInt64)
+@inline function _expand_bits2D(x :: UInt64)
     x = (x | (x << 16)) & 0x0000FFFF0000FFFF
     x = (x | (x << 8))  & 0x00FF00FF00FF00FF
     x = (x | (x << 4))  & 0x0F0F0F0F0F0F0F0F
@@ -253,7 +91,7 @@ end
     return x
 end
 
-@inline function _compact_bits2D(x::UInt32)
+@inline function _compact_bits2D(x :: UInt32)
     x &= 0x55555555
     x = (x ⊻ (x >> 1)) & 0x33333333
     x = (x ⊻ (x >> 2)) & 0x0F0F0F0F
@@ -262,7 +100,7 @@ end
     return x
 end
 
-@inline function _compact_bits2D(x::UInt64)
+@inline function _compact_bits2D(x :: UInt64)
     x &= 0x5555555555555555
     x = (x ⊻ (x >> 1)) & 0x3333333333333333
     x = (x ⊻ (x >> 2)) & 0x0F0F0F0F0F0F0F0F
@@ -325,11 +163,11 @@ function _decode_morton_code3D(code :: V) where {T <: Unsigned, V <: AbstractVec
     return ix, iy, iz
 end
 
-@inline function _encode_morton_code2D(ix::T, iy::T) where {T<:Unsigned}
+@inline function _encode_morton_code2D(ix :: T, iy :: T) where {T <: Unsigned}
     return (_expand_bits2D(ix) << 1) | _expand_bits2D(iy)
 end
 
-@inline function _decode_morton_code2D(code::T) where {T<:Unsigned}
+@inline function _decode_morton_code2D(code :: T) where {T <: Unsigned}
     return (_compact_bits2D(code >> 1), _compact_bits2D(code))
 end
 
@@ -368,7 +206,7 @@ function _decode_morton_code2D(code :: V) where {T <: Unsigned, V <: AbstractVec
     @inbounds for i in eachindex(code)
         _decode_morton_code2D!(ix, iy, code, i)
     end
-    
+
     return ix, iy
 end
 
@@ -393,14 +231,14 @@ end
 
 @inline function _longest_common_prefix(a :: T, b :: T) where {T <: Unsigned}
     LCPL = _longest_common_prefix_length(a, b)
-    β = sizeof(T) * 8 
+    β = sizeof(T) * 8
     u = typemax(T)
     c = u << (β - LCPL)
     LCP = a & c
     return LCP
 end
 
-@inline function _prefix_range(a::T, b::T) where {T<:Unsigned}
+@inline function _prefix_range(a :: T, b :: T) where {T <: Unsigned}
     β = sizeof(T) * 8
     LCPL = _longest_common_prefix_length(a, b)
     p0 = _longest_common_prefix(a, b)
@@ -408,14 +246,14 @@ end
     return (p0, p1)
 end
 
-@inline function _prefix_size3D(a::T, b::T) where {T <: Unsigned}
+@inline function _prefix_size3D(a :: T, b :: T) where {T <: Unsigned}
     p0, p1 = _prefix_range(a, b)
     (x0, y0, z0) = _decode_morton_code3D(p0)
     (x1, y1, z1) = _decode_morton_code3D(p1)
     return (x1 - x0 + 1, y1 - y0 + 1, z1 - z0 + 1)
 end
 
-@inline function _prefix_size2D(a::T, b::T) where {T <: Unsigned}
+@inline function _prefix_size2D(a :: T, b :: T) where {T <: Unsigned}
     p0, p1 = _prefix_range(a, b)
     (x0, y0) = _decode_morton_code2D(p0)
     (x1, y1) = _decode_morton_code2D(p1)
@@ -423,12 +261,12 @@ end
 end
 
 # Projecting (x, y, z) to (ix, iy, iz)
-@inline function _axis_bits(::Val{D}, ::Type{T}) where {D, T<:Unsigned}
+@inline function _axis_bits( :: Val{D}, :: Type{T}) where {D, T <: Unsigned}
     β = sizeof(T) * 8
     return (β - (β % D)) ÷ D
 end
 
-@inline function _axis_scale(::Val{D}, ::Type{T}, ::Type{TF}) where {D, T<:Unsigned, TF<:AbstractFloat}
+@inline function _axis_scale( :: Val{D}, :: Type{T}, :: Type{TF}) where {D, T <: Unsigned, TF <: AbstractFloat}
     b = _axis_bits(Val(D), T)
     return exp2(TF(b)) - one(TF)
 end
@@ -444,7 +282,7 @@ function _normalize_vector(v :: V) where {T <: AbstractFloat, V <: AbstractVecto
     vmin = minimum(v); vmax = maximum(v)
     Δv = vmax - vmin
     if Δv == 0
-        return fill!(similar(v), 0.5) 
+        return fill!(similar(v), 0.5)
     end
     invΔv = inv(Δv)
 
@@ -470,7 +308,7 @@ end
     return nothing
 end
 
-function _quantize_coords(x::V, y::V, z::V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
+function _quantize_coords(x :: V, y :: V, z :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
     # Normalize coordinate to [0, 1)
     fx = _normalize_vector(x)
     fy = _normalize_vector(y)
@@ -497,10 +335,10 @@ function _quantize_coords(x::V, y::V, z::V; CodeType :: Type{TI} = UInt64) where
     return ix, iy, iz
 end
 
-@inline function _quantize_coords!(ix :: V, iy :: V, iz :: V, fvs :: NTuple{3, V}, x::V, y::V, z::V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
+@inline function _quantize_coords!(ix :: V, iy :: V, iz :: V, fvs :: NTuple{3, V}, x :: V, y :: V, z :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
     # Scaling the coordinate to [0, 2^k - 1)
     scale = _axis_scale(Val(3), CodeType, T)
-    
+
     # Normalize coordinate to [0, 1)
     fx = fvs[1]
     fy = fvs[2]
@@ -525,7 +363,7 @@ end
     return nothing
 end
 
-function _quantize_coords(x::V, y::V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
+function _quantize_coords(x :: V, y :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
     # Normalize coordinate to [0, 1)
     fx = _normalize_vector(x)
     fy = _normalize_vector(y)
@@ -548,10 +386,10 @@ function _quantize_coords(x::V, y::V; CodeType :: Type{TI} = UInt64) where {TI <
     return ix, iy
 end
 
-@inline function _quantize_coords!(ix :: V, iy :: V, fvs :: NTuple{2, V}, x::V, y::V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T<:AbstractFloat, V<:AbstractVector{T}}
+@inline function _quantize_coords!(ix :: V, iy :: V, fvs :: NTuple{2, V}, x :: V, y :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
     # Scaling the coordinate to [0, 2^k - 1)
     scale = _axis_scale(Val(2), CodeType, T)
-    
+
     # Normalize coordinate to [0, 1)
     fx = fvs[1]
     fy = fvs[2]

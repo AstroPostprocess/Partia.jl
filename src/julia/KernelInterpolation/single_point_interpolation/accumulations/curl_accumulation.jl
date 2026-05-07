@@ -25,7 +25,7 @@
     return ∇Axf, ∇Ayf, ∇Azf, mblρb∂xW, mblρb∂yW, mblρb∂zW
 end
 
-@inline function _curl_quantity_accumulation(ra::NTuple{D, T}, rb::NTuple{D, T}, mb :: T, ρb :: T, Axb :: T, Ayb :: T, Azb :: T, h :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
+@inline function _curl_quantity_accumulation(ra :: NTuple{D, T}, rb :: NTuple{D, T}, mb :: T, ρb :: T, Axb :: T, Ayb :: T, Azb :: T, h :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
     Ktyp = typeof(smoothed_kernel)
     ∇W = Smoothed_gradient_kernel_function(Ktyp, ra, rb, h)
     ∂xW = ∇W[1]
@@ -68,7 +68,7 @@ end
     return ∇Axf, ∇Ayf, ∇Azf, mblρb∂xW, mblρb∂yW, mblρb∂zW
 end
 
-@inline function _curl_quantity_accumulation(ra::NTuple{D, T}, rb::NTuple{D, T}, mb :: T, ρb :: T, Axb :: T, Ayb :: T, Azb :: T, ha :: T, hb :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
+@inline function _curl_quantity_accumulation(ra :: NTuple{D, T}, rb :: NTuple{D, T}, mb :: T, ρb :: T, Axb :: T, Ayb :: T, Azb :: T, ha :: T, hb :: T, smoothed_kernel :: K) where {T <: AbstractFloat, K <: AbstractSPHKernel, D}
     Ktyp = typeof(smoothed_kernel)
     ∇Wa = Smoothed_gradient_kernel_function(Ktyp, ra, rb, ha)
     ∇Wb = Smoothed_gradient_kernel_function(Ktyp, ra, rb, hb)

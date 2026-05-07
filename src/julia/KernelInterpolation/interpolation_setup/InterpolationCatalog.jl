@@ -11,14 +11,14 @@ struct InterpolationCatalog{D, N, G, Div, C, L}
     scalar_slots :: NTuple{N,Int}
     scalar_snormalization :: NTuple{N,Bool}         # Shepard normalization flags
 
-    grad_names   :: NTuple{G,Symbol}
-    grad_slots   :: NTuple{G,Int}
+    grad_names :: NTuple{G,Symbol}
+    grad_slots :: NTuple{G,Int}
 
-    div_names    :: NTuple{Div,Symbol}
-    div_slots    :: NTuple{Div,NTuple{D,Int}}
+    div_names :: NTuple{Div,Symbol}
+    div_slots :: NTuple{Div,NTuple{D,Int}}
 
-    curl_names   :: NTuple{C,Symbol}
-    curl_slots   :: NTuple{C,NTuple{D,Int}}
+    curl_names :: NTuple{C,Symbol}
+    curl_slots :: NTuple{C,NTuple{D,Int}}
 
     ordered_names :: NTuple{L,Symbol}
 end
@@ -26,21 +26,21 @@ end
 struct InterpolationCatalogConcise{D, N, G, Div,C}
     scalar_slots :: NTuple{N,Int}
     scalar_snormalization :: NTuple{N,Bool}         # Shepard normalization flags
-    grad_slots   :: NTuple{G,Int}
-    div_slots    :: NTuple{Div,NTuple{D,Int}}
-    curl_slots   :: NTuple{C,NTuple{D,Int}}
+    grad_slots :: NTuple{G,Int}
+    div_slots :: NTuple{Div,NTuple{D,Int}}
+    curl_slots :: NTuple{C,NTuple{D,Int}}
 end
 
 """
-    InterpolationCatalog(::Val{D};
-                         scalar_names::Tuple{Vararg{Symbol}}=(),
-                         scalar_slots::Tuple{Vararg{Int}}=(),
-                         grad_names::Tuple{Vararg{Symbol}}=(),
-                         grad_slots::Tuple{Vararg{Int}}=(),
-                         div_names::Tuple{Vararg{Symbol}}=(),
-                         div_slots::Tuple{Vararg{NTuple{D,Int}}}=(),
-                         curl_names::Tuple{Vararg{Symbol}}=(),
-                         curl_slots::Tuple{Vararg{NTuple{D,Int}}}=()) where {D}
+    InterpolationCatalog( :: Val{D};
+                         scalar_names :: Tuple{Vararg{Symbol}}=(),
+                         scalar_slots :: Tuple{Vararg{Int}}=(),
+                         grad_names :: Tuple{Vararg{Symbol}}=(),
+                         grad_slots :: Tuple{Vararg{Int}}=(),
+                         div_names :: Tuple{Vararg{Symbol}}=(),
+                         div_slots :: Tuple{Vararg{NTuple{D,Int}}}=(),
+                         curl_names :: Tuple{Vararg{Symbol}}=(),
+                         curl_slots :: Tuple{Vararg{NTuple{D,Int}}}=()) where {D}
 
 Construct an `InterpolationCatalog` from explicitly provided quantity names and
 their corresponding column locations in the particle dataset.
@@ -68,15 +68,15 @@ all scalar quantities.
   normalization flags, and the ordered expanded output quantity names.
 
 """
-function InterpolationCatalog(::Val{D};
-    scalar_names::Tuple{Vararg{Symbol}} = (),
-    scalar_slots::Tuple{Vararg{Int}} = (),
-    grad_names::Tuple{Vararg{Symbol}} = (),
-    grad_slots::Tuple{Vararg{Int}} = (),
-    div_names::Tuple{Vararg{Symbol}} = (),
-    div_slots::Tuple{Vararg{NTuple{D,Int}}} = (),
-    curl_names::Tuple{Vararg{Symbol}} = (),
-    curl_slots::Tuple{Vararg{NTuple{D,Int}}} = (),
+function InterpolationCatalog( :: Val{D};
+    scalar_names :: Tuple{Vararg{Symbol}} = (),
+    scalar_slots :: Tuple{Vararg{Int}} = (),
+    grad_names :: Tuple{Vararg{Symbol}} = (),
+    grad_slots :: Tuple{Vararg{Int}} = (),
+    div_names :: Tuple{Vararg{Symbol}} = (),
+    div_slots :: Tuple{Vararg{NTuple{D,Int}}} = (),
+    curl_names :: Tuple{Vararg{Symbol}} = (),
+    curl_slots :: Tuple{Vararg{NTuple{D,Int}}} = (),
 ) where {D}
     N = length(scalar_names)
     G = length(grad_names)
@@ -102,11 +102,11 @@ function InterpolationCatalog(::Val{D};
 end
 
 """
-    InterpolationCatalog(column_names::Tuple{Vararg{Symbol}}, ::Val{D};
-                         scalars::Tuple{Vararg{Symbol}}=(),
-                         gradients::Tuple{Vararg{Symbol}}=(),
-                         divergences::Tuple{Vararg{Symbol}}=(),
-                         curls::Tuple{Vararg{Symbol}}=()) where {D}
+    InterpolationCatalog(column_names :: Tuple{Vararg{Symbol}}, :: Val{D};
+                         scalars :: Tuple{Vararg{Symbol}}=(),
+                         gradients :: Tuple{Vararg{Symbol}}=(),
+                         divergences :: Tuple{Vararg{Symbol}}=(),
+                         curls :: Tuple{Vararg{Symbol}}=()) where {D}
 
 Construct an `InterpolationCatalog` from a tuple of dataset column names and
 symbolic quantity requests.
@@ -119,9 +119,9 @@ and `curls` are expanded into component column names through
 `_vector_components(..., Val(D))` before slot lookup.
 
 # Parameters
-- `column_names::Tuple{Vararg{Symbol}}`: Ordered tuple of available column
+- `column_names :: Tuple{Vararg{Symbol}}`: Ordered tuple of available column
   names in the underlying particle dataset.
-- `::Val{D}`: Compile-time spatial dimension used to expand vector quantity
+- ` :: Val{D}`: Compile-time spatial dimension used to expand vector quantity
   names into component-wise column names.
 
 # Keyword Arguments
@@ -140,9 +140,9 @@ and `curls` are expanded into component column names through
 """
 function InterpolationCatalog(column_names :: Tuple{Vararg{Symbol}}, :: Val{D};
     scalars :: Tuple{Vararg{Symbol}} = (),
-    gradients::Tuple{Vararg{Symbol}} = (),
-    divergences::Tuple{Vararg{Symbol}} = (),
-    curls::Tuple{Vararg{Symbol}} = (),
+    gradients :: Tuple{Vararg{Symbol}} = (),
+    divergences :: Tuple{Vararg{Symbol}} = (),
+    curls :: Tuple{Vararg{Symbol}} = (),
 ) where {D}
 
     # Make sure column names are unique to avoid ambiguous slot lookups
@@ -188,15 +188,15 @@ function InterpolationCatalog(column_names :: Tuple{Vararg{Symbol}}, :: Val{D};
 end
 
 # Toolbox
-@inline function _vector_components(name :: Symbol, ::Val{3}) :: NTuple{3, Symbol}
+@inline function _vector_components(name :: Symbol, :: Val{3}) :: NTuple{3, Symbol}
     return ntuple(i -> Symbol(name, _XYZ_SUFFIXES[i]), 3)
 end
 
-@inline function _vector_components(name :: Symbol, ::Val{2}) :: NTuple{2, Symbol}
+@inline function _vector_components(name :: Symbol, :: Val{2}) :: NTuple{2, Symbol}
     return ntuple(i -> Symbol(name, _XYZ_SUFFIXES[i]), 2)
 end
 
-@inline function _ordered_quantity_names(:: Val{L}, :: Val{D}, scalars :: NTuple{N,Symbol}, grads :: NTuple{G,Symbol}, divs :: NTuple{Div,Symbol}, curls :: NTuple{C,Symbol}) where {L, N, G, Div, C, D}
+@inline function _ordered_quantity_names( :: Val{L}, :: Val{D}, scalars :: NTuple{N,Symbol}, grads :: NTuple{G,Symbol}, divs :: NTuple{Div,Symbol}, curls :: NTuple{C,Symbol}) where {L, N, G, Div, C, D}
     names = Symbol[]
     append!(names, scalars)
 
@@ -219,27 +219,27 @@ end
     return tuple(names...) :: NTuple{L,Symbol}
 end
 
-@inline function _shepard_normalization_flag(scalar_names::NTuple{N,Symbol}) where {N}
+@inline function _shepard_normalization_flag(scalar_names :: NTuple{N,Symbol}) where {N}
     no_norm = (:ρ, :rho)
     return ntuple(i -> scalar_names[i] ∈ no_norm ? false : true, N)
 end
 
-scalar_index(cat::InterpolationCatalog, name::Symbol) =
+scalar_index(cat :: InterpolationCatalog, name :: Symbol) =
     cat.scalar_slots[findfirst(==(name), cat.scalar_names)]
 
-grad_slot(cat::InterpolationCatalog, name::Symbol) =
+grad_slot(cat :: InterpolationCatalog, name :: Symbol) =
     cat.grad_slots[findfirst(==(name), cat.grad_names)]
 
-div_slots(cat::InterpolationCatalog, name::Symbol) =
+div_slots(cat :: InterpolationCatalog, name :: Symbol) =
     cat.div_slots[findfirst(==(name), cat.div_names)]
 
-curl_slots(cat::InterpolationCatalog, name::Symbol) =
+curl_slots(cat :: InterpolationCatalog, name :: Symbol) =
     cat.curl_slots[findfirst(==(name), cat.curl_names)]
 
-ordered_quantity_names(cat::InterpolationCatalog) = cat.ordered_names
+ordered_quantity_names(cat :: InterpolationCatalog) = cat.ordered_names
 
 """
-    to_concise_catalog(cat::InterpolationCatalog{D, N, G, Div, C, L})
+    to_concise_catalog(cat :: InterpolationCatalog{D, N, G, Div, C, L})
         -> InterpolationCatalogConcise{D, N, G, Div, C}
 
 Construct a concise interpolation catalog by stripping name information from a
@@ -249,23 +249,23 @@ for high-performance interpolation paths where symbolic field names are not
 required.
 
 # Parameters
-- `cat::InterpolationCatalog{D, N, G, Div, C, L}`  
+- `cat :: InterpolationCatalog{D, N, G, Div, C, L}`
   Full catalog containing scalar, gradient, divergence, and curl quantity
   metadata, including symbolic names, slot locations, and normalization flags.
 
 # Returns
-- `InterpolationCatalogConcise{D, N, G, Div, C}`  
+- `InterpolationCatalogConcise{D, N, G, Div, C}`
   A compact catalog holding only:
-  - `scalar_slots  :: NTuple{N,Int}`
+  - `scalar_slots :: NTuple{N,Int}`
   - `scalar_snormalization :: NTuple{N,Bool}`
-  - `grad_slots    :: NTuple{G,Int}`
-  - `div_slots     :: NTuple{Div,NTuple{D,Int}}`
-  - `curl_slots    :: NTuple{C,NTuple{D,Int}}`
+  - `grad_slots :: NTuple{G,Int}`
+  - `div_slots :: NTuple{Div,NTuple{D,Int}}`
+  - `curl_slots :: NTuple{C,NTuple{D,Int}}`
 
 This reduction eliminates name handling overhead and is intended for
 performance-critical inner interpolation kernels.
 """
-@inline function to_concise_catalog(catalog::InterpolationCatalog{D, N, G, Div, C, L}) where {D, N, G, Div, C, L}
+@inline function to_concise_catalog(catalog :: InterpolationCatalog{D, N, G, Div, C, L}) where {D, N, G, Div, C, L}
     return InterpolationCatalogConcise{D, N, G, Div, C}(
         catalog.scalar_slots,
         catalog.scalar_snormalization,

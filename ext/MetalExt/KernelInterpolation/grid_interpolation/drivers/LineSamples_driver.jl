@@ -1,14 +1,14 @@
 """
-    LineSamples_interpolation(backend::MetalComputeBackend, grid_template::LineSamples{3,TF},
-                              input::InterpolationInput{3,TF}, catalog::InterpolationCatalog{3, N, 0, 0, 0, N},
-                              itp_strategy::Type{ITPSTRATEGY}=itpScatter)
+    LineSamples_interpolation(backend :: MetalComputeBackend, grid_template :: LineSamples{3,TF},
+                              input :: InterpolationInput{3,TF}, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N},
+                              itp_strategy :: Type{ITPSTRATEGY}=itpScatter)
 
 Performs line-integrated SPH interpolation on the GPU using Metal.
 
 This routine mirrors the CPU `LineSamples_interpolation` path: it only supports
 scalar line-integrated quantities and only the `itpScatter` strategy.
 """
-function Partia.LineSamples_interpolation(::MetalComputeBackend, grid_template::LineSamples{3, TF}, input::InterpolationInput{3, TF}, catalog::InterpolationCatalog{3, N, 0, 0, 0, N}, itp_strategy::Type{ITPSTRATEGY} = itpScatter) where {N, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.LineSamples_interpolation( :: MetalComputeBackend, grid_template :: LineSamples{3, TF}, input :: InterpolationInput{3, TF}, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
     itp_strategy === itpScatter || throw(ArgumentError(
         "LineSamples_interpolation only supports itpScatter. " *
         "Line-integrated samples do not have a well-defined query smoothing length ha, " *
@@ -35,10 +35,10 @@ function Partia.LineSamples_interpolation(::MetalComputeBackend, grid_template::
 end
 
 """
-    LineSamples_interpolation(backend::MetalComputeBackend, grid_template::LineSamples{3,TF},
-                              input::InterpolationInput{3,TF}, LBVH::LinearBVH{3,TF},
-                              catalog::InterpolationCatalog{3, N, 0, 0, 0, N},
-                              itp_strategy::Type{ITPSTRATEGY}=itpScatter)
+    LineSamples_interpolation(backend :: MetalComputeBackend, grid_template :: LineSamples{3,TF},
+                              input :: InterpolationInput{3,TF}, LBVH :: LinearBVH{3,TF},
+                              catalog :: InterpolationCatalog{3, N, 0, 0, 0, N},
+                              itp_strategy :: Type{ITPSTRATEGY}=itpScatter)
 
 Performs line-integrated SPH interpolation on the GPU using Metal with an
 externally supplied `LinearBVH`.
@@ -47,7 +47,7 @@ This routine mirrors the existing Metal line-sample path, but skips LBVH
 construction and instead reuses the provided hierarchy after checking that its
 leaf order matches the current ordering of `input`.
 """
-function Partia.LineSamples_interpolation(::MetalComputeBackend, grid_template::LineSamples{3, TF}, input::InterpolationInput{3, TF}, LBVH::LinearBVH{3, TF}, catalog::InterpolationCatalog{3, N, 0, 0, 0, N}, itp_strategy::Type{ITPSTRATEGY} = itpScatter) where {N, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.LineSamples_interpolation( :: MetalComputeBackend, grid_template :: LineSamples{3, TF}, input :: InterpolationInput{3, TF}, LBVH :: LinearBVH{3, TF}, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
     itp_strategy === itpScatter || throw(ArgumentError(
         "LineSamples_interpolation only supports itpScatter. " *
         "Line-integrated samples do not have a well-defined query smoothing length ha, " *

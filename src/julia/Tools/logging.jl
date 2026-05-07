@@ -1,9 +1,10 @@
-"""
-Logging the information of analysis
-    by Wei-Shan Su,
-    July 11, 2024
-"""
+######################################################################################
 
+# Logging the information of analysis
+#     by Wei-Shan Su,
+#     July 11, 2024
+
+######################################################################################
 """
     time_and_print(expr)
 
@@ -86,7 +87,7 @@ function get_Partia_version()
 end
 
 """
-    get_analysis_info(filepath::String) :: Dict{Symbol,Any}
+    get_analysis_info(filepath :: String) :: Dict{Symbol,Any}
 
 Gather analysis information about a file.
 
@@ -96,7 +97,7 @@ Gather analysis information about a file.
 # Returns
 `Dict{Symbol,Any}`: A dictionary containing analysis information.
 """
-function get_analysis_info(filepath::String)
+function get_analysis_info(filepath :: String)
     log_info = Dict{String,Any}()
     log_info[:Analysis_date] = today()
     log_info[:system_kernel] = Sys.KERNEL
@@ -139,17 +140,17 @@ function last_logging()
 end
 
 """
-    file_identifier(operation_name::String)
+    file_identifier(operation_name :: String)
 
 Generate a file identifier string.
 
 # Parameters
-- `operation_name::String`: Custom operation name.
+- `operation_name :: String`: Custom operation name.
 
 # Returns
 - `String`: The file identifier string.
 """
-function file_identifier(operation_name::String)
+function file_identifier(operation_name :: String)
     current_time = Dates.format(now(), "dd/mm/yyyy HH:MM:SS.s")
     str = "FT:Partia:$(get_Partia_version()) ($(isempty(operation_name) ? "CommonOutput" : operation_name)): $(current_time)"
     return str
