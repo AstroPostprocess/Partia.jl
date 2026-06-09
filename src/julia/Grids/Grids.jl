@@ -58,6 +58,9 @@ using Partia.Frames
 # Flag of coordinate system
 include(joinpath(@__DIR__, "grids", "coordinate.jl"))
 
+# AbstractBeamModel
+include(joinpath(@__DIR__, "grids", "AbstractBeamModel.jl"))
+
 # AbstractGrid
 include(joinpath(@__DIR__, "grids", "AbstractGrid.jl"))
 

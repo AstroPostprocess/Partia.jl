@@ -8,10 +8,12 @@
 #     • Coordinate dispatch for Cartesian, polar, cylindrical, and spherical
 #       grids against explicitly constructed Cartesian coordinates.
 #     • Coordinate-dispatch mismatch rejection during restore.
-#  2. Frame-plane PointSamples constructors
+#  2. Frame-plane sample constructors
 #     • Cartesian and polar constructors checked against equivalent 2D
 #       StructuredGrid flattening.
 #     • Independent half-open polar angular sampling and radial ordering checks.
+#     • LineSamples parallel-beam constructors checked against PointSamples
+#       origins and frame-forward directions.
 #  3. StructuredGrid interpolation
 #     • Flattened PointSamples interpolation equivalence.
 #     • Coordinate-system dispatch and analytic linear-field regression.
@@ -80,7 +82,7 @@ end
     @test_throws ArgumentError Partia.Grids.restore_struct(Cartesian, flattened, cyl_grid.axes)
 end
 
-# ── 2. PointSamples frame-plane constructors ─────────────────────────── #
+# ── 2a. PointSamples frame-plane constructors ────────────────────────── #
 
 @testset "PointSamples frame-plane constructors -- 2D StructuredGrid consistency" begin
     frame = Frame((0.0, 0.0, 0.0), (0.0, 0.0, -1.0), (0.0, 1.0, 0.0))
@@ -147,6 +149,57 @@ end
     @test all(isapprox.(plane_polar.coor[1][centre_indices], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
     @test all(isapprox.(plane_polar.coor[2][centre_indices], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
     @test all(isapprox.(plane_polar.coor[3][centre_indices], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
+end
+
+# ── 2b. LineSamples frame-plane constructors ─────────────────────────── #
+
+@testset "LineSamples frame-plane constructors -- ParallelBeam consistency" begin
+    frame = Frame((0.25, -0.5, 1.25), (0.0, 0.0, -1.0), (0.0, 1.0, 0.0))
+    fx, fy, fz = frame_forward(frame)
+
+    width, height = 2.0, 1.5
+    nx, ny = 5, 4
+    point_cart = PointSamples(Cartesian, frame, width, height, nx, ny)
+    line_cart = LineSamples(Cartesian, ParallelBeam, frame, width, height, nx, ny)
+
+    @test line_cart.grid == zeros(length(point_cart.grid))
+    @test isapprox(line_cart.origin[1], point_cart.coor[1]; atol = 1.0e-12, rtol = 1.0e-12)
+    @test isapprox(line_cart.origin[2], point_cart.coor[2]; atol = 1.0e-12, rtol = 1.0e-12)
+    @test isapprox(line_cart.origin[3], point_cart.coor[3]; atol = 1.0e-12, rtol = 1.0e-12)
+    @test all(isapprox.(line_cart.direction[1], fx; atol = 1.0e-12, rtol = 1.0e-12))
+    @test all(isapprox.(line_cart.direction[2], fy; atol = 1.0e-12, rtol = 1.0e-12))
+    @test all(isapprox.(line_cart.direction[3], fz; atol = 1.0e-12, rtol = 1.0e-12))
+
+    rmin, rmax = 0.0, 1.0
+    nr, nϕ = 4, 8
+    point_polar = PointSamples(Polar, frame, rmin, rmax, nr, nϕ)
+    line_polar = LineSamples(Polar, ParallelBeam, frame, rmin, rmax, nr, nϕ)
+
+    @test line_polar.grid == zeros(length(point_polar.grid))
+    @test isapprox(line_polar.origin[1], point_polar.coor[1]; atol = 1.0e-12, rtol = 1.0e-12)
+    @test isapprox(line_polar.origin[2], point_polar.coor[2]; atol = 1.0e-12, rtol = 1.0e-12)
+    @test isapprox(line_polar.origin[3], point_polar.coor[3]; atol = 1.0e-12, rtol = 1.0e-12)
+    @test all(isapprox.(line_polar.direction[1], fx; atol = 1.0e-12, rtol = 1.0e-12))
+    @test all(isapprox.(line_polar.direction[2], fy; atol = 1.0e-12, rtol = 1.0e-12))
+    @test all(isapprox.(line_polar.direction[3], fz; atol = 1.0e-12, rtol = 1.0e-12))
+
+    @test length(line_polar.grid) == nr * nϕ
+    @test length(line_polar.origin[1]) == nr * nϕ
+    @test length(line_polar.direction[1]) == nr * nϕ
+end
+
+@testset "LineSamples frame-plane constructors -- invalid plane parameters" begin
+    frame = Frame((0.0, 0.0, 0.0), (0.0, 0.0, -1.0), (0.0, 1.0, 0.0))
+
+    @test_throws ArgumentError LineSamples(Cartesian, ParallelBeam, frame, 0.0, 1.0, 2, 2)
+    @test_throws ArgumentError LineSamples(Cartesian, ParallelBeam, frame, 1.0, 0.0, 2, 2)
+    @test_throws ArgumentError LineSamples(Cartesian, ParallelBeam, frame, 1.0, 1.0, 1, 2)
+    @test_throws ArgumentError LineSamples(Cartesian, ParallelBeam, frame, 1.0, 1.0, 2, 1)
+
+    @test_throws ArgumentError LineSamples(Polar, ParallelBeam, frame, -1.0, 1.0, 2, 3)
+    @test_throws ArgumentError LineSamples(Polar, ParallelBeam, frame, 1.0, 1.0, 2, 3)
+    @test_throws ArgumentError LineSamples(Polar, ParallelBeam, frame, 0.0, 1.0, 1, 3)
+    @test_throws ArgumentError LineSamples(Polar, ParallelBeam, frame, 0.0, 1.0, 2, 2)
 end
 
 # ── 3a. StructuredGrid interpolation — flattened consistency ─────────── #
