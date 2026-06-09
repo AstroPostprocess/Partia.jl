@@ -1,10 +1,32 @@
+######################################################################################
+
+#  Test: Coordinate Transformations — Cartesian, Cylindrical, and Spherical
+#  What this file tests
+#  Numerical round-trip checks for coordinate and vector-component transforms:
+#  1. Cartesian ↔ cylindrical scalar coordinates
+#     • Radius reconstruction, quadrant-aware azimuth, and origin handling.
+#     • 2D and 3D dispatch paths.
+#  2. Cartesian ↔ cylindrical vector components
+#     • Azimuth-dependent basis rotation in 2D and 3D.
+#  3. Cartesian ↔ spherical scalar coordinates
+#     • Radius, azimuth, polar angle ranges, and origin handling.
+#  4. Cartesian ↔ spherical vector components
+#     • Tuple and scalar-argument dispatch paths.
+
+######################################################################################
 using Test
 using Partia
+
+# ========================== Public API imports ============================== #
 
 import Partia.Tools: _cart2cylin, _cylin2cart,
     _vector_cart2cylin, _vector_cylin2cart,
     _cart2sph, _sph2cart,
     _vector_cart2sph, _vector_sph2cart
+
+# ============================== Test body =================================== #
+
+# ── 1. Cartesian ↔ cylindrical coordinates ───────────────────────────── #
 
 @testset "Coordinate transform -- cart <-> cylin round-trip" begin
     x, y = 3.0, 4.0
@@ -37,6 +59,8 @@ import Partia.Tools: _cart2cylin, _cylin2cart,
     @test ϕ0 ≈ 0.0
 end
 
+# ── 2. Cartesian ↔ cylindrical vector components ─────────────────────── #
+
 @testset "Coordinate transform -- vector cart <-> cylin round-trip" begin
     ϕ = π / 3
     Ax, Ay = 1.0, 2.0
@@ -53,6 +77,8 @@ end
     @test Ay3 ≈ Ay atol = 1e-14
     @test Az3b ≈ Az atol = 1e-14
 end
+
+# ── 3. Cartesian ↔ spherical coordinates ─────────────────────────────── #
 
 @testset "Coordinate transform -- cart <-> spherical round-trip" begin
     x, y, z = 2.0, -3.0, 6.0
@@ -71,6 +97,8 @@ end
     @test ϕ0 ≈ 0.0
     @test θ0 ≈ 0.0
 end
+
+# ── 4. Cartesian ↔ spherical vector components ───────────────────────── #
 
 @testset "Coordinate transform -- vector cart <-> spherical round-trip" begin
     x, y, z = 2.0, 3.0, 4.0

@@ -1,15 +1,17 @@
 ######################################################################################
 
-#  Test: Traversal Kernels - Analytic Linear-Field Regression
+#  Test: Traversal Kernels — Analytic Linear-Field Regression
 #  What this file tests
 #  Verifies the public traversal interpolation routines against manufactured
 #  linear fields on a uniform particle cloud.
-#  1. Scalar interpolation
-#  2. Gradient interpolation
-#  3. Divergence interpolation
-#  4. Curl interpolation
-#  5. Density consistency
-#  6. Vanishing density-gradient error for a uniform-density cloud
+#  1. Quantity interpolation
+#     • Scalar interpolation against a linear manufactured field.
+#     • Gradient interpolation against a constant analytic gradient.
+#  2. Vector operators
+#     • Divergence and curl interpolation against known analytic values.
+#  3. Density consistency
+#     • Density remains close to unity for the uniform-density cloud.
+#     • Density gradient remains near zero away from boundaries.
 #  The goal here is not brute-force equality, but regression-level accuracy
 #  against analytic expectations for smooth fields sampled away from boundaries.
 
@@ -17,6 +19,9 @@
 using Test
 using Random
 using Partia
+
+# ========================== Internal API imports ============================ #
+
 using Partia.KernelInterpolation: _density_kernel,
     _gradient_density_kernel,
     _quantity_interpolate_kernel,
@@ -24,13 +29,21 @@ using Partia.KernelInterpolation: _density_kernel,
     _divergence_quantity_interpolate_kernel,
     _curl_quantity_interpolate_kernel
 
+# ========================== Shared includes ================================= #
+
 @static if !isdefined(@__MODULE__, :analytic_scalar)
     include("interpolation_analytic_test_common.jl")
 end
 
+# ========================== Constants ======================================= #
+
 kern = M4_spline()
 strategies = (itpGather, itpScatter, itpSymmetric)
 kvalid = KernelFunctionValid(typeof(kern), Float64)
+
+# ============================== Test body =================================== #
+
+# ── 1. Manufactured linear-field traversal regression ────────────────── #
 
 @testset "Analytic traversal kernels (linear field)" begin
     rng = Xoshiro(0xA11CE)

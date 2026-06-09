@@ -52,7 +52,8 @@ module Grids
 using .Threads
 using Statistics
 using Adapt
-using ..Tools: _cylin2cart, _sph2cart
+using Partia.Tools: _cylin2cart, _sph2cart
+using Partia.Frames
 
 # Flag of coordinate system
 include(joinpath(@__DIR__, "grids", "coordinate.jl"))

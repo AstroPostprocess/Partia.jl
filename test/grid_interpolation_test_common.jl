@@ -1,8 +1,31 @@
+######################################################################################
+
+#  Shared Test Helpers: Grid Interpolation Fixtures and References
+#  What this file provides
+#  Shared fixtures and reference evaluators for grid-oriented interpolation tests:
+#  1. Fixture builders
+#     • Small particle-cloud `InterpolationInput` and `InterpolationCatalog`
+#       instances for point, line, and structured-grid tests.
+#     • PointSamples, LineSamples, and StructuredGrid templates.
+#  2. Coordinate references
+#     • Explicit Cartesian coordinate expansion for Cartesian, polar,
+#       cylindrical, and spherical StructuredGrid inputs.
+#  3. Brute-force references
+#     • Nearest smoothing length, scalar quantity, divergence, and
+#       line-integrated scalar checks against direct O(N) loops.
+#  This file is included by multiple test files and is guarded against
+#  duplicate helper inclusion where needed.
+
+######################################################################################
 using Test
 using Random
 using Partia
 
+# ========================== Module aliases ================================== #
+
 ki_mod = Partia.KernelInterpolation
+
+# ========================== Shared includes ================================= #
 
 @static if !isdefined(@__MODULE__, :support_radius)
     include("interpolation_test_common.jl")

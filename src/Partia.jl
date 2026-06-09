@@ -13,6 +13,9 @@ include(joinpath(@__DIR__, "julia", "EOS", "EOS.jl"))
 include(joinpath(@__DIR__, "julia", "Tools", "Tools.jl"))
 @reexport using .Tools
 
+## Frame
+include(joinpath(@__DIR__, "julia", "Frames", "Frames.jl"))
+@reexport using .Frames
 ## Structure of Grids
 include(joinpath(@__DIR__, "julia", "Grids", "Grids.jl"))
 @reexport using .Grids
