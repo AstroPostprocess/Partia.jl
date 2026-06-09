@@ -47,10 +47,10 @@ function _cartesian_plane_coordinates(frame :: Frame{TF}, width :: TF, height ::
 
     # Include both boundaries so that the sampled extents are exactly
     # `width` along the local right direction and `height` along the local up direction
-    Δr = width  / TF(nx - 1)
+    Δξ = width  / TF(nx - 1)
     Δu = height / TF(ny - 1)
 
-    rmin = -width  / TF(2)
+    ξmin = -width  / TF(2)
     umin = -height / TF(2)
 
     # Allocate Cartesian coordinates in structure-of-arrays form
@@ -64,7 +64,7 @@ function _cartesian_plane_coordinates(frame :: Frame{TF}, width :: TF, height ::
         η = umin + TF(j - 1) * Δu
 
         @simd for i in 1:nx
-            ξ = rmin + TF(i - 1) * Δr
+            ξ = ξmin + TF(i - 1) * Δξ
             k = i + (j - 1) * nx
 
             # Map local plane coordinates to global Cartesian coordinates
@@ -77,15 +77,15 @@ function _cartesian_plane_coordinates(frame :: Frame{TF}, width :: TF, height ::
     return x, y, z
 end
 
-function _polar_plane_coordinates(frame :: Frame{TF}, rmin :: TF, rmax :: TF, nr :: TI, nϕ :: TI) where {TF <: AbstractFloat, TI <: Integer}
-    rmin >= zero(TF) ||
-        throw(ArgumentError("rmin must be nonnegative."))
+function _polar_plane_coordinates(frame :: Frame{TF}, smin :: TF, smax :: TF, ns :: TI, nϕ :: TI) where {TF <: AbstractFloat, TI <: Integer}
+    smin >= zero(TF) ||
+        throw(ArgumentError("smin must be nonnegative."))
 
-    rmax > rmin ||
-        throw(ArgumentError("rmax must be greater than rmin."))
+    smax > smin ||
+        throw(ArgumentError("smax must be greater than smin."))
 
-    nr >= TI(2) ||
-        throw(ArgumentError("nr must be at least 2."))
+    ns >= TI(2) ||
+        throw(ArgumentError("ns must be at least 2."))
 
     nϕ >= TI(3) ||
         throw(ArgumentError("nϕ must be at least 3."))
@@ -95,13 +95,13 @@ function _polar_plane_coordinates(frame :: Frame{TF}, rmin :: TF, rmax :: TF, nr
     rx, ry, rz = frame_right(frame)
     ux, uy, uz = frame_up(frame)
 
-    # Include both radial boundaries
-    Δr = (rmax - rmin) / TF(nr - 1)
+    # Include both s-coordinate boundaries
+    Δs = (smax - smin) / TF(ns - 1)
 
     # Sample the periodic angular direction without duplicating ϕ = 2π
     Δϕ = TF(2π) / TF(nϕ)
 
-    N = nr * nϕ
+    N = ns * nϕ
 
     x = Vector{TF}(undef, N)
     y = Vector{TF}(undef, N)
@@ -111,12 +111,12 @@ function _polar_plane_coordinates(frame :: Frame{TF}, rmin :: TF, rmax :: TF, nr
         ϕ = TF(j - 1) * Δϕ
         sinϕ, cosϕ = sincos(ϕ)
 
-        @simd for i in 1:nr
-            r = rmin + TF(i - 1) * Δr
-            k = i + (j - 1) * nr
+        @simd for i in 1:ns
+            s = smin + TF(i - 1) * Δs
+            k = i + (j - 1) * ns
 
-            ξ = r * cosϕ
-            η = r * sinϕ
+            ξ = s * cosϕ
+            η = s * sinϕ
 
             x[k] = x0 + ξ * rx + η * ux
             y[k] = y0 + ξ * ry + η * uy

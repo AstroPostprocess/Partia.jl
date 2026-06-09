@@ -331,25 +331,25 @@ function PointSamples(:: Type{Cartesian}, frame :: Frame{TF}, width :: TF, heigh
 end
 
 """
-    PointSamples(::Type{Polar}, frame::Frame{TF}, rmin::TF, rmax::TF, nr::TI, nϕ::TI) where {TF <: AbstractFloat, TI <: Integer}
+    PointSamples(::Type{Polar}, frame::Frame{TF}, smin::TF, smax::TF, ns::TI, nϕ::TI) where {TF <: AbstractFloat, TI <: Integer}
 
 Construct a planar polar `PointSamples` grid embedded in 3D space using the current frame basis.
-The sampled plane is centered at `frame_position(frame)`. Local polar coordinates use radius
-values from `rmin` to `rmax`, mapped with the radial direction measured in the plane spanned by
+The sampled plane is centered at `frame_position(frame)`. Local polar coordinates use radial
+coordinate values from `smin` to `smax`, mapped with the radial direction measured in the plane spanned by
 `frame_right(frame)` and `frame_up(frame)`. Both radial boundaries are included, while the angular
 direction is half-open and does not duplicate the seam at `2π`.
 
 # Parameters
 - `Polar`: Coordinate-system dispatch tag selecting a polar in-plane sampling pattern.
 - `frame`: Frame defining the plane center and current right/up directions.
-- `rmin`: Minimum in-plane radius.
-- `rmax`: Maximum in-plane radius.
-- `nr`: Number of radial samples.
+- `smin`: Minimum in-plane radial coordinate.
+- `smax`: Maximum in-plane radial coordinate.
+- `ns`: Number of radial-coordinate samples.
 - `nϕ`: Number of angular samples.
 
 # Returns
 - `PointSamples{3, TF}`: Zero-valued point samples with global Cartesian coordinates on the frame plane.
 """
-function PointSamples(:: Type{Polar}, frame :: Frame{TF}, rmin :: TF, rmax :: TF, nr :: TI, nϕ :: TI) where {TF <: AbstractFloat, TI <: Integer}
-    return PointSamples(_polar_plane_coordinates(frame, rmin, rmax, nr, nϕ)...)
+function PointSamples(:: Type{Polar}, frame :: Frame{TF}, smin :: TF, smax :: TF, ns :: TI, nϕ :: TI) where {TF <: AbstractFloat, TI <: Integer}
+    return PointSamples(_polar_plane_coordinates(frame, smin, smax, ns, nϕ)...)
 end

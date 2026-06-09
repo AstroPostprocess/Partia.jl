@@ -492,12 +492,12 @@ function LineSamples(:: Type{Cartesian}, :: Type{ParallelBeam}, frame :: Frame{T
 end
 
 """
-    LineSamples(::Type{Polar}, ::Type{ParallelBeam}, frame::Frame{TF}, rmin::TF, rmax::TF, nr::TI, nϕ::TI) where {TF <: AbstractFloat, TI <: Integer}
+    LineSamples(::Type{Polar}, ::Type{ParallelBeam}, frame::Frame{TF}, smin::TF, smax::TF, ns::TI, nϕ::TI) where {TF <: AbstractFloat, TI <: Integer}
 
 Construct a planar polar `LineSamples` grid for parallel-beam sampling.
 Line origins are placed on the frame plane using the same polar sampling pattern
-as `PointSamples(Polar, frame, rmin, rmax, nr, nϕ)`. Local polar coordinates use
-radius values from `rmin` to `rmax`, mapped with the radial direction measured in
+as `PointSamples(Polar, frame, smin, smax, ns, nϕ)`. Local polar coordinates use
+radial coordinate values from `smin` to `smax`, mapped with the radial direction measured in
 the plane spanned by `frame_right(frame)` and `frame_up(frame)`. Both radial
 boundaries are included, while the angular direction is half-open and does not
 duplicate the seam at `2π`.
@@ -508,22 +508,22 @@ Every line direction is set to the current `frame_forward(frame)` direction.
 - `Polar`: Coordinate-system dispatch tag selecting a polar in-plane sampling pattern.
 - `ParallelBeam`: Beam-model dispatch tag selecting parallel line directions.
 - `frame`: Frame defining the plane center, in-plane basis, and beam direction.
-- `rmin`: Minimum in-plane radius.
-- `rmax`: Maximum in-plane radius.
-- `nr`: Number of radial samples.
+- `smin`: Minimum in-plane radial coordinate.
+- `smax`: Maximum in-plane radial coordinate.
+- `ns`: Number of radial-coordinate samples.
 - `nϕ`: Number of angular samples.
 
 # Returns
 - `LineSamples{3, TF}`: Zero-valued line samples whose origins lie on the frame plane
   and whose directions are equal to `frame_forward(frame)`.
 """
-function LineSamples(:: Type{Polar}, :: Type{ParallelBeam}, frame :: Frame{TF}, rmin :: TF, rmax :: TF, nr :: TI, nϕ :: TI) where {TF <: AbstractFloat, TI <: Integer}
+function LineSamples(:: Type{Polar}, :: Type{ParallelBeam}, frame :: Frame{TF}, smin :: TF, smax :: TF, ns :: TI, nϕ :: TI) where {TF <: AbstractFloat, TI <: Integer}
     # Generate line origins on the polar sampling plane
     xo, yo, zo = _polar_plane_coordinates(
         frame,
-        rmin,
-        rmax,
-        nr,
+        smin,
+        smax,
+        ns,
         nϕ,
     )
 

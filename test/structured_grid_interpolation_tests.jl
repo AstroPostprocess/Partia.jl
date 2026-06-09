@@ -98,32 +98,32 @@ end
     @test isapprox(plane_cart.coor[2], flattened_cart.coor[2]; atol = 1.0e-12, rtol = 1.0e-12)
     @test all(isapprox.(plane_cart.coor[3], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
 
-    rmin, rmax = 0.0, 1.0
-    nr, nϕ = 4, 8
-    structured_polar = StructuredGrid(Polar, (rmin, rmax, nr), (0.0, 2π, nϕ))
+    smin, smax = 0.0, 1.0
+    ns, nϕ = 4, 8
+    structured_polar = StructuredGrid(Polar, (smin, smax, ns), (0.0, 2π, nϕ))
     flattened_polar = Partia.Grids.flatten(Polar, structured_polar)
-    plane_polar = PointSamples(Polar, frame, rmin, rmax, nr, nϕ)
+    plane_polar = PointSamples(Polar, frame, smin, smax, ns, nϕ)
 
     @test plane_polar.grid == zeros(length(flattened_polar.grid))
     @test isapprox(plane_polar.coor[1], flattened_polar.coor[1]; atol = 1.0e-12, rtol = 1.0e-12)
     @test isapprox(plane_polar.coor[2], flattened_polar.coor[2]; atol = 1.0e-12, rtol = 1.0e-12)
     @test all(isapprox.(plane_polar.coor[3], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
 
-    radii = range(rmin, rmax; length = nr)
+    scoords = range(smin, smax; length = ns)
     angles = range(0.0, 2π; length = nϕ + 1)[1:end-1]
 
-    expected_x = Vector{Float64}(undef, nr * nϕ)
-    expected_y = Vector{Float64}(undef, nr * nϕ)
-    expected_z = zeros(Float64, nr * nϕ)
+    expected_x = Vector{Float64}(undef, ns * nϕ)
+    expected_y = Vector{Float64}(undef, ns * nϕ)
+    expected_z = zeros(Float64, ns * nϕ)
 
     @inbounds for j in 1:nϕ
         ϕ = angles[j]
-        for i in 1:nr
-            k = i + (j - 1) * nr
-            r = radii[i]
+        for i in 1:ns
+            k = i + (j - 1) * ns
+            s = scoords[i]
 
-            expected_x[k] = r * cos(ϕ)
-            expected_y[k] = r * sin(ϕ)
+            expected_x[k] = s * cos(ϕ)
+            expected_y[k] = s * sin(ϕ)
         end
     end
 
@@ -131,21 +131,21 @@ end
     @test isapprox(plane_polar.coor[2], expected_y; atol = 1.0e-12, rtol = 1.0e-12)
     @test isapprox(plane_polar.coor[3], expected_z; atol = 1.0e-12, rtol = 1.0e-12)
 
-    @test length(plane_polar.grid) == nr * nϕ
-    @test plane_polar.grid == zeros(nr * nϕ)
+    @test length(plane_polar.grid) == ns * nϕ
+    @test plane_polar.grid == zeros(ns * nϕ)
 
-    @test isapprox(plane_polar.coor[1][1:nr], collect(radii); atol = 1.0e-12, rtol = 1.0e-12)
-    @test all(isapprox.(plane_polar.coor[2][1:nr], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
+    @test isapprox(plane_polar.coor[1][1:ns], collect(scoords); atol = 1.0e-12, rtol = 1.0e-12)
+    @test all(isapprox.(plane_polar.coor[2][1:ns], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
 
-    outer_indices = nr:nr:(nr * nϕ)
+    outer_indices = ns:ns:(ns * nϕ)
     @test all(isapprox.(
         hypot.(plane_polar.coor[1][outer_indices], plane_polar.coor[2][outer_indices]),
-        rmax;
+        smax;
         atol = 1.0e-12,
         rtol = 1.0e-12,
     ))
 
-    centre_indices = 1:nr:(nr * nϕ)
+    centre_indices = 1:ns:(ns * nϕ)
     @test all(isapprox.(plane_polar.coor[1][centre_indices], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
     @test all(isapprox.(plane_polar.coor[2][centre_indices], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
     @test all(isapprox.(plane_polar.coor[3][centre_indices], 0.0; atol = 1.0e-12, rtol = 1.0e-12))
@@ -170,10 +170,10 @@ end
     @test all(isapprox.(line_cart.direction[2], fy; atol = 1.0e-12, rtol = 1.0e-12))
     @test all(isapprox.(line_cart.direction[3], fz; atol = 1.0e-12, rtol = 1.0e-12))
 
-    rmin, rmax = 0.0, 1.0
-    nr, nϕ = 4, 8
-    point_polar = PointSamples(Polar, frame, rmin, rmax, nr, nϕ)
-    line_polar = LineSamples(Polar, ParallelBeam, frame, rmin, rmax, nr, nϕ)
+    smin, smax = 0.0, 1.0
+    ns, nϕ = 4, 8
+    point_polar = PointSamples(Polar, frame, smin, smax, ns, nϕ)
+    line_polar = LineSamples(Polar, ParallelBeam, frame, smin, smax, ns, nϕ)
 
     @test line_polar.grid == zeros(length(point_polar.grid))
     @test isapprox(line_polar.origin[1], point_polar.coor[1]; atol = 1.0e-12, rtol = 1.0e-12)
@@ -183,9 +183,9 @@ end
     @test all(isapprox.(line_polar.direction[2], fy; atol = 1.0e-12, rtol = 1.0e-12))
     @test all(isapprox.(line_polar.direction[3], fz; atol = 1.0e-12, rtol = 1.0e-12))
 
-    @test length(line_polar.grid) == nr * nϕ
-    @test length(line_polar.origin[1]) == nr * nϕ
-    @test length(line_polar.direction[1]) == nr * nϕ
+    @test length(line_polar.grid) == ns * nϕ
+    @test length(line_polar.origin[1]) == ns * nϕ
+    @test length(line_polar.direction[1]) == ns * nϕ
 end
 
 @testset "LineSamples frame-plane constructors -- invalid plane parameters" begin
