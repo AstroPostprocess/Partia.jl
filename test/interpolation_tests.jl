@@ -4,17 +4,17 @@
 #  What this file tests
 #  End-to-end validation of the core KernelInterpolation pipeline:
 #  1. Core `build_input` constructor
-#     -- Builds `InterpolationInput` and `InterpolationCatalog` directly from
+#     • Builds `InterpolationInput` and `InterpolationCatalog` directly from
 #        already-materialized particle columns.
-#     -- Verifies particle count, element-type promotion, catalog slot lookup,
+#     • Verifies particle count, element-type promotion, catalog slot lookup,
 #        quantity storage, and error paths for missing requested columns.
 #  2. BVH traversal interpolation vs brute-force references
-#     -- Density, number density, quantity, gradient, divergence, and curl
+#     • Density, number density, quantity, gradient, divergence, and curl
 #        interpolation (3D) against O(N) brute-force baselines for all three
 #        strategies (Gather, Scatter, Symmetric).
-#     -- Line-integrated column-density and quantity interpolation.
+#     • Line-integrated column-density and quantity interpolation.
 #  3. Physical sanity checks
-#     -- Divergence and curl of a uniform vector field must vanish to machine
+#     • Divergence and curl of a uniform vector field must vanish to machine
 #        epsilon.
 #  Brute-force reference implementations live in `interpolation_test_common.jl`,
 #  which is included by this file.
@@ -23,6 +23,9 @@
 using Test
 using Random
 using Partia
+
+# ========================== Internal API imports ============================ #
+
 using Partia.KernelInterpolation: _density_kernel, _number_density_kernel,
     _gradient_density_kernel,
     _gradient_quantity_interpolate_kernel,
@@ -32,12 +35,17 @@ using Partia.KernelInterpolation: _density_kernel, _number_density_kernel,
     _line_integrated_density_kernel,
     _line_integrated_quantities_interpolate_kernel
 
+# ========================== Module aliases ================================== #
+
 ki_mod = Partia.KernelInterpolation
+
+# ========================== Shared includes ================================= #
 
 @static if !isdefined(@__MODULE__, :support_radius)
     include("interpolation_test_common.jl")
 end
 
+# ============================== Test body =================================== #
 
 # ── 0. Empty and no-neighbor behavior ───────────────────────────────────── #
 

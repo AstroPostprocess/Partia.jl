@@ -1,10 +1,33 @@
+######################################################################################
+
+#  Test: PointSamples Interpolation
+#  What this file tests
+#  Validates interpolation onto explicit sample locations:
+#  1. PointSamples interpolation
+#     • LBVH leaf-order matching and rejection of mismatched ordering.
+#     • Automatic LBVH construction and externally supplied LBVH dispatch.
+#     • Scalar and divergence values checked against brute-force references.
+#  2. LineSamples interpolation
+#     • Scatter-only line-integrated interpolation against direct references.
+#     • Externally supplied LBVH dispatch and unsupported-mode errors.
+#  3. Analytic regression
+#     • Linear manufactured field checked across Gather, Scatter, and Symmetric
+#       strategies for scalar, gradient, divergence, and curl outputs.
+
+######################################################################################
 using Test
 using Random
 using Partia
 
+# ========================== Shared includes ================================= #
+
 @static if !isdefined(@__MODULE__, :make_grid_interpolation_fixture)
     include("grid_interpolation_test_common.jl")
 end
+
+# ============================== Test body =================================== #
+
+# ── 1a. PointSamples — LBVH leaf-order matching ──────────────────────── #
 
 @testset "PointSamples interpolation -- LBVH leaf-order matching" begin
     input, catalog, LBVH = make_grid_interpolation_fixture()
@@ -24,6 +47,8 @@ end
 
     @test !matches_lbvh_leaf_order(mismatched_input, LBVH)
 end
+
+# ── 1b. PointSamples — CPU consistency ───────────────────────────────── #
 
 @testset "PointSamples interpolation -- CPU consistency" begin
     input, catalog, LBVH = make_grid_interpolation_fixture()
@@ -52,6 +77,8 @@ end
         @test isapprox(result.grids[2].grid[i], expected_div; atol = 1.0e-12, rtol = 1.0e-10)
     end
 end
+
+# ── 1c. PointSamples — externally supplied LBVH ──────────────────────── #
 
 @testset "PointSamples interpolation -- externally supplied LBVH" begin
     input, catalog, LBVH = make_grid_interpolation_fixture()
@@ -89,6 +116,8 @@ end
     )
 end
 
+# ── 2a. LineSamples — CPU scatter consistency ────────────────────────── #
+
 @testset "LineSamples interpolation -- CPU scatter consistency" begin
     input, catalog, _ = make_line_interpolation_fixture()
     grid_template = make_line_samples_template()
@@ -124,6 +153,8 @@ end
         @test isapprox(result.grids[2].grid[i], expected[2]; atol = 1.0e-12, rtol = 1.0e-10)
     end
 end
+
+# ── 2b. LineSamples — externally supplied LBVH ───────────────────────── #
 
 @testset "LineSamples interpolation -- externally supplied LBVH" begin
     input, catalog, LBVH = make_line_interpolation_fixture()
@@ -162,6 +193,8 @@ end
     )
 end
 
+# ── 2c. LineSamples — unsupported modes ──────────────────────────────── #
+
 @testset "LineSamples interpolation -- unsupported modes" begin
     line_input, line_catalog, _ = make_line_interpolation_fixture()
     line_template = make_line_samples_template()
@@ -172,6 +205,8 @@ end
     point_input, point_catalog, _ = make_grid_interpolation_fixture()
     @test_throws MethodError LineSamples_interpolation(CPUComputeBackend(), line_template, point_input, point_catalog, itpScatter)
 end
+
+# ── 3. PointSamples — analytic linear-field regression ───────────────── #
 
 @testset "PointSamples interpolation -- analytic linear-field regression" begin
     input, catalog, h = make_uniform_cloud_3d(12; eta = 1.2, variable_h = true)

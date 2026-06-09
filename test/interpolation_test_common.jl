@@ -1,3 +1,19 @@
+######################################################################################
+
+#  Shared Test Helpers: Interpolation Reference Evaluators
+#  What this file provides
+#  Brute-force CPU reference implementations for interpolation tests:
+#  1. Comparison and geometry helpers
+#     • NaN-aware approximate equality, kernel support radii, point-radius
+#       checks, and point-line distances.
+#  2. Kernel references
+#     • SPH weights, gradients, and line-integrated weights for Gather,
+#       Scatter, and Symmetric interpolation strategies.
+#  3. Brute-force interpolation baselines
+#     • Density, number density, scalar quantity, gradient, divergence, curl,
+#       line-integrated density, and line-integrated quantity accumulation.
+
+######################################################################################
 using Random
 using Partia
 
@@ -5,12 +21,12 @@ using Partia
 
 kern = M4_spline()
 
-# Small comparison utilities
+# ========================== Comparison utilities ============================ #
 
 approx_with_nan(a, b; atol, rtol) = isequal(a, b) || isapprox(a, b; atol = atol, rtol = rtol)
 approx_with_nan(a :: Tuple, b :: Tuple; atol, rtol) = all(approx_with_nan(ai, bi; atol = atol, rtol = rtol) for (ai, bi) in zip(a, b))
 
-# Kernel support and geometric helpers
+# ========================== Kernel and geometry helpers ===================== #
 
 @inline function support_radius(strategy, ha, hb, Kvalid)
     return strategy === itpSymmetric ?
@@ -67,7 +83,7 @@ end
     return Δ2 - Δm * Δm
 end
 
-# Brute-force reference evaluators for single-point interpolation
+# ====================== Single-point brute-force references ================== #
 
 function brute_density(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
@@ -312,7 +328,7 @@ function brute_curl(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: 
     )
 end
 
-# Brute-force reference evaluators for line-integrated interpolation
+# =================== Line-integrated brute-force references ================== #
 
 function brute_line_integrated_quantity(input :: InterpolationInput{3,T}, origin :: NTuple{3,T}, direction :: NTuple{3,T}, ha :: T, col :: Int, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
@@ -334,7 +350,7 @@ function brute_line_integrated_quantity(input :: InterpolationInput{3,T}, origin
     return iszero(denom) ? T(NaN) : numer / denom
 end
 
-# Synthetic fixtures
+# ========================== Synthetic fixtures ============================== #
 
 function random_input_3d(rng :: AbstractRNG, n :: Int)
     x = rand(rng, n)

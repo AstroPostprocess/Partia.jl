@@ -1,13 +1,32 @@
+######################################################################################
+
+#  Shared Test Helpers: Analytic Interpolation Fixtures
+#  What this file provides
+#  Manufactured fields and sampling helpers for interpolation regression tests:
+#  1. Analytic fields
+#     • Linear scalar field with constant gradient.
+#     • Identity vector field with known divergence and zero curl.
+#  2. Uniform particle cloud fixture
+#     • 3D particle coordinates, masses, densities, smoothing lengths, and
+#       interpolation catalog entries for scalar, gradient, divergence, and curl.
+#  3. Reference sampling utilities
+#     • Boundary-safe random point sampling and compact error summaries.
+
+######################################################################################
 using Random
 using Partia
 
 """Shared analytic manufactured-field helpers for interpolation regression tests."""
+
+# ========================== Analytic fields ================================= #
 
 @inline analytic_scalar(x, y, z) = x + y + z
 @inline analytic_grad_scalar( :: Float64, :: Float64, :: Float64) = (1.0, 1.0, 1.0)
 @inline analytic_vecA(x, y, z) = (x, y, z)
 @inline analytic_divA( :: Float64, :: Float64, :: Float64) = 3.0
 @inline analytic_curlA( :: Float64, :: Float64, :: Float64) = (0.0, 0.0, 0.0)
+
+# ========================== Fixture builders ================================ #
 
 function make_uniform_cloud_3d(nx :: Int; eta :: Float64, kernel :: Type{K} = M4_spline, variable_h :: Bool = false) where {K <: AbstractSPHKernel}
     dx = 1.0 / nx
@@ -51,6 +70,8 @@ function make_uniform_cloud_3d(nx :: Int; eta :: Float64, kernel :: Type{K} = M4
     return input, catalog, h[1]
 end
 
+# ========================== Sampling helpers ================================ #
+
 function sample_reference_points(rng :: AbstractRNG, n :: Int, h :: Float64; kernel :: Type{K} = M4_spline) where {K <: AbstractSPHKernel}
     margin = 1.5 * KernelFunctionValid(kernel, Float64) * h
     lo = margin
@@ -64,5 +85,7 @@ function sample_reference_points(rng :: AbstractRNG, n :: Int, h :: Float64; ker
     end
     return refs
 end
+
+# ========================== Error summaries ================================= #
 
 mean_abs(v) = isempty(v) ? 0.0 : sum(abs, v) / length(v)
