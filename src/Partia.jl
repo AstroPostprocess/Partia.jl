@@ -65,7 +65,7 @@ end
 version() = pkgversion(@__MODULE__)
 
 function about()
-    @info "Partia analysis Module\n  Version: $(version())\n  Made by Wei-Shan Su, Apr 2026"
+    @info "Partia analysis Module\n  Version: $(version())\n  Made by Wei-Shan Su, Jun 2026"
     return nothing
 end
 end
