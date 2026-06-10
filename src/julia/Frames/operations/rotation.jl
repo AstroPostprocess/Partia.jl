@@ -26,6 +26,56 @@ This method modifies only `frame.Q`; it does not modify `frame.x`.
 end
 
 """
+    rotate_forward_to!(frame::Frame{TF}, target_f::NTuple{3, TF}) where {TF <: AbstractFloat}
+    rotate_forward_to!(frame::Frame{TF}, target_f::AbstractVector{TF}) where {TF <: AbstractFloat}
+
+Rotate `frame` so that its current forward direction is aligned with `target_f`.
+The operation applies the minimal global rotation that maps `frame_forward(frame)`
+onto the normalized target direction. It modifies only `frame.Q`; it does not
+modify `frame.x`.
+
+If the current forward direction and `target_f` are opposite, the frame is
+rotated by π about its current up direction to choose a stable 180-degree
+alignment.
+
+# Parameters
+- `frame`: Frame whose orientation is updated.
+- `target_f`: Target forward direction in global coordinates.
+"""
+@inline function rotate_forward_to!(frame :: Frame{TF}, target_f :: NTuple{3,TF}) where {TF <: AbstractFloat}
+    return rotate_forward_to!(frame, SVector{3,TF}(target_f))
+end
+
+@inline function rotate_forward_to!(frame :: Frame{TF}, target_f :: AbstractVector{TF}) where {TF <: AbstractFloat}
+    length(target_f) == 3 || throw(DimensionMismatch("target_f must have length 3"))
+
+    target = SVector{3,TF}(target_f)
+    ntarget = norm(target)
+    iszero(ntarget) && throw(ArgumentError("target_f must be nonzero."))
+    target /= ntarget
+
+    current = _rotate(frame.Q, frame.f0)
+    d = clamp(dot(current, target), -one(TF), one(TF))
+    tol = TF(16) * eps(TF)
+
+    if d >= one(TF) - tol
+        return nothing
+    elseif d <= -one(TF) + tol
+        axis = _rotate(frame.Q, frame.u0)
+        Qalign = _rotation(axis, TF(π))
+    else
+        axis = cross(current, target)
+        Qalign = Quaternion{TF}(one(TF) + d, axis[1], axis[2], axis[3])
+        Qalign /= norm(Qalign)
+    end
+
+    frame.Q = Qalign * frame.Q
+    frame.Q /= norm(frame.Q)
+
+    return nothing
+end
+
+"""
     _rotation(axis::SVector{3, TF}, angle::TF) where {TF <: AbstractFloat}
 
 Construct a quaternion representing a rotation about `axis` by `angle`.

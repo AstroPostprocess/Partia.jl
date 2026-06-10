@@ -29,7 +29,7 @@ using Partia
 
 # ========================== Public API imports ============================== #
 
-import Partia: translate!,
+import Partia: rotate_forward_to!, translate!,
     frame_position, frame_right, frame_forward, frame_up, frame_basis
 
 # ========================== Module aliases ================================== #
@@ -228,6 +228,59 @@ end
             @test abs(dot(r, u)) <= tol
             @test abs(dot(f, u)) <= tol
             @test vdist(cross(f, u), r) <= tol
+        end
+    end
+end
+
+# ── 3. Forward-direction alignment ───────────────────────────────────── #
+
+@testset "Frames -- rotate_forward_to!" begin
+    for TF in (Float32, Float64)
+        tol = frame_tol(TF)
+
+        @testset "aligns current forward to target $(TF)" begin
+            frame = Frame((TF(1), TF(2), TF(3)), (TF(0), TF(0), TF(-1)), (TF(0), TF(1), TF(0)))
+            p0 = frame_position(frame)
+            target = (TF(1), TF(2), TF(-3))
+            target_normed = sv3(target) / norm(sv3(target))
+
+            rotate_forward_to!(frame, target)
+
+            @test frame_position(frame) == p0
+            @test vdist(frame_forward(frame), target_normed) <= tol
+            @test abs(norm(frame.Q) - one(TF)) <= tol
+        end
+
+        @testset "composes from an existing orientation $(TF)" begin
+            frame = Frame((TF(-2), TF(0.5), TF(1)), (TF(0), TF(0), TF(-1)), (TF(0), TF(1), TF(0)))
+            rotate!(frame, TF(0.4), TF(-0.25), TF(0.35))
+
+            target = SVector{3,TF}(TF(-0.3), TF(0.7), TF(-0.2))
+            target /= norm(target)
+            rotate_forward_to!(frame, target)
+
+            b = frame_basis(frame)
+            r = sv3(b.right)
+            f = sv3(b.forward)
+            u = sv3(b.up)
+
+            @test vdist(f, target) <= tol
+            @test abs(norm(r) - one(TF)) <= tol
+            @test abs(norm(f) - one(TF)) <= tol
+            @test abs(norm(u) - one(TF)) <= tol
+            @test abs(dot(r, f)) <= tol
+            @test abs(dot(f, u)) <= tol
+            @test vdist(cross(f, u), r) <= tol
+        end
+
+        @testset "opposite direction and invalid target $(TF)" begin
+            frame = Frame((TF(0), TF(0), TF(0)), (TF(0), TF(0), TF(-1)), (TF(0), TF(1), TF(0)))
+
+            rotate_forward_to!(frame, (TF(0), TF(0), TF(1)))
+            @test vdist(frame_forward(frame), v3(TF, 0, 0, 1)) <= tol
+
+            @test_throws ArgumentError rotate_forward_to!(frame, (TF(0), TF(0), TF(0)))
+            @test_throws DimensionMismatch rotate_forward_to!(frame, TF[1, 0])
         end
     end
 end
