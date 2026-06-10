@@ -438,14 +438,13 @@ function LineSamples(xo :: V, yo :: V, xd :: V, yd :: V) where {T <: AbstractFlo
 end
 
 """
-    LineSamples(::Type{Cartesian}, ::Type{ParallelBeam}, frame::Frame{TF}, width::TF, height::TF, nx::TI, ny::TI) where {TF <: AbstractFloat, TI <: Integer}
+    LineSamples(::Type{Cartesian}, ::Type{ParallelBeam}, frame::Frame{TF}, xparams::AxisParam{TF}, yparams::AxisParam{TF}) where {TF <: AbstractFloat}
 
 Construct a planar Cartesian `LineSamples` grid for parallel-beam sampling.
 Line origins are placed on the frame plane using the same Cartesian sampling
-pattern as `PointSamples(Cartesian, frame, width, height, nx, ny)`. The plane is
-centered at `frame_position(frame)`, spans `width` along `frame_right(frame)`,
-and spans `height` along `frame_up(frame)`. Both boundary edges are included in
-each direction.
+pattern as `PointSamples(Cartesian, frame, xparams, yparams)`. The plane is centered
+at `frame_position(frame)`, uses `xparams` along `frame_right(frame)`, and uses
+`yparams` along `frame_up(frame)`. Both boundary edges are included in each direction.
 
 Every line direction is set to the current `frame_forward(frame)` direction.
 
@@ -453,23 +452,19 @@ Every line direction is set to the current `frame_forward(frame)` direction.
 - `Cartesian`: Coordinate-system dispatch tag selecting a rectangular in-plane sampling pattern.
 - `ParallelBeam`: Beam-model dispatch tag selecting parallel line directions.
 - `frame`: Frame defining the plane center, in-plane basis, and beam direction.
-- `width`: Physical extent along the frame's current right direction.
-- `height`: Physical extent along the frame's current up direction.
-- `nx`: Number of samples along the right direction.
-- `ny`: Number of samples along the up direction.
+- `xparams`: Axis specification `(xmin, xmax, nx)` along the frame's current right direction.
+- `yparams`: Axis specification `(ymin, ymax, ny)` along the frame's current up direction.
 
 # Returns
 - `LineSamples{3, TF}`: Zero-valued line samples whose origins lie on the frame plane
   and whose directions are equal to `frame_forward(frame)`.
 """
-function LineSamples(:: Type{Cartesian}, :: Type{ParallelBeam}, frame :: Frame{TF}, width :: TF, height :: TF, nx :: TI, ny :: TI) where {TF <: AbstractFloat, TI <: Integer}
+function LineSamples(:: Type{Cartesian}, :: Type{ParallelBeam}, frame :: Frame{TF}, xparams :: AxisParam{TF}, yparams :: AxisParam{TF}) where {TF <: AbstractFloat}
     # Generate line origins on the Cartesian sampling plane
     xo, yo, zo = _cartesian_plane_coordinates(
         frame,
-        width,
-        height,
-        nx,
-        ny,
+        xparams,
+        yparams,
     )
 
     # All parallel beams follow the current forward direction
@@ -492,15 +487,14 @@ function LineSamples(:: Type{Cartesian}, :: Type{ParallelBeam}, frame :: Frame{T
 end
 
 """
-    LineSamples(::Type{Polar}, ::Type{ParallelBeam}, frame::Frame{TF}, smin::TF, smax::TF, ns::TI, nϕ::TI) where {TF <: AbstractFloat, TI <: Integer}
+    LineSamples(::Type{Polar}, ::Type{ParallelBeam}, frame::Frame{TF}, sparams::AxisParam{TF}, ϕparams::AxisParam{TF}) where {TF <: AbstractFloat}
 
 Construct a planar polar `LineSamples` grid for parallel-beam sampling.
 Line origins are placed on the frame plane using the same polar sampling pattern
-as `PointSamples(Polar, frame, smin, smax, ns, nϕ)`. Local polar coordinates use
-radial coordinate values from `smin` to `smax`, mapped with the radial direction measured in
-the plane spanned by `frame_right(frame)` and `frame_up(frame)`. Both radial
-boundaries are included, while the angular direction is half-open and does not
-duplicate the seam at `2π`.
+as `PointSamples(Polar, frame, sparams, ϕparams)`. Local polar coordinates use
+radial coordinate values from `sparams`, mapped with the radial direction measured in
+the plane spanned by `frame_right(frame)` and `frame_up(frame)`. Radial boundaries
+are included, while the angular direction follows the half-open range defined by `ϕparams`.
 
 Every line direction is set to the current `frame_forward(frame)` direction.
 
@@ -508,23 +502,19 @@ Every line direction is set to the current `frame_forward(frame)` direction.
 - `Polar`: Coordinate-system dispatch tag selecting a polar in-plane sampling pattern.
 - `ParallelBeam`: Beam-model dispatch tag selecting parallel line directions.
 - `frame`: Frame defining the plane center, in-plane basis, and beam direction.
-- `smin`: Minimum in-plane radial coordinate.
-- `smax`: Maximum in-plane radial coordinate.
-- `ns`: Number of radial-coordinate samples.
-- `nϕ`: Number of angular samples.
+- `sparams`: Axis specification `(smin, smax, ns)` for radial-coordinate samples.
+- `ϕparams`: Axis specification `(ϕmin, ϕmax, nϕ)` for half-open angular samples.
 
 # Returns
 - `LineSamples{3, TF}`: Zero-valued line samples whose origins lie on the frame plane
   and whose directions are equal to `frame_forward(frame)`.
 """
-function LineSamples(:: Type{Polar}, :: Type{ParallelBeam}, frame :: Frame{TF}, smin :: TF, smax :: TF, ns :: TI, nϕ :: TI) where {TF <: AbstractFloat, TI <: Integer}
+function LineSamples(:: Type{Polar}, :: Type{ParallelBeam}, frame :: Frame{TF}, sparams :: AxisParam{TF}, ϕparams :: AxisParam{TF}) where {TF <: AbstractFloat}
     # Generate line origins on the polar sampling plane
     xo, yo, zo = _polar_plane_coordinates(
         frame,
-        smin,
-        smax,
-        ns,
-        nϕ,
+        sparams,
+        ϕparams,
     )
 
     # All parallel beams follow the current forward direction

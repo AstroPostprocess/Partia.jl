@@ -62,7 +62,7 @@ function make_type_stability_input_3d()
     q2 = Float64[0.1, -0.2, 0.3, -0.1, 0.2, -0.3]
     q3 = Float64[0.0, 0.25, -0.15, 0.2, -0.05, 0.1]
     input = InterpolationInput((x, y, z), m, h, ρ, (q1, q2, q3); smoothed_kernel = typeof(kern))
-    lbvh = LinearBVH!(input, Val(3))
+    lbvh = LinearBVH!(input)
     return input, lbvh
 end
 
@@ -76,7 +76,7 @@ function make_type_stability_input_line_integrated()
     ρ = Float64[1.0, 1.08, 0.97, 1.02, 1.05]
     q1 = Float64[2.0, 2.5, 3.0, 3.5, 4.0]
     input = InterpolationInput((x, y, z), m, h, ρ, (q1,); smoothed_kernel = typeof(kern))
-    lbvh = LinearBVH!(input, Val(3))
+    lbvh = LinearBVH!(input)
     return input, lbvh
 end
 

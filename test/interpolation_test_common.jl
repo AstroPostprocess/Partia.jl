@@ -363,7 +363,7 @@ function random_input_3d(rng :: AbstractRNG, n :: Int)
     q2 = rand(rng, n)
     q3 = rand(rng, n)
     input = InterpolationInput((x, y, z), m, h, ρ, (q1, q2, q3); smoothed_kernel = typeof(kern))
-    LBVH = LinearBVH!(input, Val(3))
+    LBVH = LinearBVH!(input)
     return input, LBVH
 end
 
@@ -376,7 +376,7 @@ function random_input_line_integrated(rng :: AbstractRNG, n :: Int)
     ρ = rand(rng, n) .+ 0.2
     q1 = rand(rng, n)
     input = InterpolationInput((x, y, z), m, h, ρ, (q1,); smoothed_kernel = typeof(kern))
-    LBVH = LinearBVH!(input, Val(3))
+    LBVH = LinearBVH!(input)
     return input, LBVH
 end
 
@@ -389,5 +389,5 @@ function make_empty_input()
     ρ = [1.0]
     q1 = [0.0]
     input = InterpolationInput((x, y, z), m, h, ρ, (q1,); smoothed_kernel = typeof(kern))
-    return input, LinearBVH!(input, Val(3))
+    return input, LinearBVH!(input)
 end

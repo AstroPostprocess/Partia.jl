@@ -51,7 +51,7 @@ kvalid = KernelFunctionValid(typeof(kern), Float64)
 
     for cfg in configs
         input, _, h = make_uniform_cloud_3d(cfg.nx; eta = cfg.eta, kernel = typeof(kern), variable_h = false)
-        LBVH = LinearBVH!(input, Val(3))
+        LBVH = LinearBVH!(input)
         refs = sample_reference_points(rng, 12, h; kernel = typeof(kern))
 
         scalar_err = Float64[]

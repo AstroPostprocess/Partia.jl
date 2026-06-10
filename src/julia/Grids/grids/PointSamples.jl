@@ -309,47 +309,89 @@ function PointSamples(x :: V, y :: V) where {T <: AbstractFloat, V <: AbstractVe
 end
 
 """
-    PointSamples(::Type{Cartesian}, frame::Frame{TF}, width::TF, height::TF, nx::TI, ny::TI) where {TF <: AbstractFloat, TI <: Integer}
+    PointSamples(::Type{Cartesian}, frame::Frame{TF}, xparams::AxisParam{TF}, yparams::AxisParam{TF}) where {TF <: AbstractFloat}
 
 Construct a planar Cartesian `PointSamples` grid embedded in 3D space using the current frame basis.
-The sampled plane is centered at `frame_position(frame)`, spans `width` along `frame_right(frame)`,
-and spans `height` along `frame_up(frame)`. Both boundary edges are included in each direction.
+The sampled plane is centered at `frame_position(frame)`. Local Cartesian coordinates use
+`xparams` along `frame_right(frame)` and `yparams` along `frame_up(frame)`.
+Both boundary edges are included in each direction.
 
 # Parameters
 - `Cartesian`: Coordinate-system dispatch tag selecting a rectangular in-plane sampling pattern.
 - `frame`: Frame defining the plane center and current right/up directions.
-- `width`: Physical extent along the frame's current right direction.
-- `height`: Physical extent along the frame's current up direction.
-- `nx`: Number of samples along the right direction.
-- `ny`: Number of samples along the up direction.
+- `xparams`: Axis specification `(xmin, xmax, nx)` along the frame's current right direction.
+- `yparams`: Axis specification `(ymin, ymax, ny)` along the frame's current up direction.
 
 # Returns
 - `PointSamples{3, TF}`: Zero-valued point samples with global Cartesian coordinates on the frame plane.
 """
-function PointSamples(:: Type{Cartesian}, frame :: Frame{TF}, width :: TF, height :: TF, nx :: TI, ny :: TI) where {TF <: AbstractFloat, TI <: Integer}
-    return PointSamples(_cartesian_plane_coordinates(frame, width, height, nx, ny)...)
+function PointSamples(:: Type{Cartesian}, frame :: Frame{TF}, xparams :: AxisParam{TF}, yparams :: AxisParam{TF}) where {TF <: AbstractFloat}
+    return PointSamples(_cartesian_plane_coordinates(frame, xparams, yparams)...)
 end
 
 """
-    PointSamples(::Type{Polar}, frame::Frame{TF}, smin::TF, smax::TF, ns::TI, nϕ::TI) where {TF <: AbstractFloat, TI <: Integer}
+    PointSamples(::Type{Cartesian}, frame::Frame{TF}, xparams::AxisParam{TF}, yparams::AxisParam{TF}, zparams::AxisParam{TF}) where {TF <: AbstractFloat}
+
+Construct a Cartesian box `PointSamples` grid embedded in 3D space using the current frame basis.
+Local Cartesian coordinates use `xparams` along `frame_right(frame)`, `yparams` along
+`frame_up(frame)`, and `zparams` along `frame_forward(frame)`. All box boundaries are included.
+
+# Parameters
+- `Cartesian`: Coordinate-system dispatch tag selecting a Cartesian sampling pattern.
+- `frame`: Frame defining the box center and current right/up/forward directions.
+- `xparams`: Axis specification `(xmin, xmax, nx)` along the frame's current right direction.
+- `yparams`: Axis specification `(ymin, ymax, ny)` along the frame's current up direction.
+- `zparams`: Axis specification `(zmin, zmax, nz)` along the frame's current forward direction.
+
+# Returns
+- `PointSamples{3, TF}`: Zero-valued point samples with global Cartesian coordinates in the frame-local box.
+"""
+function PointSamples(:: Type{Cartesian}, frame :: Frame{TF}, xparams :: AxisParam{TF}, yparams :: AxisParam{TF}, zparams :: AxisParam{TF}) where {TF <: AbstractFloat}
+    return PointSamples(_cartesian_box_coordinates(frame, xparams, yparams, zparams)...)
+end
+
+"""
+    PointSamples(::Type{Polar}, frame::Frame{TF}, sparams::AxisParam{TF}, ϕparams::AxisParam{TF}) where {TF <: AbstractFloat}
 
 Construct a planar polar `PointSamples` grid embedded in 3D space using the current frame basis.
 The sampled plane is centered at `frame_position(frame)`. Local polar coordinates use radial
-coordinate values from `smin` to `smax`, mapped with the radial direction measured in the plane spanned by
-`frame_right(frame)` and `frame_up(frame)`. Both radial boundaries are included, while the angular
-direction is half-open and does not duplicate the seam at `2π`.
+coordinate values from `sparams`, mapped with the radial direction measured in the plane spanned by
+`frame_right(frame)` and `frame_up(frame)`. Radial boundaries are included, while the angular
+direction follows the half-open range defined by `ϕparams`.
 
 # Parameters
 - `Polar`: Coordinate-system dispatch tag selecting a polar in-plane sampling pattern.
 - `frame`: Frame defining the plane center and current right/up directions.
-- `smin`: Minimum in-plane radial coordinate.
-- `smax`: Maximum in-plane radial coordinate.
-- `ns`: Number of radial-coordinate samples.
-- `nϕ`: Number of angular samples.
+- `sparams`: Axis specification `(smin, smax, ns)` for radial-coordinate samples.
+- `ϕparams`: Axis specification `(ϕmin, ϕmax, nϕ)` for half-open angular samples.
 
 # Returns
 - `PointSamples{3, TF}`: Zero-valued point samples with global Cartesian coordinates on the frame plane.
 """
-function PointSamples(:: Type{Polar}, frame :: Frame{TF}, smin :: TF, smax :: TF, ns :: TI, nϕ :: TI) where {TF <: AbstractFloat, TI <: Integer}
-    return PointSamples(_polar_plane_coordinates(frame, smin, smax, ns, nϕ)...)
+function PointSamples(:: Type{Polar}, frame :: Frame{TF}, sparams :: AxisParam{TF}, ϕparams :: AxisParam{TF}) where {TF <: AbstractFloat}
+    return PointSamples(_polar_plane_coordinates(frame, sparams, ϕparams)...)
+end
+
+
+"""
+    PointSamples(::Type{Cylindrical}, frame::Frame{TF}, sparams::AxisParam{TF}, ϕparams::AxisParam{TF}, zparams::AxisParam{TF}) where {TF <: AbstractFloat}
+
+Construct a cylindrical `PointSamples` grid embedded in 3D space using the current frame basis.
+Local cylindrical coordinates use radial-coordinate values from `sparams`,
+angular samples from `ϕparams` in the plane spanned by `frame_right(frame)` and
+`frame_up(frame)`, and axial-coordinate values from `zparams` along `frame_forward(frame)`.
+Radial and axial boundaries are included, while the angular direction is half-open.
+
+# Parameters
+- `Cylindrical`: Coordinate-system dispatch tag selecting a cylindrical sampling pattern.
+- `frame`: Frame defining the grid center and current right/up/forward directions.
+- `sparams`: Axis specification `(smin, smax, ns)` for radial-coordinate samples.
+- `ϕparams`: Axis specification `(ϕmin, ϕmax, nϕ)` for half-open angular samples.
+- `zparams`: Axis specification `(zmin, zmax, nz)` for axial-coordinate samples.
+
+# Returns
+- `PointSamples{3, TF}`: Zero-valued point samples with global Cartesian coordinates in the frame-local cylindrical grid.
+"""
+function PointSamples(:: Type{Cylindrical}, frame :: Frame{TF}, sparams :: AxisParam{TF}, ϕparams :: AxisParam{TF}, zparams :: AxisParam{TF}) where {TF <: AbstractFloat}
+    return PointSamples(_cylindrical_coordinates(frame, sparams, ϕparams, zparams)...)
 end

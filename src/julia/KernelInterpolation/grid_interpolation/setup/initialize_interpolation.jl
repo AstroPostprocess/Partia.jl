@@ -45,7 +45,7 @@ function initialize_interpolation( :: CPUComputeBackend, grid_template :: AS, in
 
     # Generate a Linear BVH structure for neighborhood searching
     @info "     SPH Interpolation: Building LBVH..."
-    LBVH = LinearBVH!(input, Val(D), CodeType = UInt64)
+    LBVH = LinearBVH!(input, CodeType = UInt64)
     @info "     SPH Interpolation: End building LBVH..."
 
     # Consice catalog

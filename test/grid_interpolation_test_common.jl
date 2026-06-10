@@ -59,7 +59,7 @@ function make_grid_interpolation_fixture()
         divergences = (:v,),
     )
 
-    LBVH = LinearBVH!(input, Val(3))
+    LBVH = LinearBVH!(input)
     return input, catalog, LBVH
 end
 
@@ -124,7 +124,7 @@ function make_line_interpolation_fixture()
         scalars = (:temp, :vx),
     )
 
-    LBVH = LinearBVH!(input, Val(3))
+    LBVH = LinearBVH!(input)
     return input, catalog, LBVH
 end
 

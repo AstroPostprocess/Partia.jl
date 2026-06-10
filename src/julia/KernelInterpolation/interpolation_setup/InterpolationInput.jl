@@ -198,7 +198,7 @@ end
 
 # Input helper for LBVH
 ## 3D path
-function LinearBVH!(input :: InterpolationInput{3}, :: Val{3}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+function LinearBVH!(input :: InterpolationInput{3}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
     z = get_zcoord(input)
@@ -221,7 +221,7 @@ function LinearBVH!(input :: InterpolationInput{3}, :: Val{3}; CodeType :: Type{
 end
 
 ## 2D path
-function LinearBVH!(input :: InterpolationInput{2}, :: Val{2}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+function LinearBVH!(input :: InterpolationInput{2}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
 

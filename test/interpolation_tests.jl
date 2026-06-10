@@ -315,7 +315,7 @@ end
     vz = fill(0.5, n)
 
     input = InterpolationInput((x, y, z), m, h, rho, (vx, vy, vz); smoothed_kernel = typeof(kern))
-    LBVH_local = LinearBVH!(input, Val(3))
+    LBVH_local = LinearBVH!(input)
 
     reference_point = (x[1], y[1], z[1])
     ha = h[1]

@@ -1,30 +1,3 @@
-######################################################################################
-
-# Axis specification tuple `(xmin, xmax, xn)`.
-
-######################################################################################
-"""
-    AxisParam{TF} = Tuple{TF, TF, Int}
-
-Axis specification tuple `(xmin, xmax, xn)`.
-
-# Type Parameters
-- `TF <: AbstractFloat` : Floating-point type for axis endpoints.
-
-# Fields / Layout
-- `xmin :: TF` : Axis minimum.
-- `xmax :: TF` : Axis maximum.
-- `xn :: Int`  : Number of points (length).
-
-# Examples
-```julia
-const AxisParam{TF} = Tuple{TF, TF, Int}
-x = (0.0, 1.0, 256)  # AxisParam{Float64}
-y = (0.0f0, 2.0f0, 128)  # AxisParam{Float32}
-```
-"""
-const AxisParam{TF} = Tuple{TF, TF, Int}
-
 # structured grid (Cartesian/Cylindrical... etc)
 """
     StructuredGrid{D, TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF,D}} <: AbstractGrid{TF}
