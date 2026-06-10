@@ -1,7 +1,7 @@
 const _COORDINATE = ("x", "y", "z")
 
 """
-    write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PRGridDataset.h5") where {L,D,TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}, G <: PointSamples{D,TF,VG,VC}}
+    write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PartiaGridDataset.h5") where {L,D,TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}, G <: PointSamples{D,TF,VG,VC}}
 
 Serialize a `GridDataset` and write it to an HDF5 file.
 All grids in the dataset **must share the same coordinate vectors**, verified by
@@ -22,11 +22,11 @@ The resulting HDF5 file has the following structure:
 # Parameters
 - `gd :: GridDataset{L,TF,G}`
   A dataset containing multiple `PointSamples` objects that must share identical coordinates
-- `filename :: String="PRGridDataset.h5"`
+- `filename :: String="PartiaGridDataset.h5"`
   Output HDF5 filename
 
 """
-function write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PRGridDataset.h5") where {L,D,TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}, G <: PointSamples{D,TF,VG,VC}}
+function write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PartiaGridDataset.h5") where {L,D,TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}, G <: PointSamples{D,TF,VG,VC}}
     # Check whether all the grid share the same coor
     g1 = gd.data.grids[1]
     @inbounds for i in 2:L
@@ -70,7 +70,7 @@ function write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PRGrid
 end
 
 """
-    write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PRGridDataset.h5") where
+    write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PartiaGridDataset.h5") where
 {L,D,TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF,D}, G <: StructuredGrid{D,TF,V,A}}
 
 Serialize a `GridDataset` composed of `StructuredGrid`s and write it to an HDF5 file.
@@ -92,10 +92,10 @@ The resulting HDF5 file has the following structure:
 # Parameters
 - `gd :: GridDataset{L,TF,G}`
   A dataset containing multiple `StructuredGrid` objects that must share identical axes
-- `filename :: String="PRGridDataset.h5"`
+- `filename :: String="PartiaGridDataset.h5"`
   Output HDF5 filename
 """
-function write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PRGridDataset.h5") where {L,D,TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}, G <: StructuredGrid{D,TF,V, A}}
+function write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PartiaGridDataset.h5") where {L,D,TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}, G <: StructuredGrid{D,TF,V, A}}
     # Check whether all the grid share the same coor
     g1 = gd.data.grids[1]
     @inbounds for i in 2:L
@@ -141,7 +141,7 @@ end
 """
     write_GridBundle(
         gb :: GridBundle{L,G},
-        filename :: String="PRGridDataset.h5";
+        filename :: String="PartiaGridDataset.h5";
         code_units :: Dict{Symbol,TF},
         operation_name :: String="",
         params :: Union{Nothing,Dict{Symbol,Union{String,Int,Bool,TF}}}=nothing
@@ -167,7 +167,7 @@ an `ArgumentError` is thrown.
 # Parameters
 - `gb :: GridBundle{L,G}`
   A bundle of grids to be serialized
-- `filename :: String="PRGridDataset.h5"`
+- `filename :: String="PartiaGridDataset.h5"`
   Output HDF5 filename
 
 # Keyword Arguments
@@ -178,7 +178,7 @@ an `ArgumentError` is thrown.
 | `params`         | `Union{Nothing,Dict{Symbol,Union{String,Int,Bool,TF}}}`      | `nothing` | Optional additional metadata stored in the dataset |
 
 """
-function write_GridBundle(gb :: GridBundle{L, G}, filename :: String = "PRGridDataset.h5"; code_units :: Dict{Symbol, TF}, operation_name :: String = "", params :: Union{Nothing, Dict{Symbol, Union{String, Int, Bool, TF}}} = nothing) where {L, TF <: AbstractFloat, G <: AbstractGrid{TF}}
+function write_GridBundle(gb :: GridBundle{L, G}, filename :: String = "PartiaGridDataset.h5"; code_units :: Dict{Symbol, TF}, operation_name :: String = "", params :: Union{Nothing, Dict{Symbol, Union{String, Int, Bool, TF}}} = nothing) where {L, TF <: AbstractFloat, G <: AbstractGrid{TF}}
     p = isnothing(params) ? GridDataset_params_TYPE(TF)() : copy(params)
 
     # Check required code units

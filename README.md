@@ -143,6 +143,7 @@ Currently the package provides:
 - Gradient, divergence, and curl operators
 - Structured-grid sampling
 - Line-sampled / line-integrated interpolation
+- Oriented sampling frames for local planes and boxes
 
 The current interpolation pipeline uses a **Linear Bounding Volume Hierarchy (LBVH)** acceleration structure, inspired by *SHAMROCK* ([David-Cleris et al. 2025](https://academic.oup.com/mnras/article/539/1/1/8085154)) (see [Lauterbach et al. (2009)](https://doi.org/10.1111/j.1467-8659.2009.01377.x) and [Karras (2012)](https://doi.org/10.2312/EGGH/HPG12/033-037) for more information). In particular, traversal of this LBVH follows the **stackless DFS traversal** presented by [Prokopenko & Lebrun-Grandié (2024)](https://doi.org/10.2172/2301619).
 
@@ -181,6 +182,80 @@ The computation proceeds through the following stages:
 7. Writing results back into the output grids.
 
    The interpolated values are stored into the preallocated output containers in the order prescribed by the catalog. For structured grids, the flattened outputs are finally reshaped back into `StructuredGrid` objects before the `GridBundle` is returned.
+
+
+
+## Frames
+
+`Frame` stores a sampling origin and an oriented local basis. It is used by the
+frame-based `PointSamples` and `LineSamples` constructors to build planes,
+boxes, and parallel-beam samples in global Cartesian coordinates.
+
+There are two constructors:
+
+```julia
+# Explicit position, forward direction, and up direction.
+frame = Frame(
+    (0.0, 0.0, 0.0),
+    (0.0, 0.0, -1.0),
+    (0.0, 1.0, 0.0),
+)
+
+# Convenience constructor: position is (x, y, z), initial forward points
+# from that position toward the origin.
+observer = Frame(0.0, 0.0, 10.0)
+```
+
+The explicit constructor normalizes `f0` and `u0`; both vectors must be
+nonzero and orthogonal. The current basis can be inspected with:
+
+```julia
+frame_position(frame)
+frame_right(frame)
+frame_up(frame)
+frame_forward(frame)
+frame_basis(frame)
+```
+
+Frames can be translated in global or local coordinates:
+
+```julia
+translate!(GlobalCoordinates, frame, 1.0, 0.0, 0.0)
+translate!(LocalCoordinates, frame, 0.0, 0.0, 2.0)
+```
+
+They can also be rotated by yaw, pitch, and roll, or aligned so that the current
+forward direction points toward a target vector:
+
+```julia
+rotate!(frame, 0.1, -0.2, 0.0)
+rotate_forward_to!(frame, (0.0, 0.0, -1.0))
+```
+
+Frame-based grid constructors take `AxisParam` tuples of the form
+`(min, max, n)`. Cartesian `x`, `y`, and `z` axes include both boundaries.
+Polar and cylindrical angular axes are half-open: `ϕmin` is included and `ϕmax`
+is not duplicated.
+
+```julia
+xparams = (-5.0, 5.0, 101)
+yparams = (-5.0, 5.0, 101)
+sparams = (0.0, 10.0, 128)
+ϕparams = (0.0, 2π, 256)
+zparams = (-1.0, 1.0, 33)
+
+cartesian_plane = PointSamples(Cartesian, frame, xparams, yparams)
+cartesian_box = PointSamples(Cartesian, frame, xparams, yparams, zparams)
+polar_plane = PointSamples(Polar, frame, sparams, ϕparams)
+cylindrical_box = PointSamples(Cylindrical, frame, sparams, ϕparams, zparams)
+
+cartesian_rays = LineSamples(Cartesian, ParallelBeam, frame, xparams, yparams)
+polar_rays = LineSamples(Polar, ParallelBeam, frame, sparams, ϕparams)
+```
+
+For `LineSamples(..., ParallelBeam, frame, ...)`, sample origins are placed on
+the same frame plane as the corresponding `PointSamples` constructor, and every
+line direction is set to `frame_forward(frame)`.
 
 
 
@@ -230,7 +305,7 @@ input, catalog = build_input(
     h,
     ρ,
     (ρ, u, vx, vy, vz);
-    column_names = (:ρ, :u, :vx, :vy, :vz),
+    column_names = (:rho, :u, :vx, :vy, :vz),
     scalars = (:u, :vx, :vy, :vz),
     gradients = (:rho,),
     divergences = (:v,),
@@ -246,9 +321,9 @@ For this particular catalog, the output order is fixed as:
 2. `vx`
 3. `vy`
 4. `vz`
-5. `∇ρˣ`
-6. `∇ρʸ`
-7. `∇ρᶻ`
+5. `∇rhoˣ`
+6. `∇rhoʸ`
+7. `∇rhoᶻ`
 8. `∇⋅v`
 9. `(∇×v)ˣ`
 10. `(∇×v)ʸ`
