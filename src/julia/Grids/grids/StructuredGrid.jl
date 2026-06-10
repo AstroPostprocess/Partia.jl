@@ -59,6 +59,43 @@ Return the extent of the `d`-th dimension of a structured grid.
 """
 @inline Base.size(grid :: StructuredGrid, d :: Integer) = grid.size[d]
 
+"""
+    similar(grid :: StructuredGrid)
+
+Construct a new `StructuredGrid` with fresh value storage while sharing the
+same coordinate axes as the input grid.
+
+# Parameters
+- `grid :: StructuredGrid` : Template grid to copy structure from.
+
+# Returns
+- `StructuredGrid` : A grid with independent value storage and shared axes.
+"""
+function Base.similar(grid :: StructuredGrid)
+    return StructuredGrid(similar(grid.grid), grid.axes, grid.size)
+end
+
+"""
+    similar(grid :: StructuredGrid, ::Type{T}) where {T <: AbstractFloat}
+
+Construct a new `StructuredGrid` with fresh value storage of element type `T`.
+When `T` matches the original grid element type, the coordinate axes are shared
+with the input grid. Otherwise, the axes are converted to `T`.
+
+# Parameters
+- `grid :: StructuredGrid` : Template grid to copy structure from.
+- `::Type{T}` : Desired element type for the new grid values.
+
+# Returns
+- `StructuredGrid` : A grid with independent value storage.
+"""
+function Base.similar(grid :: StructuredGrid{D,TF}, :: Type{T}) where {D, TF <: AbstractFloat, T <: AbstractFloat}
+    new_grid = similar(grid.grid, T)
+    new_axes = T === TF ? grid.axes : ntuple(i -> T.(grid.axes[i]), D)
+
+    return StructuredGrid(new_grid, new_axes, grid.size)
+end
+
 ## Functions
 """
     coordinate(grid :: StructuredGrid{D, TF}, element :: NTuple{D, Int}) where {D, TF <: AbstractFloat}

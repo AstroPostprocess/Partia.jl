@@ -82,6 +82,29 @@ end
     @test_throws ArgumentError Partia.Grids.restore_struct(Cartesian, flattened, cyl_grid.axes)
 end
 
+# ── 1d. StructuredGrid similar — fresh values and shared axes ────────── #
+
+@testset "StructuredGrid similar -- value storage and axes" begin
+    grid = StructuredGrid(Cartesian, (0.0, 1.0, 3), (0.0, 2.0, 4))
+
+    same_type = similar(grid, Float64)
+    @test same_type isa StructuredGrid{2,Float64}
+    @test same_type.grid !== grid.grid
+    @test same_type.axes[1] === grid.axes[1]
+    @test same_type.axes[2] === grid.axes[2]
+    @test size(same_type) == size(grid)
+
+    bundle = GridBundle(ntuple(_ -> similar(grid, Float64), 2), (:a, :b))
+    @test bundle.grids[1].axes[1] === bundle.grids[2].axes[1]
+    @test bundle.grids[1].axes[2] === bundle.grids[2].axes[2]
+
+    converted = similar(grid, Float32)
+    @test converted isa StructuredGrid{2,Float32}
+    @test converted.grid !== grid.grid
+    @test converted.axes[1] == Float32.(grid.axes[1])
+    @test converted.axes[2] == Float32.(grid.axes[2])
+end
+
 # ── 2a. PointSamples frame-plane constructors ────────────────────────── #
 
 @testset "PointSamples frame-plane constructors -- 2D StructuredGrid consistency" begin
