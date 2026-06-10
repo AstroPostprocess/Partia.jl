@@ -50,7 +50,7 @@ function read_GridDataset(filename :: String="PRGridDataset.h5")
 
             V = typeof(shared_vecs[1])
             A = typeof(arrays[1])
-            G = Partia.StructuredGrid{D, TF, V, A}
+            G = StructuredGrid{D, TF, V, A}
 
             grids = ntuple(i -> G(arrays[i], shared_vecs, size), Val(L))
             names = ntuple(i -> names_vec[i], Val(L))
@@ -65,7 +65,7 @@ function read_GridDataset(filename :: String="PRGridDataset.h5")
 
             VG = typeof(shared_vecs[1])
             VC = typeof(shared_vecs)
-            G  = Partia.PointSamples{D, TF, VG, VC}
+            G  = PointSamples{D, TF, VG, VC}
 
             grids = ntuple(i -> G(arrays[i], shared_vecs), Val(L))
             names = ntuple(i -> names_vec[i], Val(L))
@@ -113,7 +113,7 @@ function _grid_type_from_params(s :: AbstractString)
 
     G = getfield(Partia, s)
 
-    (G <: Partia.AbstractGrid) || throw(ArgumentError("params[:grid_type] is not a subtype of AbstractGrid: $(G)"))
+    (G <: AbstractGrid) || throw(ArgumentError("params[:grid_type] is not a subtype of AbstractGrid: $(G)"))
     return G
 end
 
