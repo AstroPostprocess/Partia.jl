@@ -79,7 +79,9 @@ include(joinpath(@__DIR__, "ExecutionBackend", "AbstractExecutionBackend.jl"))
 ## Single point interpolation
 include(joinpath(@__DIR__, "interpolation_setup", "InterpolationStrategy.jl"))
 include(joinpath(@__DIR__, "interpolation_setup", "InterpolationCatalog.jl"))
+include(joinpath(@__DIR__, "interpolation_setup", "AbstractInterpolationInput.jl"))
 include(joinpath(@__DIR__, "interpolation_setup", "InterpolationInput.jl"))
+include(joinpath(@__DIR__, "interpolation_setup", "InterpolationSmoothingVolumeInput.jl"))
 include(joinpath(@__DIR__, "interpolation_setup", "constructor.jl"))
 
 ### LBVH Traversal
@@ -92,7 +94,8 @@ include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "scalar_inte
 include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "gradient_interpolation.jl"))
 include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "divergence_interpolation.jl"))
 include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "curl_interpolation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "general_interpolation.jl"))
+include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "gather_interpolation.jl"))
+include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "scatter_interpolation.jl"))
 
 #### Line integrated interpolations
 include(joinpath(@__DIR__, "line_integrated_interpolation", "accumulations", "line_integrated_scalar_accumulation.jl"))

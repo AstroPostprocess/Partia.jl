@@ -4,8 +4,7 @@
 #     by Wei-Shan Su,
 #     October 31, 2025
 # This module provides a unified and extensible framework for SPH kernel functions,
-# including both the dimensionless analytic forms and their smoothed (dimensional)
-# representations, as well as gradient evaluations.
+# including kernel shape functors, smoothed kernel evaluations, and gradients.
 # Overview
 # For a given SPH kernel type `K <: AbstractSPHKernel`, the smoothing kernel is defined as:
 #     W(r, h) = h^{-D} · C_norm(D) · f(q),
@@ -53,41 +52,6 @@ abstract type AbstractSPHKernel end
 @inline KernelFunctionValid( :: Type{K}) where {K <: AbstractSPHKernel} = KernelFunctionValid(parenttype(K))
 @inline KernelFunctionNneigh( :: Type{K}) where {K <: AbstractSPHKernel} = KernelFunctionNneigh(parenttype(K))
 
-# Calculating influence by Smoothed Function
-# Dimensionless Kernel
-"""
-    Smoothed_kernel_function_dimensionless(
- :: Type{K},
-        q :: T,
- :: Val{D}
-    ) where {K <: AbstractSPHKernel, T <: AbstractFloat, D}
-
-Compute the **dimensionless** SPH smoothing kernel value `w(q)` for a given kernel type,
-where the dimensionless separation is
-
-```math
-q = r/h .
-```
-This function returns the normalised dimensionless kernel value in D dimensions,
-i.e. the kernel shape K()(q) multiplied by the dimension-dependent normalisation factor.
-
-# Parameters
-	- :: Type{K}
-Kernel type (e.g. M4_spline, C2_Wendland) with K <: AbstractSPHKernel.
-	- q :: T
-Dimensionless distance q = r/h, with T <: AbstractFloat.
-	- :: Val{D}
-Dimension tag. Use Val(1), Val(2), or Val(3).
-
-Returns
-	- :: T
-The dimensionless kernel value w(q) (normalised for D dimensions).
-"""
-@inline function Smoothed_kernel_function_dimensionless( :: Type{K}, q :: T, :: Val{D}) where {K <: AbstractSPHKernel, T <: AbstractFloat, D}
-    return KernelFunctionnorm(K, Val(D), T) * K()(q)
-end
-
-
 # Dimensional Kernel
 """
     Smoothed_kernel_function(
@@ -130,19 +94,19 @@ W3f64 = Smoothed_kernel_function(C2_Wendland, 1.2, 0.5, Val(3))
 @inline function Smoothed_kernel_function( :: Type{K}, r :: T, h :: T, :: Val{1}) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     invh = inv(h)
     q = r * invh
-    return invh * Smoothed_kernel_function_dimensionless(K, q, Val(1))
+    return invh * KernelFunctionnorm(K, Val(1), T) * K()(q)
 end
 @inline function Smoothed_kernel_function( :: Type{K}, r :: T, h :: T, :: Val{2}) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     invh = inv(h)
     inv_hD = invh * invh
     q = r * invh
-    return inv_hD * Smoothed_kernel_function_dimensionless(K, q, Val(2))
+    return inv_hD * KernelFunctionnorm(K, Val(2), T) * K()(q)
 end
 @inline function Smoothed_kernel_function( :: Type{K}, r :: T, h :: T, :: Val{3}) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     invh = inv(h)
     inv_hD = invh * invh * invh
     q = r * invh
-    return inv_hD * Smoothed_kernel_function_dimensionless(K, q, Val(3))
+    return inv_hD * KernelFunctionnorm(K, Val(3), T) * K()(q)
 end
 
 @inline function Smoothed_kernel_function( :: Type{K}, r :: T, h :: S, d :: Val{D}) where {K <: AbstractSPHKernel, T <: AbstractFloat, S <: AbstractFloat, D}
@@ -190,100 +154,6 @@ This method is a thin wrapper that:
     return Smoothed_kernel_function(K, r, h, Val(D))
 end
 
-# ∇W(ra-rb,h)
-"""
-    Smoothed_gradient_kernel_function_dimensionless(
- :: Type{K},
-        Δx :: T,
-        h :: T
-    ) where {K <: AbstractSPHKernel, T <: AbstractFloat}
-
-    Smoothed_gradient_kernel_function_dimensionless(
- :: Type{K},
-        Δx :: T, Δy :: T,
-        h :: T
-    ) where {K <: AbstractSPHKernel, T <: AbstractFloat}
-
-    Smoothed_gradient_kernel_function_dimensionless(
- :: Type{K},
-        Δx :: T, Δy :: T, Δz :: T,
-        h :: T
-    ) where {K <: AbstractSPHKernel, T <: AbstractFloat}
-
-Compute the **dimensionless gradient** of an SPH kernel using scalar displacement
-components in 1D, 2D, or 3D.
-
-Let `rab = ra - rb` with components `(Δx, Δy, Δz)` and define the dimensionless
-distance `q = |rab| / h`.
-This function evaluates the gradient of the dimensionless kernel shape function,
-including the dimension-dependent normalisation factor.
-
-The returned value corresponds to
-
-    ∇w(q) = (dw/dq) * (rab / |rab|)
-
-scaled by `KernelFunctionnorm(K, Val(D), T)`, but **does not** include the outer
-physical prefactor `1 / h^D`. That scaling should be applied by higher-level
-routines when constructing the full kernel gradient.
-
-These scalar-component APIs are intended for extremely hot loops and avoid any
-container allocation.
-
-# Parameters
-- ` :: Type{K}`
-  SPH kernel type, where `K <: AbstractSPHKernel`.
-- `Δx`, `Δy`, `Δz`
-  Displacement components between two particles.
-- `h`
-  Smoothing length.
-
-# Returns
-- 1D: `T`
-- 2D: `NTuple{2,T}`
-- 3D: `NTuple{3,T}`
-
-Dimensionless gradient components. If the separation is zero, all components
-are returned as zero.
-"""
-@inline function Smoothed_gradient_kernel_function_dimensionless( :: Type{K}, Δx :: T, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
-    if iszero(Δx)
-      return zero(T)
-    end
-    r     = Δx
-    q     = r / h
-    coeff = KernelFunctionDiff(K, q) * KernelFunctionnorm(K, Val(1), T) / r
-
-    return Δx * coeff
-end
-
-@inline function Smoothed_gradient_kernel_function_dimensionless( :: Type{K}, Δx :: T, Δy :: T, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
-    r2 = Δx * Δx + Δy * Δy
-    if iszero(r2)
-      zeroT = zero(T)
-      return (zeroT, zeroT)
-    end
-    r     = sqrt(r2)
-    invr  = inv(r)
-    q     = r / h
-    coeff = KernelFunctionDiff(K, q) * KernelFunctionnorm(K, Val(2), T) * invr
-
-    return (Δx * coeff, Δy * coeff)
-end
-
-@inline function Smoothed_gradient_kernel_function_dimensionless( :: Type{K}, Δx :: T, Δy :: T, Δz :: T, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
-    r2 = Δx * Δx + Δy * Δy + Δz * Δz
-    if iszero(r2)
-      zeroT = zero(T)
-      return (zeroT, zeroT, zeroT)
-    end
-    r     = sqrt(r2)
-    invr  = inv(r)
-    q     = r / h
-    coeff = KernelFunctionDiff(K, q) * KernelFunctionnorm(K, Val(3), T) * invr
-
-    return (Δx * coeff, Δy * coeff, Δz * coeff)
-end
-
 """
     Smoothed_gradient_kernel_function(
  :: Type{ <: AbstractSPHKernel},
@@ -297,9 +167,8 @@ as input.
 This is the **performance-critical, allocation-free API** intended for hot loops
 (e.g. neighbor interactions, grid interpolation, GPU kernels).
 
-The function internally evaluates the **dimensionless kernel gradient**
-\\( \\nabla w(q) \\) with \\( q = r/h \\), and applies the correct dimensional
-scaling:
+The function evaluates the kernel derivative at \\( q = r/h \\), multiplies by
+the dimension-dependent normalisation, and applies the correct physical scaling:
 
 \\[
 \\nabla W = h^{-(D+1)} \\, \\nabla w
@@ -344,24 +213,39 @@ dWdx, dWdy, dWdz = Smoothed_gradient_kernel_function(M4_spline, Δx, Δy, Δz, h
 ```
 """
 @inline function Smoothed_gradient_kernel_function( :: Type{K}, Δx :: T, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
+    if iszero(Δx)
+        return zero(T)
+    end
     invh = inv(h)
     inv_hDp1 = invh * invh
-    ws = Smoothed_gradient_kernel_function_dimensionless(K, Δx, h)
-    return inv_hDp1 * ws
+    q = Δx * invh
+    return inv_hDp1 * KernelFunctionDiff(K, q) * KernelFunctionnorm(K, Val(1), T)
 end
 
 @inline function Smoothed_gradient_kernel_function( :: Type{K}, Δx :: T, Δy :: T, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
+    r2 = Δx * Δx + Δy * Δy
+    if iszero(r2)
+        zeroT = zero(T)
+        return (zeroT, zeroT)
+    end
     invh = inv(h)
+    r = sqrt(r2)
     inv_hDp1 = invh * invh * invh
-    gx, gy = Smoothed_gradient_kernel_function_dimensionless(K, Δx, Δy, h)
-    return (inv_hDp1 * gx, inv_hDp1 * gy)
+    coeff = inv_hDp1 * KernelFunctionDiff(K, r * invh) * KernelFunctionnorm(K, Val(2), T) * inv(r)
+    return (Δx * coeff, Δy * coeff)
 end
 
 @inline function Smoothed_gradient_kernel_function( :: Type{K}, Δx :: T, Δy :: T, Δz :: T, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
+    r2 = Δx * Δx + Δy * Δy + Δz * Δz
+    if iszero(r2)
+        zeroT = zero(T)
+        return (zeroT, zeroT, zeroT)
+    end
     invh = inv(h)
+    r = sqrt(r2)
     inv_hDp1 = invh * invh * invh * invh
-    gx, gy, gz = Smoothed_gradient_kernel_function_dimensionless(K, Δx, Δy, Δz, h)
-    return (inv_hDp1 * gx, inv_hDp1 * gy, inv_hDp1 * gz)
+    coeff = inv_hDp1 * KernelFunctionDiff(K, r * invh) * KernelFunctionnorm(K, Val(3), T) * inv(r)
+    return (Δx * coeff, Δy * coeff, Δz * coeff)
 end
 
 """

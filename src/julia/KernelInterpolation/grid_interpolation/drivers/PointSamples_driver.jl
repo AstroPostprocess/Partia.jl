@@ -36,9 +36,7 @@ function PointSamples_interpolation(backend :: CPUComputeBackend, grid_template 
     npoints = length(grid_template)
     @info "     SPH Interpolation: Start interpolation..."
     @inbounds @threads for i in 1:npoints
-        # Do single point interpolation
         _point_samples_interpolation_kernel!(backend, grids_result, i, input, catalog_consice, LBVH, itp_strategy)
-
     end
     @info "     SPH Interpolation: End interpolation..."
 
@@ -106,9 +104,7 @@ function PointSamples_interpolation(backend :: CPUComputeBackend, grid_template 
     npoints = length(grid_template)
     @info "     SPH Interpolation: Start interpolation..."
     @inbounds @threads for i in 1:npoints
-        # Do single point interpolation
         _point_samples_interpolation_kernel!(backend, grids_result, i, input, catalog_consice, LBVH, itp_strategy)
-
     end
     @info "     SPH Interpolation: End interpolation..."
 

@@ -1,4 +1,4 @@
-@inline function _line_integrated_density_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, :: Type{itpGather}) where {T <: AbstractFloat}
+@inline function _line_integrated_density_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH) where {T <: AbstractFloat}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -23,7 +23,11 @@
     return Sigma
 end
 
-@inline function _line_integrated_density_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, LBVH :: LinearBVH, :: Type{itpScatter}) where {T <: AbstractFloat}
+@inline function _line_integrated_density_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, :: Type{itpGather}) where {T <: AbstractFloat}
+    return _line_integrated_density_kernel(input, origin, direction, ha, LBVH)
+end
+
+@inline function _line_integrated_density_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, LBVH :: LinearBVH) where {T <: AbstractFloat}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -46,7 +50,11 @@ end
     return Sigma
 end
 
-@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, columns :: NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpGather}) where {T <: AbstractFloat, M}
+@inline function _line_integrated_density_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, LBVH :: LinearBVH, :: Type{itpScatter}) where {T <: AbstractFloat}
+    return _line_integrated_density_kernel(input, origin, direction, LBVH)
+end
+
+@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, columns :: NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}) where {T <: AbstractFloat, M}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -93,7 +101,11 @@ end
     return NTuple{M, T}(output)
 end
 
-@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, LBVH :: LinearBVH, columns :: NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpScatter}) where {T <: AbstractFloat, M}
+@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, columns :: NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpGather}) where {T <: AbstractFloat, M}
+    return _line_integrated_quantities_interpolate_kernel(input, origin, direction, ha, LBVH, columns, ShepardNormalization)
+end
+
+@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, LBVH :: LinearBVH, columns :: NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}) where {T <: AbstractFloat, M}
     K = input.smoothed_kernel
     Ktyp = typeof(K)
     Kvalid = KernelFunctionValid(Ktyp, T)
@@ -138,12 +150,16 @@ end
     return NTuple{M, T}(output)
 end
 
+@inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, LBVH :: LinearBVH, columns :: NTuple{M,Int}, ShepardNormalization :: NTuple{M, Bool}, :: Type{itpScatter}) where {T <: AbstractFloat, M}
+    return _line_integrated_quantities_interpolate_kernel(input, origin, direction, LBVH, columns, ShepardNormalization)
+end
+
 @inline function _line_integrated_quantities_interpolate_kernel(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {T <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
     val_len = Val(length(input.quant))
     columns = ntuple(identity, val_len)
     ShepardNormalization = ntuple(_ -> true, val_len)
     if itp_strategy === itpScatter
-        return _line_integrated_quantities_interpolate_kernel(input, origin, direction, LBVH, columns, ShepardNormalization, itpScatter)
+        return _line_integrated_quantities_interpolate_kernel(input, origin, direction, LBVH, columns, ShepardNormalization)
     end
-    return _line_integrated_quantities_interpolate_kernel(input, origin, direction, ha, LBVH, columns, ShepardNormalization, itp_strategy)
+    return _line_integrated_quantities_interpolate_kernel(input, origin, direction, ha, LBVH, columns, ShepardNormalization)
 end

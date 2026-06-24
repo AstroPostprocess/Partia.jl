@@ -66,7 +66,7 @@ namespace.
   3D interpolation catalog for the requested extra quantities.
 """
 function build_input(
- :: CPUComputeBackend,
+    :: CPUComputeBackend,
     x_col :: AbstractVector,
     y_col :: AbstractVector,
     z_col :: AbstractVector,
@@ -119,6 +119,55 @@ function build_input(
         m,
         h,
         ρ,
+        quant;
+        smoothed_kernel = smoothed_kernel,
+    )
+
+    catalog = InterpolationCatalog(
+        column_names,
+        Val(3);
+        scalars = scalars,
+        gradients = gradients,
+        divergences = divergences,
+        curls = curls,
+    )
+
+    return input, catalog
+end
+
+
+function build_input(
+    :: CPUComputeBackend,
+    hfact :: T,
+    x_col :: AbstractVector,
+    y_col :: AbstractVector,
+    z_col :: AbstractVector,
+    m_col :: AbstractVector,
+    h_col :: AbstractVector,
+    quantity_columns :: NTuple{NCOLUMN, <: AbstractVector};
+    column_names :: NTuple{NCOLUMN,Symbol},
+    scalars :: Tuple{Vararg{Symbol}} = (),
+    gradients :: Tuple{Vararg{Symbol}} = (),
+    divergences :: Tuple{Vararg{Symbol}} = (),
+    curls :: Tuple{Vararg{Symbol}} = (),
+    smoothed_kernel :: Type{K} = M5_spline,
+) where {T <: AbstractFloat, K <: AbstractSPHKernel,NCOLUMN}
+
+    # Promote all columns to T.
+    x = Vector{T}(x_col)
+    y = Vector{T}(y_col)
+    z = Vector{T}(z_col)
+    m = Vector{T}(m_col)
+    h = Vector{T}(h_col)
+    quant = ntuple(i -> Vector{T}(quantity_columns[i]), NCOLUMN)
+
+    input = InterpolationSmoothingVolumeInput(
+        hfact,
+        x,
+        y,
+        z,
+        m,
+        h,
         quant;
         smoothed_kernel = smoothed_kernel,
     )

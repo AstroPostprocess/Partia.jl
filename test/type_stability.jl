@@ -87,12 +87,10 @@ end
 
 @testset "Type stability — kernel evaluation" begin
     kern = M4_spline()
-    @inferred Smoothed_kernel_function_dimensionless(typeof(kern), 0.8, Val(3))
     @inferred Smoothed_kernel_function(typeof(kern), 0.12, 0.20, Val(3))
     @inferred Smoothed_kernel_function(typeof(kern), (0.1, 0.2, 0.3), (0.2, 0.0, 0.4), 0.20)
     @inferred Smoothed_gradient_kernel_function(typeof(kern), 0.05, -0.03, 0.08, 0.20)
     @inferred Smoothed_gradient_kernel_function(typeof(kern), (0.1, 0.2, 0.3), (0.2, 0.0, 0.4), 0.20)
-    @inferred line_integrated_kernel_function_dimensionless(typeof(kern), 0.6)
     @inferred line_integrated_kernel_function(typeof(kern), 0.07, 0.20)
     @inferred line_integrated_kernel_function(typeof(kern), (0.1, 0.2), (0.3, 0.4), 0.20)
 end
