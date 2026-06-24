@@ -59,7 +59,7 @@ W\!\left(\lvert \mathbf{r} - \mathbf{r}_b \rvert, h\right)
 
 For a vector field $\mathbf{A}$, the Shepard-normalized value $\tilde{\mathbf{A}}(\mathbf{r})$ is obtained by applying the same normalization component-wise.
 
-The interpolation formula is the same in all cases; the only difference is how the smoothing length used in the kernel evaluation is chosen. `Partia.jl` supports gather, scatter, and symmetric evaluation:
+The interpolation formula is the same in all cases; the only difference is how the smoothing length used in the kernel evaluation is chosen. `Partia.jl` supports gather and scatter evaluation:
 
 ```math
 W_{\mathrm{gather}}(\mathbf{r}, \mathbf{r}_b)
@@ -71,17 +71,6 @@ W\!\left(\lvert \mathbf{r} - \mathbf{r}_b \rvert, h_{\mathrm{samp}}\right),
 W_{\mathrm{scatter}}(\mathbf{r}, \mathbf{r}_b)
 =
 W\!\left(\lvert \mathbf{r} - \mathbf{r}_b \rvert, h_b\right),
-```
-
-```math
-W_{\mathrm{symmetric}}(\mathbf{r}, \mathbf{r}_b)
-=
-\frac{1}{2}
-\left[
-W\!\left(\lvert \mathbf{r} - \mathbf{r}_b \rvert, h_{\mathrm{samp}}\right)
-+
-W\!\left(\lvert \mathbf{r} - \mathbf{r}_b \rvert, h_b\right)
-\right].
 ```
 
 Here $h_{\mathrm{samp}}$ is the smoothing length assigned to the sampling point and $h_b$ is the smoothing length carried by particle $b$.
@@ -173,7 +162,7 @@ The computation proceeds through the following stages:
 
 5. Determining the local interpolation geometry for each sample.
 
-   For point samples, the code extracts the sample coordinates and, for gather or symmetric interpolation, estimates a query smoothing length through `LBVH_find_nearest_h`. For line samples, only `itpScatter` is supported, since there is no well-defined sample-side smoothing length for a line-integrated query.
+   For point samples, the code extracts the sample coordinates and estimates a query smoothing length through `LBVH_find_nearest_h` when gather interpolation is requested. For line samples, only `itpScatter` is supported, since there is no well-defined sample-side smoothing length for a line-integrated query.
 
 6. Evaluating the single-sample interpolation kernel.
 
@@ -349,7 +338,7 @@ result = StructuredGrid_interpolation(
     grid_template,
     input,
     catalog,
-    itpSymmetric,
+    itpScatter,
 )
 
 u_grid = result.grids[1]
@@ -375,7 +364,7 @@ cyl_result = StructuredGrid_interpolation(
     cyl_template,
     input,
     catalog,
-    itpSymmetric,
+    itpScatter,
 )
 ```
 
@@ -393,7 +382,7 @@ point_result = PointSamples_interpolation(
     sample_points,
     input,
     catalog,
-    itpSymmetric,
+    itpScatter,
 )
 
 u_at_points = point_result.grids[1].grid
@@ -507,7 +496,7 @@ result = PointSamples_interpolation(
     sample_points,
     input,
     catalog,
-    itpSymmetric,
+    itpScatter,
 )
 ```
 

@@ -11,7 +11,7 @@
 #     • Scatter-only line-integrated interpolation against direct references.
 #     • Externally supplied LBVH dispatch and unsupported-mode errors.
 #  3. Analytic regression
-#     • Linear manufactured field checked across Gather, Scatter, and Symmetric
+#     • Linear manufactured field checked across Gather and Scatter
 #       strategies for scalar, gradient, divergence, and curl outputs.
 
 ######################################################################################
@@ -53,7 +53,7 @@ end
 @testset "PointSamples interpolation -- CPU consistency" begin
     input, catalog, LBVH = make_grid_interpolation_fixture()
     grid_template = make_point_samples_template()
-    result = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, itpSymmetric)
+    result = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog)
 
     scalar_slot = ki_mod.scalar_index(catalog, :temp)
     div_slots = ki_mod.div_slots(catalog, :v)
@@ -70,8 +70,8 @@ end
             grid_template.coor[3][i],
         )
         ha = brute_nearest_h(input, point)
-        expected_scalar = brute_quantity(input, point, ha, scalar_slot, itpSymmetric)
-        expected_div = brute_divergence(input, point, ha, div_slots, itpSymmetric)
+        expected_scalar = brute_quantity(input, point, ha, scalar_slot, itpScatter)
+        expected_div = brute_divergence(input, point, ha, div_slots, itpScatter)
 
         @test isapprox(result.grids[1].grid[i], expected_scalar; atol = 1.0e-12, rtol = 1.0e-10)
         @test isapprox(result.grids[2].grid[i], expected_div; atol = 1.0e-12, rtol = 1.0e-10)
@@ -84,8 +84,8 @@ end
     input, catalog, LBVH = make_grid_interpolation_fixture()
     grid_template = make_point_samples_template()
 
-    result_auto = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, itpSymmetric)
-    result_manual = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, LBVH, catalog, itpSymmetric)
+    result_auto = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog)
+    result_manual = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, LBVH, catalog)
 
     @test result_manual.names == result_auto.names
     @test length(result_manual.grids) == length(result_auto.grids)
@@ -112,7 +112,7 @@ end
         mismatched_input,
         LBVH,
         catalog,
-        itpSymmetric,
+        itpScatter,
     )
 end
 
@@ -200,7 +200,6 @@ end
     line_template = make_line_samples_template()
 
     @test_throws ArgumentError LineSamples_interpolation(CPUComputeBackend(), line_template, line_input, line_catalog, itpGather)
-    @test_throws ArgumentError LineSamples_interpolation(CPUComputeBackend(), line_template, line_input, line_catalog, itpSymmetric)
 
     point_input, point_catalog, _ = make_grid_interpolation_fixture()
     @test_throws MethodError LineSamples_interpolation(CPUComputeBackend(), line_template, point_input, point_catalog, itpScatter)
@@ -212,7 +211,7 @@ end
     input, catalog, h = make_uniform_cloud_3d(12; eta = 1.2, variable_h = true)
     grid_template = make_analytic_point_samples()
 
-    for strategy in (itpGather, itpScatter, itpSymmetric)
+    for strategy in (itpGather, itpScatter)
         result = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, strategy)
 
         for i in eachindex(grid_template.grid)

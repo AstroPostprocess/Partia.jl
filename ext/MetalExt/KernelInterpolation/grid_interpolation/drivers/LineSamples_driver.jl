@@ -12,7 +12,7 @@ function Partia.LineSamples_interpolation( :: MetalComputeBackend, grid_template
     itp_strategy === itpScatter || throw(ArgumentError(
         "LineSamples_interpolation only supports itpScatter. " *
         "Line-integrated samples do not have a well-defined query smoothing length ha, " *
-        "so itpGather and itpSymmetric are not supported."
+        "so itpGather is not supported."
     ))
 
     grids, LBVH, names, catalog_consice = Partia.initialize_interpolation(Partia.CPUComputeBackend(), grid_template, input, catalog)
@@ -51,7 +51,7 @@ function Partia.LineSamples_interpolation( :: MetalComputeBackend, grid_template
     itp_strategy === itpScatter || throw(ArgumentError(
         "LineSamples_interpolation only supports itpScatter. " *
         "Line-integrated samples do not have a well-defined query smoothing length ha, " *
-        "so itpGather and itpSymmetric are not supported."
+        "so itpGather is not supported."
     ))
 
     Partia.matches_lbvh_leaf_order(input, LBVH) || throw(ArgumentError(

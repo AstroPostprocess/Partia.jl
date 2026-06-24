@@ -11,7 +11,7 @@
 #  2. BVH traversal interpolation vs brute-force references
 #     • Density, number density, quantity, gradient, divergence, and curl
 #        interpolation (3D) against O(N) brute-force baselines for all three
-#        strategies (Gather, Scatter, Symmetric).
+#        strategies (Gather, Scatter).
 #     • Line-integrated column-density and quantity interpolation.
 #  3. Physical sanity checks
 #     • Divergence and curl of a uniform vector field must vanish to machine
@@ -54,7 +54,7 @@ end
     ref3d = (0.5, 0.5, 0.5)
     ha = 0.05
 
-    for strategy in (itpGather, itpScatter, itpSymmetric)
+    for strategy in (itpGather, itpScatter)
         dens = strategy === itpScatter ?
             _density_kernel(empty_input, ref3d, empty_bvh, strategy) :
             _density_kernel(empty_input, ref3d, ha, empty_bvh, strategy)
@@ -87,7 +87,7 @@ end
     far_point = (2.0, 2.0, 2.0)
     tiny_ha = 1.0e-4
 
-    for strategy in (itpGather, itpScatter, itpSymmetric)
+    for strategy in (itpGather, itpScatter)
         dens = strategy === itpScatter ?
             _density_kernel(input, far_point, LBVH, strategy) :
             _density_kernel(input, far_point, tiny_ha, LBVH, strategy)
@@ -229,7 +229,7 @@ end
     reference_point = (0.4, 0.35, 0.25)
     ha = 0.12
 
-    for strategy in (itpGather, itpScatter, itpSymmetric)
+    for strategy in (itpGather, itpScatter)
         dens = strategy === itpScatter ?
             _density_kernel(input, reference_point, LBVH, strategy) :
             _density_kernel(input, reference_point, ha, LBVH, strategy)
@@ -255,7 +255,7 @@ end
     reference_points = ((0.2, 0.3, 0.4), (0.7, 0.2, 0.1))
     ha_values = (0.05, 0.12)
 
-    for reference_point in reference_points, ha in ha_values, strategy in (itpGather, itpScatter, itpSymmetric)
+    for reference_point in reference_points, ha in ha_values, strategy in (itpGather, itpScatter)
         grad_rho = strategy === itpScatter ?
             _gradient_density_kernel(input, reference_point, LBVH, strategy) :
             _gradient_density_kernel(input, reference_point, ha, LBVH, strategy)
@@ -286,7 +286,7 @@ end
     direction = (0.0, 0.0, 1.0)
     ha = 0.08
 
-    for strategy in (itpGather, itpScatter, itpSymmetric)
+    for strategy in (itpGather, itpScatter)
         Sigma = strategy === itpScatter ?
             _line_integrated_density_kernel(input, origin, direction, LBVH, strategy) :
             _line_integrated_density_kernel(input, origin, direction, ha, LBVH, strategy)
@@ -320,7 +320,7 @@ end
     reference_point = (x[1], y[1], z[1])
     ha = h[1]
 
-    for strategy in (itpGather, itpScatter, itpSymmetric)
+    for strategy in (itpGather, itpScatter)
         divv = strategy === itpScatter ?
             _divergence_quantity_interpolate_kernel(input, reference_point, LBVH_local, 1, 2, 3, strategy) :
             _divergence_quantity_interpolate_kernel(input, reference_point, ha, LBVH_local, 1, 2, 3, strategy)

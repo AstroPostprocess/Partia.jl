@@ -38,7 +38,7 @@ end
 # ========================== Constants ======================================= #
 
 kern = M4_spline()
-strategies = (itpGather, itpScatter, itpSymmetric)
+strategies = (itpGather, itpScatter)
 kvalid = KernelFunctionValid(typeof(kern), Float64)
 
 # ============================== Test body =================================== #

@@ -13,7 +13,7 @@
 # line and stores the resulting scalar values into the output grids.
 # At present, this routine only supports `itpScatter`. For line-integrated
 # samples there is no well-defined query smoothing length `ha`, so
-# `itpGather` and `itpSymmetric` are rejected explicitly.
+# `itpGather` is rejected explicitly.
 # Parameters
 # - `backend :: CPUComputeBackend`
 #   Execution backend specifying CPU-based interpolation.
@@ -40,7 +40,7 @@ function LineSamples_interpolation(backend :: CPUComputeBackend, grid_template :
     itp_strategy === itpScatter || throw(ArgumentError(
         "LineSamples_interpolation only supports itpScatter. " *
         "Line-integrated samples do not have a well-defined query smoothing length ha, " *
-        "so itpGather and itpSymmetric are not supported."
+        "so itpGather is not supported."
     ))
 
     grids_result, LBVH, names, catalog_consice = initialize_interpolation(backend, grid_template, input, catalog)
@@ -77,7 +77,7 @@ line and stores the resulting scalar values into the output grids.
 
 At present, this routine only supports `itpScatter`. For line-integrated
 samples there is no well-defined query smoothing length `ha`, so
-`itpGather` and `itpSymmetric` are rejected explicitly.
+`itpGather` is rejected explicitly.
 
 # Parameters
 - `backend :: CPUComputeBackend`
@@ -117,7 +117,7 @@ function LineSamples_interpolation(backend :: CPUComputeBackend, grid_template :
     itp_strategy === itpScatter || throw(ArgumentError(
         "LineSamples_interpolation only supports itpScatter. " *
         "Line-integrated samples do not have a well-defined query smoothing length ha, " *
-        "so itpGather and itpSymmetric are not supported."
+        "so itpGather is not supported."
     ))
 
     matches_lbvh_leaf_order(input, LBVH) || throw(ArgumentError(
@@ -137,5 +137,4 @@ function LineSamples_interpolation(backend :: CPUComputeBackend, grid_template :
     grids = grids_result
     return GridBundle(grids, names)
 end
-
 

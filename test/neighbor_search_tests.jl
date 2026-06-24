@@ -428,7 +428,6 @@ end
 
     gather_expected = line_neighbors_reference(lbvh, origin, direction, _ -> radius2)
     scatter_expected = line_neighbors_reference(lbvh, origin, direction, leaf -> (Kvalid * lbvh.leaf_scale[leaf])^2)
-    symmetric_expected = line_neighbors_reference(lbvh, origin, direction, leaf -> max(radius2, (Kvalid * lbvh.leaf_scale[leaf])^2))
 
     gather_hits = Int[]
     leaf_idx = 0
@@ -445,13 +444,6 @@ end
     end
     sort!(scatter_hits)
 
-    symmetric_hits = Int[]
-    ns_mod.@LBVH_symmetric_line_traversal lbvh origin direction Kvalid radius2 leaf_idx d2 hb begin
-        push!(symmetric_hits, leaf_idx)
-    end
-    sort!(symmetric_hits)
-
     @test gather_hits == gather_expected
     @test scatter_hits == scatter_expected
-    @test symmetric_hits == symmetric_expected
 end

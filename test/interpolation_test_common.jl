@@ -7,8 +7,8 @@
 #     • NaN-aware approximate equality, kernel support radii, point-radius
 #       checks, and point-line distances.
 #  2. Kernel references
-#     • SPH weights, gradients, and line-integrated weights for Gather,
-#       Scatter, and Symmetric interpolation strategies.
+#     • SPH weights, gradients, and line-integrated weights for Gather and
+#       Scatter interpolation strategies.
 #  3. Brute-force interpolation baselines
 #     • Density, number density, scalar quantity, gradient, divergence, curl,
 #       line-integrated density, and line-integrated quantity accumulation.
@@ -25,49 +25,28 @@ kern = M4_spline()
 
 approx_with_nan(a, b; atol, rtol) = isequal(a, b) || isapprox(a, b; atol = atol, rtol = rtol)
 approx_with_nan(a :: Tuple, b :: Tuple; atol, rtol) = all(approx_with_nan(ai, bi; atol = atol, rtol = rtol) for (ai, bi) in zip(a, b))
+approx_with_nan(a :: AbstractArray, b :: AbstractArray; atol, rtol) = axes(a) == axes(b) && all(approx_with_nan(ai, bi; atol = atol, rtol = rtol) for (ai, bi) in zip(a, b))
 
 # ========================== Kernel and geometry helpers ===================== #
 
 @inline function support_radius(strategy, ha, hb, Kvalid)
-    return strategy === itpSymmetric ?
-        Kvalid * max(ha, hb) :
-        Kvalid * (strategy === itpGather ? ha : hb)
+    hsel = strategy === itpGather ? ha : hb
+    return Kvalid * hsel
 end
 
 @inline within_radius(d2, radius) = d2 <= radius * radius
 
 @inline function kernel_weight(ref :: NTuple{3,T}, rb :: NTuple{3,T}, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
-    if strategy === itpSymmetric
-        return T(0.5) * (
-            Smoothed_kernel_function(typeof(kern), ref, rb, ha) +
-            Smoothed_kernel_function(typeof(kern), ref, rb, hb)
-        )
-    end
     hsel = strategy === itpGather ? ha : hb
     return Smoothed_kernel_function(typeof(kern), ref, rb, hsel)
 end
 
 @inline function kernel_gradient(ref :: NTuple{3,T}, rb :: NTuple{3,T}, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
-    if strategy === itpSymmetric
-        ∇Wa = Smoothed_gradient_kernel_function(typeof(kern), ref, rb, ha)
-        ∇Wb = Smoothed_gradient_kernel_function(typeof(kern), ref, rb, hb)
-        return (
-            T(0.5) * (∇Wa[1] + ∇Wb[1]),
-            T(0.5) * (∇Wa[2] + ∇Wb[2]),
-            T(0.5) * (∇Wa[3] + ∇Wb[3]),
-        )
-    end
     hsel = strategy === itpGather ? ha : hb
     return Smoothed_gradient_kernel_function(typeof(kern), ref, rb, hsel)
 end
 
 @inline function line_integrated_weight(Δr :: T, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
-    if strategy === itpSymmetric
-        return T(0.5) * (
-            line_integrated_kernel_function(typeof(kern), Δr, ha) +
-            line_integrated_kernel_function(typeof(kern), Δr, hb)
-        )
-    end
     hsel = strategy === itpGather ? ha : hb
     return line_integrated_kernel_function(typeof(kern), Δr, hsel)
 end

@@ -141,7 +141,7 @@ end
     point = (0.33, 0.27, 0.31)
     ha = 0.19
 
-    for strategy in (itpGather, itpScatter, itpSymmetric)
+    for strategy in (itpGather, itpScatter)
         if strategy === itpScatter
             @inferred _density_kernel(input, point, lbvh, strategy)
             @inferred _number_density_kernel(input, point, lbvh, strategy)
@@ -172,7 +172,7 @@ end
     direction = (0.0, 0.0, 1.0)
     ha = 0.18
 
-    for strategy in (itpGather, itpScatter, itpSymmetric)
+    for strategy in (itpGather, itpScatter)
         if strategy === itpScatter
             @inferred _line_integrated_density_kernel(input, origin, direction, lbvh, strategy)
             @inferred _line_integrated_quantities_interpolate_kernel(input, origin, direction, lbvh, (1,), (true,), strategy)

@@ -4,7 +4,7 @@
                                  grid_template :: StructuredGrid{3},
                                  input :: InterpolationInput{3,T},
                                  catalog :: InterpolationCatalog{3,N,G,Div,C,L},
-                                 itp_strategy :: Type{ITPSTRATEGY}=itpSymmetric) where
+                                 itp_strategy :: Type{ITPSTRATEGY}= itpScatter) where
                                  {COORD,N,G,Div,C,L,
                                   T <: AbstractFloat,
                                   ITPSTRATEGY <: AbstractInterpolationStrategy,
@@ -34,8 +34,8 @@ then restores each interpolated field back to `StructuredGrid` layout using the 
   Interpolation catalog describing which scalar, gradient, divergence, and curl quantities to compute.
   The number of output grids is `L`.
 
-- `itp_strategy :: Type{ITPSTRATEGY}=itpSymmetric`:
-  Interpolation strategy controlling symmetric/gather/scatter modes.
+- `itp_strategy :: Type{ITPSTRATEGY}= itpScatter`:
+  Interpolation strategy controlling gather/scatter modes.
 
 # Returns
 - `GridBundle{L, <: StructuredGrid}`:
@@ -43,7 +43,7 @@ then restores each interpolated field back to `StructuredGrid` layout using the 
   - `grids`: `NTuple{L,StructuredGrid{D,T}}` storing interpolated results for each requested quantity.
   - `names`: `NTuple{L,Symbol}` giving the corresponding quantity names in the same order.
 """
-function StructuredGrid_interpolation(backend :: B, :: Type{COORD}, grid_template :: StructuredGrid{3}, input :: InterpolationInput{3, T}, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpSymmetric) where {COORD <: AbstractCoordinateSystem, N, G, Div, C, L, T <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy, B <: AbstractExecutionBackend}
+function StructuredGrid_interpolation(backend :: B, :: Type{COORD}, grid_template :: StructuredGrid{3}, input :: InterpolationInput{3, T}, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {COORD <: AbstractCoordinateSystem, N, G, Div, C, L, T <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy, B <: AbstractExecutionBackend}
     @info "     SPH Interpolation: Flatterning grid..."
     flatten_grid = flatten(COORD, grid_template)
     @info "     SPH Interpolation: End flatterning grid."

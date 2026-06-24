@@ -263,7 +263,7 @@ end
         flattened_template,
         input,
         catalog,
-        itpSymmetric,
+        itpScatter,
     )
     structured_result = StructuredGrid_interpolation(
         CPUComputeBackend(),
@@ -271,7 +271,7 @@ end
         structured_template,
         input,
         catalog,
-        itpSymmetric,
+        itpScatter,
     )
 
     @test structured_result.names == point_result.names
@@ -279,7 +279,7 @@ end
 
     for i in eachindex(structured_result.grids)
         @test structured_result.grids[i].axes == structured_template.axes
-        @test isapprox(vec(structured_result.grids[i].grid), point_result.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
+        @test approx_with_nan(vec(structured_result.grids[i].grid), point_result.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
     end
 end
 
@@ -299,7 +299,7 @@ end
             flattened_template,
             input,
             catalog,
-            itpSymmetric,
+            itpScatter,
         )
         structured_result = StructuredGrid_interpolation(
             CPUComputeBackend(),
@@ -307,7 +307,7 @@ end
             template,
             input,
             catalog,
-            itpSymmetric,
+            itpScatter,
         )
 
         @test structured_result.names == point_result.names
@@ -315,7 +315,7 @@ end
 
         for i in eachindex(structured_result.grids)
             @test structured_result.grids[i].axes == template.axes
-            @test isapprox(vec(structured_result.grids[i].grid), point_result.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
+            @test approx_with_nan(vec(structured_result.grids[i].grid), point_result.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
         end
     end
 end
@@ -332,7 +332,7 @@ end
         @testset "$coord_name grid" begin
             sample_coords = explicit_cartesian_coords(coord, structured_template)
 
-            for strategy in (itpGather, itpScatter, itpSymmetric)
+            for strategy in (itpGather, itpScatter)
                 result = StructuredGrid_interpolation(CPUComputeBackend(), coord, structured_template, input, catalog, strategy)
 
                 q_grid = vec(result.grids[1].grid)
