@@ -283,6 +283,34 @@ end
     end
 end
 
+@testset "StructuredGrid interpolation -- smoothing-volume consistency" begin
+    standard_input, smoothing_input, catalog = make_smoothing_volume_grid_interpolation_fixture()
+    structured_template = make_structured_grid_template()
+
+    standard_result = StructuredGrid_interpolation(
+        CPUComputeBackend(),
+        Cartesian,
+        structured_template,
+        standard_input,
+        catalog,
+        itpScatter,
+    )
+    smoothing_result = StructuredGrid_interpolation(
+        CPUComputeBackend(),
+        Cartesian,
+        structured_template,
+        smoothing_input,
+        catalog,
+        itpScatter,
+    )
+
+    @test smoothing_result.names == standard_result.names
+    for i in eachindex(standard_result.grids)
+        @test smoothing_result.grids[i].axes == standard_result.grids[i].axes
+        @test approx_with_nan(vec(smoothing_result.grids[i].grid), vec(standard_result.grids[i].grid); atol = 1.0e-12, rtol = 1.0e-10)
+    end
+end
+
 # ── 3b. StructuredGrid interpolation — coordinate-system dispatch ────── #
 
 @testset "StructuredGrid interpolation -- flattened consistency by coordinate system" begin

@@ -1,5 +1,5 @@
 """
-    rotate!(frame::Frame{TF}, yaw::TF, pitch::TF, roll::TF) where {TF <: AbstractFloat}
+    rotate!(frame :: Frame{TF}, yaw :: TF, pitch :: TF, roll :: TF) where {TF <: AbstractFloat}
 
 Rotate `frame` by updating its orientation quaternion.
 The angles are applied as yaw about `frame.u0`, pitch about `frame.r0`, and roll about `frame.f0`, in that order.
@@ -26,8 +26,8 @@ This method modifies only `frame.Q`; it does not modify `frame.x`.
 end
 
 """
-    rotate_forward_to!(frame::Frame{TF}, target_f::NTuple{3, TF}) where {TF <: AbstractFloat}
-    rotate_forward_to!(frame::Frame{TF}, target_f::AbstractVector{TF}) where {TF <: AbstractFloat}
+    rotate_forward_to!(frame :: Frame{TF}, target_f :: NTuple{3, TF}) where {TF <: AbstractFloat}
+    rotate_forward_to!(frame :: Frame{TF}, target_f :: AbstractVector{TF}) where {TF <: AbstractFloat}
 
 Rotate `frame` so that its current forward direction is aligned with `target_f`.
 The operation applies the minimal global rotation that maps `frame_forward(frame)`
@@ -42,14 +42,14 @@ alignment.
 - `frame`: Frame whose orientation is updated.
 - `target_f`: Target forward direction in global coordinates.
 """
-@inline function rotate_forward_to!(frame :: Frame{TF}, target_f :: NTuple{3,TF}) where {TF <: AbstractFloat}
-    return rotate_forward_to!(frame, SVector{3,TF}(target_f))
+@inline function rotate_forward_to!(frame :: Frame{TF}, target_f :: NTuple{3, TF}) where {TF <: AbstractFloat}
+    return rotate_forward_to!(frame, SVector{3, TF}(target_f))
 end
 
 @inline function rotate_forward_to!(frame :: Frame{TF}, target_f :: AbstractVector{TF}) where {TF <: AbstractFloat}
     length(target_f) == 3 || throw(DimensionMismatch("target_f must have length 3"))
 
-    target = SVector{3,TF}(target_f)
+    target = SVector{3, TF}(target_f)
     ntarget = norm(target)
     iszero(ntarget) && throw(ArgumentError("target_f must be nonzero."))
     target /= ntarget
@@ -76,7 +76,7 @@ end
 end
 
 """
-    _rotation(axis::SVector{3, TF}, angle::TF) where {TF <: AbstractFloat}
+    _rotation(axis :: SVector{3, TF}, angle :: TF) where {TF <: AbstractFloat}
 
 Construct a quaternion representing a rotation about `axis` by `angle`.
 
@@ -84,7 +84,7 @@ Construct a quaternion representing a rotation about `axis` by `angle`.
 - `axis`: Rotation axis.
 - `angle`: Rotation angle.
 """
-@inline function _rotation(axis :: SVector{3,TF}, angle :: TF) :: Quaternion{TF} where {TF <: AbstractFloat}
+@inline function _rotation(axis :: SVector{3, TF}, angle :: TF) :: Quaternion{TF} where {TF <: AbstractFloat}
     na = norm(axis)
     iszero(na) && throw(ArgumentError("Rotation axis must be nonzero"))
 
@@ -99,7 +99,7 @@ Construct a quaternion representing a rotation about `axis` by `angle`.
 end
 
 """
-    _rotate(Q::Quaternion{TF}, v::SVector{3, TF}) where {TF <: AbstractFloat}
+    _rotate(Q :: Quaternion{TF}, v :: SVector{3, TF}) where {TF <: AbstractFloat}
 
 Apply the rotation represented by `Q` to the vector `v`.
 
@@ -107,7 +107,7 @@ Apply the rotation represented by `Q` to the vector `v`.
 - `Q`: Quaternion representing the rotation.
 - `v`: Vector to rotate.
 """
-@inline function _rotate(Q :: Quaternion{TF}, v :: SVector{3,TF}) where {TF<:AbstractFloat}
+@inline function _rotate(Q :: Quaternion{TF}, v :: SVector{3, TF}) where {TF <: AbstractFloat}
     qr = Q * Quaternion{TF}(zero(TF), v...) * conj(Q)
     return @SVector [qr.v1, qr.v2, qr.v3]
 end

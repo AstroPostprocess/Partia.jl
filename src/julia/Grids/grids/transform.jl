@@ -46,30 +46,30 @@ is the representation required by the interpolation kernels.
 - The coordinate transformation, when needed, happens inside
   `coordinate_grid( :: Type{COORD}, grid)`.
 """
-function flatten( :: Type{Cartesian}, grid :: StructuredGrid{D,TF}) where {D,TF <: AbstractFloat}
+function flatten( :: Type{Cartesian}, grid :: StructuredGrid{D, TF}) where {D, TF <: AbstractFloat}
     coor = coordinate_grid(Cartesian, grid)
     return PointSamples(vec(grid.grid), coor)
 end
 
-function flatten( :: Type{Polar}, grid :: StructuredGrid{2,TF}) where {TF <: AbstractFloat}
+function flatten( :: Type{Polar}, grid :: StructuredGrid{2, TF}) where {TF <: AbstractFloat}
     coor = coordinate_grid(Polar, grid)
     return PointSamples(vec(grid.grid), coor)
 end
 
-function flatten( :: Type{Cylindrical}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
+function flatten( :: Type{Cylindrical}, grid :: StructuredGrid{3, TF}) where {TF <: AbstractFloat}
     coor = coordinate_grid(Cylindrical, grid)
     return PointSamples(vec(grid.grid), coor)
 end
 
-function flatten( :: Type{Spherical}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
+function flatten( :: Type{Spherical}, grid :: StructuredGrid{3, TF}) where {TF <: AbstractFloat}
     coor = coordinate_grid(Spherical, grid)
     return PointSamples(vec(grid.grid), coor)
 end
 
 """
-    restore_struct( :: Type{COORD}, grid :: PointSamples{D,TF}, axes :: NTuple{D,V};
+    restore_struct( :: Type{COORD}, grid :: PointSamples{D, TF}, axes :: NTuple{D, V};
                    atol :: Real = 1.0e-8, rtol :: Real = 1.0e-8) where
-                   {COORD,D,TF <: AbstractFloat, V <: AbstractVector{TF}}
+                   {COORD, D, TF <: AbstractFloat, V <: AbstractVector{TF}}
 
 Restore a `StructuredGrid` from a flattened `PointSamples`.
 
@@ -85,9 +85,9 @@ It then:
 - ` :: Type{COORD}`:
   Coordinate-system tag used to interpret the provided axes before comparing
   them against the flattened sample coordinates.
-- `grid :: PointSamples{D,TF}`:
+- `grid :: PointSamples{D, TF}`:
   Flattened output values.
-- `axes :: NTuple{D,V}`:
+- `axes :: NTuple{D, V}`:
   Original structured-grid axes that define the target tensor-product shape.
 
 # Keyword Arguments
@@ -100,7 +100,7 @@ It then:
 - `StructuredGrid`:
   Structured grid with values reshaped to the size implied by `axes`.
 """
-function restore_struct( :: Type{COORD}, grid :: PointSamples{D,TF}, axes :: NTuple{D,V}; atol :: Real = 1.0e-8, rtol :: Real = 1.0e-8) where {COORD <: AbstractCoordinateSystem,D,TF <: AbstractFloat, V <: AbstractVector{TF}}
+function restore_struct( :: Type{COORD}, grid :: PointSamples{D, TF}, axes :: NTuple{D, V}; atol :: Real = 1.0e-8, rtol :: Real = 1.0e-8) where {COORD <: AbstractCoordinateSystem, D, TF <: AbstractFloat, V <: AbstractVector{TF}}
     size = ntuple(i -> length(axes[i]), D)
 
     expected_template = StructuredGrid(reshape(similar(grid.grid), size), axes, size)

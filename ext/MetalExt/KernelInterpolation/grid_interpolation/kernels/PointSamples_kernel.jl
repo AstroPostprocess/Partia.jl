@@ -1,4 +1,4 @@
-@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY}) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY}) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}, INPUT <: AbstractInterpolationInput{3, TF, VF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     tid = Int(Metal.thread_position_in_grid().x)
     stride = Int(Metal.threads_per_grid().x)
 
@@ -14,12 +14,12 @@
 
         ha = LBVH_find_nearest_h(LBVH, point)
 
-        itpresult :: Tuple{NTuple{N,TF}, NTuple{G,NTuple{3,TF}}, NTuple{Div,TF}, NTuple{C,NTuple{3,TF}}} = Partia.KernelInterpolation._general_quantity_interpolate_kernel(input, point, ha, LBVH, catalog_consice, itp_strategy)
+        itpresult :: Tuple{NTuple{N, TF}, NTuple{G, NTuple{3, TF}}, NTuple{Div, TF}, NTuple{C, NTuple{3, TF}}} = Partia.KernelInterpolation._general_quantity_interpolate_kernel(input, point, ha, LBVH, catalog_consice)
 
-        scalars :: NTuple{N,TF} = itpresult[1]
-        gradients :: NTuple{G,NTuple{3,TF}} = itpresult[2]
-        divergences :: NTuple{Div,TF} = itpresult[3]
-        curls :: NTuple{C,NTuple{3,TF}} = itpresult[4]
+        scalars :: NTuple{N, TF} = itpresult[1]
+        gradients :: NTuple{G, NTuple{3, TF}} = itpresult[2]
+        divergences :: NTuple{Div, TF} = itpresult[3]
+        curls :: NTuple{C, NTuple{3, TF}} = itpresult[4]
 
         out_idx = 1
 
@@ -62,7 +62,7 @@
     return nothing
 end
 
-@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}}
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: Float32, VF <: MtlDeviceVector{TF}, INPUT <: AbstractInterpolationInput{3, TF, VF}}
     tid = Int(Metal.thread_position_in_grid().x)
     stride = Int(Metal.threads_per_grid().x)
 
@@ -76,12 +76,12 @@ end
             point :: NTuple{3, TF} = (xa, ya, za)
         end
 
-        itpresult :: Tuple{NTuple{N,TF}, NTuple{G,NTuple{3,TF}}, NTuple{Div,TF}, NTuple{C,NTuple{3,TF}}} = Partia.KernelInterpolation._general_quantity_interpolate_kernel(input, point, LBVH, catalog_consice, itpScatter)
+        itpresult :: Tuple{NTuple{N, TF}, NTuple{G, NTuple{3, TF}}, NTuple{Div, TF}, NTuple{C, NTuple{3, TF}}} = Partia.KernelInterpolation._general_quantity_interpolate_kernel(input, point, LBVH, catalog_consice)
 
-        scalars :: NTuple{N,TF} = itpresult[1]
-        gradients :: NTuple{G,NTuple{3,TF}} = itpresult[2]
-        divergences :: NTuple{Div,TF} = itpresult[3]
-        curls :: NTuple{C,NTuple{3,TF}} = itpresult[4]
+        scalars :: NTuple{N, TF} = itpresult[1]
+        gradients :: NTuple{G, NTuple{3, TF}} = itpresult[2]
+        divergences :: NTuple{Div, TF} = itpresult[3]
+        curls :: NTuple{C, NTuple{3, TF}} = itpresult[4]
 
         out_idx = 1
 

@@ -12,6 +12,18 @@ function Partia.to_HostVector(input :: InterpolationInput{D, T, V, K, NCOLUMN}) 
     )
 end
 
+function Partia.to_HostVector(input :: InterpolationSmoothingVolumeInput{D, T, V, K, NCOLUMN}) where {D, T <: Float32, V <: MtlVector{T}, K <: AbstractSPHKernel, NCOLUMN}
+    return InterpolationSmoothingVolumeInput{D, Float32, Vector{Float32}, K, NCOLUMN}(
+        input.Npart,
+        input.hfact,
+        input.smoothed_kernel,
+        ntuple(i -> Vector{Float32}(input.coord[i]), Val(D)),
+        Vector{Float32}(input.m),
+        Vector{Float32}(input.h),
+        ntuple(i -> Vector{Float32}(input.quant[i]), Val(NCOLUMN))
+    )
+end
+
 function Partia.to_HostVector(enc :: MortonEncoding{D, TF, TI, VF, VI}) where {D, TF <: Float32, TI <: Unsigned, VF <: MtlVector{TF}, VI <: MtlVector{TI}}
     return MortonEncoding{D, Float32, TI, Vector{Float32}, Vector{TI}}(
         Vector{TI}(enc.order),

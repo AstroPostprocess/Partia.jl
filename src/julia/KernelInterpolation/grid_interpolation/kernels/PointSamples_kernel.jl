@@ -4,7 +4,7 @@
 # # Need providing smoothed radius
 
 ######################################################################################
-@inline function _point_samples_interpolation_kernel!( :: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY}) where {N, G, Div, C, L, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
+@inline function _point_samples_interpolation_kernel!( :: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpGather}) where {N, G, Div, C, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}}
     # Get point
     @inbounds begin
         geometry = grids[1]
@@ -19,12 +19,12 @@
     ha = LBVH_find_nearest_h(LBVH, point)
 
     # Interpolation
-    itpresult :: Tuple{NTuple{N,TF}, NTuple{G,NTuple{3,TF}}, NTuple{Div,TF}, NTuple{C,NTuple{3,TF}}} = _general_quantity_interpolate_kernel(input, point, ha, LBVH, catalog_consice, itp_strategy)
+    itpresult :: Tuple{NTuple{N, TF}, NTuple{G, NTuple{3, TF}}, NTuple{Div, TF}, NTuple{C, NTuple{3, TF}}} = _general_quantity_interpolate_kernel(input, point, ha, LBVH, catalog_consice)
 
-    scalars :: NTuple{N,TF} = itpresult[1]
-    gradients :: NTuple{G,NTuple{3,TF}} = itpresult[2]
-    divergences :: NTuple{Div,TF} = itpresult[3]
-    curls :: NTuple{C,NTuple{3,TF}} = itpresult[4]
+    scalars :: NTuple{N, TF} = itpresult[1]
+    gradients :: NTuple{G, NTuple{3, TF}} = itpresult[2]
+    divergences :: NTuple{Div, TF} = itpresult[3]
+    curls :: NTuple{C, NTuple{3, TF}} = itpresult[4]
 
     # Store results
     out_idx = 1
@@ -73,7 +73,7 @@
 end
 
 ## Not providing smoothed radius
-@inline function _point_samples_interpolation_kernel!( :: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: InterpolationInput{3, TF}, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat}
+@inline function _point_samples_interpolation_kernel!( :: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}}
     # Get point
     @inbounds begin
         geometry = grids[1]
@@ -85,12 +85,12 @@ end
     end
 
     # Interpolation
-    itpresult :: Tuple{NTuple{N,TF}, NTuple{G,NTuple{3,TF}}, NTuple{Div,TF}, NTuple{C,NTuple{3,TF}}} = _general_quantity_interpolate_kernel(input, point, LBVH, catalog_consice, itpScatter)
+    itpresult :: Tuple{NTuple{N, TF}, NTuple{G, NTuple{3, TF}}, NTuple{Div, TF}, NTuple{C, NTuple{3, TF}}} = _general_quantity_interpolate_kernel(input, point, LBVH, catalog_consice)
 
-    scalars :: NTuple{N,TF} = itpresult[1]
-    gradients :: NTuple{G,NTuple{3,TF}} = itpresult[2]
-    divergences :: NTuple{Div,TF} = itpresult[3]
-    curls :: NTuple{C,NTuple{3,TF}} = itpresult[4]
+    scalars :: NTuple{N, TF} = itpresult[1]
+    gradients :: NTuple{G, NTuple{3, TF}} = itpresult[2]
+    divergences :: NTuple{Div, TF} = itpresult[3]
+    curls :: NTuple{C, NTuple{3, TF}} = itpresult[4]
 
     # Store results
     out_idx = 1

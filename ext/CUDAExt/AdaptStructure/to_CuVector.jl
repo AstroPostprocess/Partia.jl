@@ -12,6 +12,18 @@ function Partia.to_CuVector(input :: InterpolationInput{D, T, V, K, NCOLUMN}) wh
     )
 end
 
+function Partia.to_CuVector(input :: InterpolationSmoothingVolumeInput{D, T, V, K, NCOLUMN}) where {D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN}
+    return InterpolationSmoothingVolumeInput{D, T, CuVector{T}, K, NCOLUMN}(
+        input.Npart,
+        input.hfact,
+        input.smoothed_kernel,
+        ntuple(i -> CuVector{T}(input.coord[i]), Val(D)),
+        CuVector{T}(input.m),
+        CuVector{T}(input.h),
+        ntuple(i -> CuVector{T}(input.quant[i]), Val(NCOLUMN))
+    )
+end
+
 function Partia.to_CuVector(enc :: MortonEncoding{D, TF, TI, VF, VI}) where {D, TF <: AbstractFloat, TI <: Unsigned, VF <: AbstractVector{TF}, VI <: AbstractVector{TI}}
     return MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}(
         CuVector{TI}(enc.order),

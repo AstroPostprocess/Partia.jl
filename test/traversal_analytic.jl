@@ -9,9 +9,6 @@
 #     • Gradient interpolation against a constant analytic gradient.
 #  2. Vector operators
 #     • Divergence and curl interpolation against known analytic values.
-#  3. Density consistency
-#     • Density remains close to unity for the uniform-density cloud.
-#     • Density gradient remains near zero away from boundaries.
 #  The goal here is not brute-force equality, but regression-level accuracy
 #  against analytic expectations for smooth fields sampled away from boundaries.
 
@@ -22,12 +19,7 @@ using Partia
 
 # ========================== Internal API imports ============================ #
 
-using Partia.KernelInterpolation: _density_kernel,
-    _gradient_density_kernel,
-    _quantity_interpolate_kernel,
-    _gradient_quantity_interpolate_kernel,
-    _divergence_quantity_interpolate_kernel,
-    _curl_quantity_interpolate_kernel
+using Partia.KernelInterpolation: _general_quantity_interpolate_kernel
 
 # ========================== Shared includes ================================= #
 
@@ -40,6 +32,23 @@ end
 kern = M4_spline()
 strategies = (itpGather, itpScatter)
 kvalid = KernelFunctionValid(typeof(kern), Float64)
+
+analytic_catalog() = to_concise_catalog(InterpolationCatalog(
+    Val(3);
+    scalar_names = (:s,),
+    scalar_slots = (1,),
+    grad_names = (:s,),
+    grad_slots = (1,),
+    div_names = (:v,),
+    div_slots = ((2, 3, 4),),
+    curl_names = (:v,),
+    curl_slots = ((2, 3, 4),),
+))
+
+@inline analytic_interpolate(input, ref, h, LBVH, catalog, strategy) =
+    strategy === itpScatter ?
+        _general_quantity_interpolate_kernel(input, ref, LBVH, catalog) :
+        _general_quantity_interpolate_kernel(input, ref, h, LBVH, catalog)
 
 # ============================== Test body =================================== #
 
@@ -58,8 +67,7 @@ kvalid = KernelFunctionValid(typeof(kern), Float64)
         grad_err = Float64[]
         div_err = Float64[]
         curl_err = Float64[]
-        rho_err = Float64[]
-        grad_rho_err = Float64[]
+        catalog = analytic_catalog()
 
         for strategy in strategies, ref in refs
             s_ref = analytic_scalar(ref...)
@@ -67,35 +75,21 @@ kvalid = KernelFunctionValid(typeof(kern), Float64)
             div_ref = analytic_divA(ref...)
             curl_ref = analytic_curlA(ref...)
 
-            if strategy === itpScatter
-                s_val = _quantity_interpolate_kernel(input, ref, LBVH, 1, true, strategy)
-                g_val = _gradient_quantity_interpolate_kernel(input, ref, LBVH, 1, strategy)
-                div_val = _divergence_quantity_interpolate_kernel(input, ref, LBVH, 2, 3, 4, strategy)
-                curl_val = _curl_quantity_interpolate_kernel(input, ref, LBVH, 2, 3, 4, strategy)
-                rho_val = _density_kernel(input, ref, LBVH, strategy)
-                grad_rho_val = _gradient_density_kernel(input, ref, LBVH, strategy)
-            else
-                s_val = _quantity_interpolate_kernel(input, ref, h, LBVH, 1, true, strategy)
-                g_val = _gradient_quantity_interpolate_kernel(input, ref, h, LBVH, 1, strategy)
-                div_val = _divergence_quantity_interpolate_kernel(input, ref, h, LBVH, 2, 3, 4, strategy)
-                curl_val = _curl_quantity_interpolate_kernel(input, ref, h, LBVH, 2, 3, 4, strategy)
-                rho_val = _density_kernel(input, ref, h, LBVH, strategy)
-                grad_rho_val = _gradient_density_kernel(input, ref, h, LBVH, strategy)
-            end
+            scalars, gradients, divergences, curls = analytic_interpolate(input, ref, h, LBVH, catalog, strategy)
+            s_val = scalars[1]
+            g_val = gradients[1]
+            div_val = divergences[1]
+            curl_val = curls[1]
 
             push!(scalar_err, abs(s_val - s_ref))
             push!(grad_err, sqrt(sum((g_val .- g_ref) .^ 2)))
             push!(div_err, abs(div_val - div_ref))
             push!(curl_err, sqrt(sum((curl_val .- curl_ref) .^ 2)))
-            push!(rho_err, abs(rho_val - 1.0))
-            push!(grad_rho_err, sqrt(sum(grad_rho_val .^ 2)))
         end
 
         @test mean_abs(scalar_err) <= 2e-2
         @test mean_abs(grad_err) <= 6e-2
         @test mean_abs(div_err) <= 1.0e-1
         @test mean_abs(curl_err) <= 5e-2
-        @test mean_abs(rho_err) <= 5e-2
-        @test mean_abs(grad_rho_err) <= 5e-2
     end
 end

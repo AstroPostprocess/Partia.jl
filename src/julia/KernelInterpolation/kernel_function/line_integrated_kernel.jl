@@ -51,49 +51,6 @@ end
 end
 
 """
-    line_integrated_kernel_function_dimensionless(
- :: Type{K},
-        q_perp :: T,
-    ) where {K <: AbstractSPHKernel, T <: AbstractFloat}
-
-Evaluate the **dimensionless line-integrated SPH kernel**
-for a given dimensionless transverse separation `q_perp`.
-
-This function returns the tabulated value of the line-integrated
-kernel shape function,
-
-    I(q⊥) = ∫ w(√(q⊥² + q∥²)) dq∥ ,
-
-where `q⊥` (represented in code as `q_perp`) is the dimensionless transverse
-separation from the integration line. The integration is truncated at the
-kernel support radius.
-
-If `q_perp` exceeds the kernel support (`q_perp ≥ q_max`), the function returns zero.
-
-# Parameters
-- ` :: Type{K}`
-  SPH kernel type, where `K <: AbstractSPHKernel`.
-- `q_perp :: T`
-  Dimensionless transverse separation from the integration line.
-
-# Returns
-- `T`
-  Dimensionless line-integrated kernel value.
-
-# Notes
-- This function is **dimensionless** and does not include any physical
-  prefactors involving `h`.
-- The support cutoff is determined by `KernelFunctionValid(K, T)`.
-- Intended for use in column-density or other line-integrated quantity calculations.
-- Performs no heap allocation and is suitable for hot loops.
-"""
-@inline function line_integrated_kernel_function_dimensionless( :: Type{K}, q_perp :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
-    q_perp ≥ KernelFunctionValid(K, T) && return zero(T)
-    Iq = lookup_line_integrated_kernel(K, q_perp)
-    return Iq
-end
-
-"""
     line_integrated_kernel_function(
  :: Type{ <: AbstractSPHKernel},
         r :: T,
@@ -110,7 +67,7 @@ with a 3D SPH smoothing kernel,
 
 where `r` is the transverse distance from the integration line. Internally,
 the computation is performed through the dimensionless transverse coordinate
-`q_perp = r / h`, followed by the physical `1 / h` prefactor.
+`q_perp = r / h`, followed by the physical `1 / h^2` prefactor.
 
 This is the splash-style full line integration lookup and is intended for
 column-density or other line-integrated quantity evaluations. It is not a
@@ -126,14 +83,14 @@ replacement for the original 3D kernel in volumetric interactions.
 
 # Returns
 - `T`
-  Physical line-integrated kernel value, including the `1 / h` scaling.
+  Physical line-integrated kernel value, including the `1 / h^2` scaling.
 
 """
 @inline function line_integrated_kernel_function( :: Type{K}, r :: T, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     invh = inv(h)
     q_perp = r * invh
-    I_dimless = line_integrated_kernel_function_dimensionless(K, q_perp)
-    return invh * I_dimless
+    q_perp >= KernelFunctionValid(K, T) && return zero(T)
+    return invh * invh * lookup_line_integrated_kernel(K, q_perp)
 end
 
 @inline function line_integrated_kernel_function( :: Type{K}, r :: T, h :: S) where {K <: AbstractSPHKernel, T <: AbstractFloat, S <: AbstractFloat}
@@ -173,7 +130,7 @@ line-integrated kernel value
 
 # Returns
 - `T`
-  Physical line-integrated kernel value, including the `1 / h` scaling.
+  Physical line-integrated kernel value, including the `1 / h^2` scaling.
 """
 @inline function line_integrated_kernel_function( :: Type{K}, ra :: NTuple{2,T}, rb :: NTuple{2,T}, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     rax, ray = ra

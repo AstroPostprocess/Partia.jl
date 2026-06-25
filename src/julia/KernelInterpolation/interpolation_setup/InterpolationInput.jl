@@ -38,7 +38,7 @@ carried in the type rather than inferred from separate `x/y/z` fields.
 - `ρ :: V`: Particle densities.
 - `quant :: NTuple{NCOLUMN,V}`: Tuple of per-field scalar data arrays.
 """
-struct InterpolationInput{D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN}
+struct InterpolationInput{D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN} <: AbstractInterpolationInput{D, T, V, K, NCOLUMN}
     Npart :: Int64
     smoothed_kernel :: K
     coord :: NTuple{D, V}
@@ -158,24 +158,6 @@ Construct a 3D interpolation input from separate coordinate vectors.
 function InterpolationInput(x :: V, y :: V, z :: V, m :: V, h :: V, ρ :: V, quant :: NTuple{NCOLUMN, V}; smoothed_kernel :: Type{K} = M5_spline) where {NCOLUMN, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel}
     return InterpolationInput((x, y, z), m, h, ρ, quant; smoothed_kernel = smoothed_kernel)
 end
-
-
-# Some useful function
-## Get "Valid" range of data (the other would be 0)
-@inline Base.length(input :: InterpolationInput) = input.Npart
-
-## Get element type of the input
-@inline Base.eltype( :: InterpolationInput{D, T}) where {D, T <: AbstractFloat} = T
-
-## Get dimension of the input
-@inline spatial_dimension( :: InterpolationInput{D}) where {D} = D
-
-## Coordinate accessors
-@inline get_coord(input :: InterpolationInput{D}) where {D} = input.coord
-@inline get_xcoord(input :: InterpolationInput{D}) where {D} = input.coord[1]
-@inline get_ycoord(input :: InterpolationInput{D}) where {D} = input.coord[2]
-@inline get_zcoord(input :: InterpolationInput{3}) = input.coord[3]
-
 
 # Check the "Valid" length of data for each fields
 function Base.checkbounds(input :: InterpolationInput)

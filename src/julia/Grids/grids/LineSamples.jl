@@ -34,7 +34,7 @@ struct LineSamples{D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTupl
     direction :: VC
 
     # Inner constructor
-    function LineSamples(grid :: VG, origin :: VC, direction :: VC) where {D,TF <: AbstractFloat,VG <: AbstractVector{TF},VC <: NTuple{D,VG}}
+    function LineSamples(grid :: VG, origin :: VC, direction :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
         N = length(grid)
 
         @inbounds for d in 1:D
@@ -42,7 +42,7 @@ struct LineSamples{D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTupl
             length(direction[d]) == N || throw(ArgumentError("direction[$d] length mismatch"))
         end
 
-        return new{D,TF,VG,VC}(grid, origin, direction)
+        return new{D, TF, VG, VC}(grid, origin, direction)
     end
 end
 
@@ -102,7 +102,7 @@ contents are copied after conversion to `T`.
   A new `LineSamples` object whose `grid`, `origin`, and `direction` fields are
   stored in newly allocated arrays with element type `T`.
 """
-function Base.similar(grid :: LineSamples{3,TF}, :: Type{T}) where {TF <: AbstractFloat,T <: AbstractFloat}
+function Base.similar(grid :: LineSamples{3, TF}, :: Type{T}) where {TF <: AbstractFloat, T <: AbstractFloat}
     new_grid = similar(grid.grid, T)
     new_origin = ntuple(i -> similar(grid.origin[i], T), 3)
     new_direction = ntuple(i -> similar(grid.direction[i], T), 3)
@@ -153,7 +153,7 @@ contents are copied after conversion to `T`.
   A new `LineSamples` object whose `grid`, `origin`, and `direction` fields are
   stored in newly allocated arrays with element type `T`.
 """
-function Base.similar(grid :: LineSamples{2,TF}, :: Type{T}) where {TF <: AbstractFloat,T <: AbstractFloat}
+function Base.similar(grid :: LineSamples{2, TF}, :: Type{T}) where {TF <: AbstractFloat, T <: AbstractFloat}
     new_grid = similar(grid.grid, T)
     new_origin = ntuple(i -> similar(grid.origin[i], T), 2)
     new_direction = ntuple(i -> similar(grid.direction[i], T), 2)
@@ -178,12 +178,12 @@ end
 
 """
     Base.isapprox(
-        grid :: LineSamples{D,TF},
+        grid :: LineSamples{D, TF},
         origin_axes :: NTuple{D, <: AbstractVector},
         direction_axes :: NTuple{D, <: AbstractVector};
         atol :: Real = 1.0e-8,
         rtol :: Real = 1.0e-8
-    ) :: Bool where {D,TF <: AbstractFloat}
+    ) :: Bool where {D, TF <: AbstractFloat}
 
 Check whether a `LineSamples` matches a tensor-product reference defined
 by `origin_axes` and `direction_axes`, up to numerical tolerance.
@@ -210,7 +210,7 @@ The function returns `true` if and only if both:
 hold for all `i` and all dimensions `d`, within the specified tolerances.
 
 # Parameters
-- `grid :: LineSamples{D,TF}` :
+- `grid :: LineSamples{D, TF}` :
   The grid whose origin and direction fields are to be validated.
 - `origin_axes :: NTuple{D, <: AbstractVector}` :
   Per-dimension axes defining the expected origin positions via tensor-product expansion.
@@ -228,7 +228,7 @@ hold for all `i` and all dimensions `d`, within the specified tolerances.
   `true` if both origin and direction fields match the expected tensor-product
   expansion within tolerance; otherwise `false`.
 """
-function Base.isapprox(grid :: LineSamples{D,TF}, origin_axes :: NTuple{D, <: AbstractVector}, direction_axes :: NTuple{D, <: AbstractVector}; atol :: Real = 1.0e-8, rtol :: Real = 1.0e-8) :: Bool where {D,TF <: AbstractFloat}
+function Base.isapprox(grid :: LineSamples{D, TF}, origin_axes :: NTuple{D, <: AbstractVector}, direction_axes :: NTuple{D, <: AbstractVector}; atol :: Real = 1.0e-8, rtol :: Real = 1.0e-8) :: Bool where {D, TF <: AbstractFloat}
 
     size_expected = ntuple(d -> length(origin_axes[d]), D)
     ntuple(d -> length(direction_axes[d]), D) == size_expected || return false
@@ -264,7 +264,7 @@ function Base.isapprox(grid :: LineSamples{D,TF}, origin_axes :: NTuple{D, <: Ab
     return true
 end
 
-function Base.permute!(grid :: LineSamples{D,TF}, p :: AbstractVector{TI}) where {D,TF <: AbstractFloat, TI <: Integer}
+function Base.permute!(grid :: LineSamples{D, TF}, p :: AbstractVector{TI}) where {D, TF <: AbstractFloat, TI <: Integer}
     Base.permute!(grid.grid, p)
     @inbounds for i in 1:D
         Base.permute!(grid.origin[i], p)
@@ -273,7 +273,7 @@ function Base.permute!(grid :: LineSamples{D,TF}, p :: AbstractVector{TI}) where
     return nothing
 end
 
-function Base.invpermute!(grid :: LineSamples{D,TF}, p :: AbstractVector{TI}) where {D,TF <: AbstractFloat, TI <: Integer}
+function Base.invpermute!(grid :: LineSamples{D, TF}, p :: AbstractVector{TI}) where {D, TF <: AbstractFloat, TI <: Integer}
     Base.invpermute!(grid.grid, p)
     @inbounds for i in 1:D
         Base.invpermute!(grid.origin[i], p)
@@ -310,7 +310,7 @@ Each returned `LineSamples` contains:
 
 with `start:stop` defined by the batch index `b`.
 """
-function batch_LineSamples(grid :: LineSamples{D,TF,VG,VC}, batch_size :: Int) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}}
+function batch_LineSamples(grid :: LineSamples{D, TF, VG, VC}, batch_size :: Int) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
     npoints = length(grid)
     num_batches = cld(npoints, batch_size)
 
@@ -327,7 +327,7 @@ function batch_LineSamples(grid :: LineSamples{D,TF,VG,VC}, batch_size :: Int) w
 end
 
 """
-    merge_LineSamples(grids :: AbstractVector{ <: LineSamples{D,TF,VG,VC}}) where {D,TF <: AbstractFloat,VG <: AbstractVector{TF},VC <: NTuple{D,VG}}
+    merge_LineSamples(grids :: AbstractVector{ <: LineSamples{D, TF, VG, VC}}) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
 
 Merge a collection of `LineSamples` objects into a single `LineSamples`.
 
@@ -344,11 +344,11 @@ This preserves the original sample ordering when `grids` was produced by
 `batch_LineSamples` without any intervening reordering.
 
 # Parameters
-- `grids :: AbstractVector{ <: LineSamples{D,TF,VG,VC}}` :
+- `grids :: AbstractVector{ <: LineSamples{D, TF, VG, VC}}` :
   A vector of `LineSamples` objects to merge.
 
 # Returns
-- `LineSamples{D,TF,VG,VC}` :
+- `LineSamples{D, TF, VG, VC}` :
   A single `LineSamples` whose fields are formed by concatenating:
   - `g.grid`
   - `g.origin[d]` for each dimension `d`
@@ -356,7 +356,7 @@ This preserves the original sample ordering when `grids` was produced by
 
   across all input grids, in order.
 """
-function merge_LineSamples(grids :: V) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}, GG <: LineSamples{D,TF,VG,VC}, V <: AbstractVector{GG}}
+function merge_LineSamples(grids :: V) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}, GG <: LineSamples{D, TF, VG, VC}, V <: AbstractVector{GG}}
     merged_grid = vcat((g.grid for g in grids)...)
     merged_origin = ntuple(d -> vcat((g.origin[d] for g in grids)...), D)
     merged_direction = ntuple(d -> vcat((g.direction[d] for g in grids)...), D)
@@ -438,7 +438,7 @@ function LineSamples(xo :: V, yo :: V, xd :: V, yd :: V) where {T <: AbstractFlo
 end
 
 """
-    LineSamples(::Type{Cartesian}, ::Type{ParallelBeam}, frame::Frame{TF}, xparams::AxisParam{TF}, yparams::AxisParam{TF}) where {TF <: AbstractFloat}
+    LineSamples( :: Type{Cartesian}, :: Type{ParallelBeam}, frame :: Frame{TF}, xparams :: AxisParam{TF}, yparams :: AxisParam{TF}) where {TF <: AbstractFloat}
 
 Construct a planar Cartesian `LineSamples` grid for parallel-beam sampling.
 Line origins are placed on the frame plane using the same Cartesian sampling
@@ -459,7 +459,7 @@ Every line direction is set to the current `frame_forward(frame)` direction.
 - `LineSamples{3, TF}`: Zero-valued line samples whose origins lie on the frame plane
   and whose directions are equal to `frame_forward(frame)`.
 """
-function LineSamples(:: Type{Cartesian}, :: Type{ParallelBeam}, frame :: Frame{TF}, xparams :: AxisParam{TF}, yparams :: AxisParam{TF}) where {TF <: AbstractFloat}
+function LineSamples( :: Type{Cartesian}, :: Type{ParallelBeam}, frame :: Frame{TF}, xparams :: AxisParam{TF}, yparams :: AxisParam{TF}) where {TF <: AbstractFloat}
     # Generate line origins on the Cartesian sampling plane
     xo, yo, zo = _cartesian_plane_coordinates(
         frame,
@@ -487,7 +487,7 @@ function LineSamples(:: Type{Cartesian}, :: Type{ParallelBeam}, frame :: Frame{T
 end
 
 """
-    LineSamples(::Type{Polar}, ::Type{ParallelBeam}, frame::Frame{TF}, sparams::AxisParam{TF}, ϕparams::AxisParam{TF}) where {TF <: AbstractFloat}
+    LineSamples( :: Type{Polar}, :: Type{ParallelBeam}, frame :: Frame{TF}, sparams :: AxisParam{TF}, ϕparams :: AxisParam{TF}) where {TF <: AbstractFloat}
 
 Construct a planar polar `LineSamples` grid for parallel-beam sampling.
 Line origins are placed on the frame plane using the same polar sampling pattern
@@ -509,7 +509,7 @@ Every line direction is set to the current `frame_forward(frame)` direction.
 - `LineSamples{3, TF}`: Zero-valued line samples whose origins lie on the frame plane
   and whose directions are equal to `frame_forward(frame)`.
 """
-function LineSamples(:: Type{Polar}, :: Type{ParallelBeam}, frame :: Frame{TF}, sparams :: AxisParam{TF}, ϕparams :: AxisParam{TF}) where {TF <: AbstractFloat}
+function LineSamples( :: Type{Polar}, :: Type{ParallelBeam}, frame :: Frame{TF}, sparams :: AxisParam{TF}, ϕparams :: AxisParam{TF}) where {TF <: AbstractFloat}
     # Generate line origins on the polar sampling plane
     xo, yo, zo = _polar_plane_coordinates(
         frame,

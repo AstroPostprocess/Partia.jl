@@ -38,10 +38,10 @@ const FrameAPI = Partia.Frames
 
 # ========================== Helper functions ================================ #
 
-frame_tol(::Type{TF}) where {TF <: AbstractFloat} = TF(256) * eps(TF)
+frame_tol( :: Type{TF}) where {TF <: AbstractFloat} = TF(256) * eps(TF)
 
 sv3(x) = SVector{3}(x)
-v3(::Type{TF}, x, y, z) where {TF <: AbstractFloat} = SVector{3, TF}(TF(x), TF(y), TF(z))
+v3( :: Type{TF}, x, y, z) where {TF <: AbstractFloat} = SVector{3, TF}(TF(x), TF(y), TF(z))
 
 function rodrigues_rotate(v :: SVector{3, TF}, axis :: SVector{3, TF}, angle :: TF) where {TF <: AbstractFloat}
     n = axis / norm(axis)
@@ -255,7 +255,7 @@ end
             frame = Frame((TF(-2), TF(0.5), TF(1)), (TF(0), TF(0), TF(-1)), (TF(0), TF(1), TF(0)))
             rotate!(frame, TF(0.4), TF(-0.25), TF(0.35))
 
-            target = SVector{3,TF}(TF(-0.3), TF(0.7), TF(-0.2))
+            target = SVector{3, TF}(TF(-0.3), TF(0.7), TF(-0.2))
             target /= norm(target)
             rotate_forward_to!(frame, target)
 
