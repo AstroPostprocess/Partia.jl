@@ -56,11 +56,11 @@ end
     invh = inv(h)
     q_perp = r * invh
     I_dimless = _line_integrated_kernel_function_dimensionless_Mtl(K, q_perp, tables)
-    return invh * I_dimless
+    return invh * invh * I_dimless
 end
 
 
-@inline function _line_integrated_quantities_interpolate_kernel_Mtl(input :: InterpolationInput{3, TF, VF, K, NCOLUMN}, origin :: NTuple{3, TF}, direction :: NTuple{3, TF}, LBVH :: LinearBVH, columns :: NTuple{M, Int}, ShepardNormalization :: NTuple{M, Bool}, tables, :: Type{itpScatter}) where {TF <: Float32, VF <: MtlDeviceVector{TF}, K <: AbstractSPHKernel, NCOLUMN, M}
+@inline function _line_integrated_quantities_interpolate_kernel_Mtl(input :: InterpolationInput{3, TF, VF, K, NCOLUMN}, origin :: NTuple{3, TF}, direction :: NTuple{3, TF}, LBVH :: LinearBVH, columns :: NTuple{M, Int}, ShepardNormalization :: NTuple{M, Bool}, tables) where {TF <: Float32, VF <: MtlDeviceVector{TF}, K <: AbstractSPHKernel, NCOLUMN, M}
     Kvalid = KernelFunctionValid(K, TF)
 
     output :: MVector{M, TF} = zero(MVector{M, TF})
@@ -102,8 +102,54 @@ end
     return NTuple{M, TF}(output)
 end
 
+@inline function _line_integrated_quantities_interpolate_kernel_Mtl(input :: InterpolationSmoothingVolumeInput{3, TF, VF, K, NCOLUMN}, origin :: NTuple{3, TF}, direction :: NTuple{3, TF}, LBVH :: LinearBVH, columns :: NTuple{M, Int}, ShepardNormalization :: NTuple{M, Bool}, tables) where {TF <: Float32, VF <: MtlDeviceVector{TF}, K <: AbstractSPHKernel, NCOLUMN, M}
+    hfact = input.hfact
+    η = hfact * hfact * hfact
+    prefactor = inv(η)
+    Kvalid = KernelFunctionValid(K, TF)
 
-@inline function _line_samples_interpolation_kernel!(grids :: NTuple{N, LineSamples{3, TF}}, input :: InterpolationInput{3, TF, VF}, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH, tables, :: Type{itpScatter}) where {N, TF <: Float32, VF <: MtlDeviceVector{TF}}
+    output :: MVector{M, TF} = zero(MVector{M, TF})
+    S1 :: TF = zero(TF)
+
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: TF = zero(TF)
+    hb :: TF = zero(TF)
+
+    LinearBoundingVolumeHierarchy.@LBVH_scatter_line_traversal LBVH origin direction Kvalid leaf_idx p2leaf_d2 hb begin
+        @inbounds begin
+            r = sqrt(p2leaf_d2)
+            q_perp = r / hb
+            ∫wb = _line_integrated_kernel_function_dimensionless_Mtl(K, q_perp, tables)
+
+            S1b = hb * ∫wb
+            S1 += S1b
+
+            @inbounds for j in 1:M
+                column_idx = columns[j]
+                Ab = input.quant[column_idx][leaf_idx]
+                output[j] += Ab * S1b
+            end
+        end
+    end
+
+    if iszero(S1)
+        return ntuple(_ -> TF(NaN32), Val(M))
+    end
+
+    invS1 = inv(S1)
+    @inbounds for j in 1:M
+        if ShepardNormalization[j]
+            output[j] *= invS1
+        else
+            output[j] *= prefactor
+        end
+    end
+
+    return NTuple{M, TF}(output)
+end
+
+
+@inline function _line_samples_interpolation_kernel!(grids :: NTuple{N, LineSamples{3, TF}}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH, tables, :: Type{itpScatter}) where {N, TF <: Float32, VF <: MtlDeviceVector{TF}, INPUT <: AbstractInterpolationInput{3, TF, VF}}
     tid = Int(Metal.thread_position_in_grid().x)
     stride = Int(Metal.threads_per_grid().x)
 
@@ -126,7 +172,7 @@ end
 
         scalar_slots :: NTuple{N, Int} = catalog_consice.scalar_slots
         scalar_snormalization :: NTuple{N, Bool} = catalog_consice.scalar_snormalization
-        scalars :: NTuple{N, TF} = _line_integrated_quantities_interpolate_kernel_Mtl(input, origin, direction, LBVH, scalar_slots, scalar_snormalization, tables, itpScatter)
+        scalars :: NTuple{N, TF} = _line_integrated_quantities_interpolate_kernel_Mtl(input, origin, direction, LBVH, scalar_slots, scalar_snormalization, tables)
 
         if N > 0
             @inbounds for j in 1:N

@@ -72,7 +72,7 @@ identical_encoding( :: Val{3}, n :: Int) =
 # ── Brute-force neighbour search ─────────────────────────────────────── #
 
 """O(N²) brute-force: find all particle indices within `radius` of `point`."""
-function brute_force_neighbors(enc, point :: NTuple{D,T}, radius) where {D,T}
+function brute_force_neighbors(enc, point :: NTuple{D, T}, radius) where {D, T}
     coords = enc.coord
     r2 = radius * radius
     tol = eps(eltype(coords[1])) * 16
@@ -119,7 +119,7 @@ end
 # ── Scatter traversal reference ──────────────────────────────────────── #
 
 """Stackless traversal with per-particle radii (for scatter-pruning test)."""
-function scatter_neighbors_reference(lbvh, point :: NTuple{D,T}, Kvalid :: T, hvec) where {D,T}
+function scatter_neighbors_reference(lbvh, point :: NTuple{D, T}, Kvalid :: T, hvec) where {D, T}
     node_min = lbvh.node_aabb.min
     node_max = lbvh.node_aabb.max
     leaf_coor = lbvh.leaf_coor
@@ -158,7 +158,7 @@ function scatter_neighbors_reference(lbvh, point :: NTuple{D,T}, Kvalid :: T, hv
 end
 
 """O(N) brute-force line query against leaf particle coordinates."""
-function line_neighbors_reference(lbvh, origin :: NTuple{D,T}, direction :: NTuple{D,T}, radius2_of) where {D,T}
+function line_neighbors_reference(lbvh, origin :: NTuple{D, T}, direction :: NTuple{D, T}, radius2_of) where {D, T}
     nleaf = lbvh.brt.nleaf
     hits = Int[]
     @inbounds for leaf in 1:nleaf

@@ -27,11 +27,11 @@ struct Spherical <: AbstractCoordinateSystem end        # (r, ϕ, θ)
 
 
 @inline function _coordinate_grid_isapprox(
-    actual :: NTuple{D,VA},
-    expected :: NTuple{D,VE};
+    actual :: NTuple{D, VA},
+    expected :: NTuple{D, VE};
     atol :: Real = 1.0e-8,
     rtol :: Real = 1.0e-8,
-) where {D, T <: AbstractFloat,VA <: AbstractVector{T}, VE <: AbstractVector{T}}
+) where {D, T <: AbstractFloat, VA <: AbstractVector{T}, VE <: AbstractVector{T}}
     @inbounds for d in 1:D
         length(actual[d]) == length(expected[d]) || return false
         for i in eachindex(actual[d], expected[d])

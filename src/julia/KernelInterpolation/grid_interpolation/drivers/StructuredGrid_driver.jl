@@ -1,11 +1,11 @@
 """
     StructuredGrid_interpolation(backend :: B,
- :: Type{COORD},
+                                 :: Type{COORD},
                                  grid_template :: StructuredGrid{3},
-                                 input :: InterpolationInput{3,T},
-                                 catalog :: InterpolationCatalog{3,N,G,Div,C,L},
-                                 itp_strategy :: Type{ITPSTRATEGY}= itpScatter) where
-                                 {COORD,N,G,Div,C,L,
+                                 input :: AbstractInterpolationInput{3, T},
+                                 catalog :: InterpolationCatalog{3, N, G, Div, C, L},
+                                 itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where
+                                 {COORD, N, G, Div, C, L,
                                   T <: AbstractFloat,
                                   ITPSTRATEGY <: AbstractInterpolationStrategy,
                                   B <: AbstractExecutionBackend}
@@ -27,23 +27,23 @@ then restores each interpolated field back to `StructuredGrid` layout using the 
 - `grid_template :: StructuredGrid{3}`:
   Structured grid template providing the coordinate axes and logical grid shape.
 
-- `input :: InterpolationInput{3,T}`:
+- `input :: AbstractInterpolationInput{3, T}`:
   Interpolation input containing particle coordinates, smoothing lengths, field data, and the SPH kernel.
 
-- `catalog :: InterpolationCatalog{3,N,G,Div,C,L}`:
+- `catalog :: InterpolationCatalog{3, N, G, Div, C, L}`:
   Interpolation catalog describing which scalar, gradient, divergence, and curl quantities to compute.
   The number of output grids is `L`.
 
-- `itp_strategy :: Type{ITPSTRATEGY}= itpScatter`:
+- `itp_strategy :: Type{ITPSTRATEGY} = itpScatter`:
   Interpolation strategy controlling gather/scatter modes.
 
 # Returns
 - `GridBundle{L, <: StructuredGrid}`:
   A bundle containing:
-  - `grids`: `NTuple{L,StructuredGrid{D,T}}` storing interpolated results for each requested quantity.
-  - `names`: `NTuple{L,Symbol}` giving the corresponding quantity names in the same order.
+  - `grids`: `NTuple{L, StructuredGrid{D, T}}` storing interpolated results for each requested quantity.
+  - `names`: `NTuple{L, Symbol}` giving the corresponding quantity names in the same order.
 """
-function StructuredGrid_interpolation(backend :: B, :: Type{COORD}, grid_template :: StructuredGrid{3}, input :: InterpolationInput{3, T}, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {COORD <: AbstractCoordinateSystem, N, G, Div, C, L, T <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy, B <: AbstractExecutionBackend}
+function StructuredGrid_interpolation(backend :: B, :: Type{COORD}, grid_template :: StructuredGrid{3}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {COORD <: AbstractCoordinateSystem, N, G, Div, C, L, T <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, T}, ITPSTRATEGY <: AbstractInterpolationStrategy, B <: AbstractExecutionBackend}
     @info "     SPH Interpolation: Flatterning grid..."
     flatten_grid = flatten(COORD, grid_template)
     @info "     SPH Interpolation: End flatterning grid."

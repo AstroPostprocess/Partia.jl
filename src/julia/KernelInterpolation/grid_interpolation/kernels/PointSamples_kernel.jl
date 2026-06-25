@@ -19,12 +19,12 @@
     ha = LBVH_find_nearest_h(LBVH, point)
 
     # Interpolation
-    itpresult :: Tuple{NTuple{N,TF}, NTuple{G,NTuple{3,TF}}, NTuple{Div,TF}, NTuple{C,NTuple{3,TF}}} = _general_quantity_interpolate_kernel(input, point, ha, LBVH, catalog_consice)
+    itpresult :: Tuple{NTuple{N, TF}, NTuple{G, NTuple{3, TF}}, NTuple{Div, TF}, NTuple{C, NTuple{3, TF}}} = _general_quantity_interpolate_kernel(input, point, ha, LBVH, catalog_consice)
 
-    scalars :: NTuple{N,TF} = itpresult[1]
-    gradients :: NTuple{G,NTuple{3,TF}} = itpresult[2]
-    divergences :: NTuple{Div,TF} = itpresult[3]
-    curls :: NTuple{C,NTuple{3,TF}} = itpresult[4]
+    scalars :: NTuple{N, TF} = itpresult[1]
+    gradients :: NTuple{G, NTuple{3, TF}} = itpresult[2]
+    divergences :: NTuple{Div, TF} = itpresult[3]
+    curls :: NTuple{C, NTuple{3, TF}} = itpresult[4]
 
     # Store results
     out_idx = 1
@@ -85,12 +85,12 @@ end
     end
 
     # Interpolation
-    itpresult :: Tuple{NTuple{N,TF}, NTuple{G,NTuple{3,TF}}, NTuple{Div,TF}, NTuple{C,NTuple{3,TF}}} = _general_quantity_interpolate_kernel(input, point, LBVH, catalog_consice)
+    itpresult :: Tuple{NTuple{N, TF}, NTuple{G, NTuple{3, TF}}, NTuple{Div, TF}, NTuple{C, NTuple{3, TF}}} = _general_quantity_interpolate_kernel(input, point, LBVH, catalog_consice)
 
-    scalars :: NTuple{N,TF} = itpresult[1]
-    gradients :: NTuple{G,NTuple{3,TF}} = itpresult[2]
-    divergences :: NTuple{Div,TF} = itpresult[3]
-    curls :: NTuple{C,NTuple{3,TF}} = itpresult[4]
+    scalars :: NTuple{N, TF} = itpresult[1]
+    gradients :: NTuple{G, NTuple{3, TF}} = itpresult[2]
+    divergences :: NTuple{Div, TF} = itpresult[3]
+    curls :: NTuple{C, NTuple{3, TF}} = itpresult[4]
 
     # Store results
     out_idx = 1

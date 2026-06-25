@@ -86,20 +86,11 @@ include(joinpath(@__DIR__, "interpolation_setup", "constructor.jl"))
 
 ### LBVH Traversal
 #### Point interpolations
-include(joinpath(@__DIR__, "single_point_interpolation", "accumulations", "scalar_accumulation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "accumulations", "gradient_accumulation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "accumulations", "divergence_accumulation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "accumulations", "curl_accumulation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "scalar_interpolation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "gradient_interpolation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "divergence_interpolation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "curl_interpolation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "gather_interpolation.jl"))
-include(joinpath(@__DIR__, "single_point_interpolation", "kernels", "scatter_interpolation.jl"))
+include(joinpath(@__DIR__, "single_point_interpolation", "gather_interpolation.jl"))
+include(joinpath(@__DIR__, "single_point_interpolation", "scatter_interpolation.jl"))
 
 #### Line integrated interpolations
-include(joinpath(@__DIR__, "line_integrated_interpolation", "accumulations", "line_integrated_scalar_accumulation.jl"))
-include(joinpath(@__DIR__, "line_integrated_interpolation", "kernels", "line_integrated_scalar_interpolation.jl"))
+include(joinpath(@__DIR__, "line_integrated_interpolation", "line_integrated_scalar_interpolation.jl"))
 
 ## Grid interpolation
 ### Setup

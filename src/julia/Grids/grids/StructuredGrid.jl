@@ -1,6 +1,6 @@
 # structured grid (Cartesian/Cylindrical... etc)
 """
-    StructuredGrid{D, TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF,D}} <: AbstractGrid{TF}
+    StructuredGrid{D, TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}} <: AbstractGrid{TF}
 
 A structured grid container, storing values in an N-dimensional array
 together with coordinate axes for each dimension.
@@ -9,12 +9,12 @@ together with coordinate axes for each dimension.
 - `D` : Dimensionality of the grid.
 - `TF <: AbstractFloat` : Floating-point element type.
 - `V <: AbstractVector{TF}` : Type of each axis coordinate vector.
-- `A <: AbstractArray{TF,D}` : Storage type for grid values.
+- `A <: AbstractArray{TF, D}` : Storage type for grid values.
 
 # Fields
 - `grid :: A` : N-dimensional array of grid values.
-- `axes :: NTuple{D,V}` : Tuple of coordinate vectors, one per dimension.
-- `size :: NTuple{D,Int}` : Logical size of the grid (cached from axes).
+- `axes :: NTuple{D, V}` : Tuple of coordinate vectors, one per dimension.
+- `size :: NTuple{D, Int}` : Logical size of the grid (cached from axes).
 """
 struct StructuredGrid{D, TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}} <: AbstractGrid{TF}
     grid :: A
@@ -41,7 +41,7 @@ the `size` field of the object.
 - `grid :: StructuredGrid` : Grid object.
 
 # Returns
-- `NTuple{D,Int}` : Dimensions of the grid.
+- `NTuple{D, Int}` : Dimensions of the grid.
 """
 @inline Base.size(grid :: StructuredGrid) = grid.size
 
@@ -76,7 +76,7 @@ function Base.similar(grid :: StructuredGrid)
 end
 
 """
-    similar(grid :: StructuredGrid, ::Type{T}) where {T <: AbstractFloat}
+    similar(grid :: StructuredGrid, :: Type{T}) where {T <: AbstractFloat}
 
 Construct a new `StructuredGrid` with fresh value storage of element type `T`.
 When `T` matches the original grid element type, the coordinate axes are shared
@@ -84,12 +84,12 @@ with the input grid. Otherwise, the axes are converted to `T`.
 
 # Parameters
 - `grid :: StructuredGrid` : Template grid to copy structure from.
-- `::Type{T}` : Desired element type for the new grid values.
+- `Type{T}` : Desired element type for the new grid values.
 
 # Returns
 - `StructuredGrid` : A grid with independent value storage.
 """
-function Base.similar(grid :: StructuredGrid{D,TF}, :: Type{T}) where {D, TF <: AbstractFloat, T <: AbstractFloat}
+function Base.similar(grid :: StructuredGrid{D, TF}, :: Type{T}) where {D, TF <: AbstractFloat, T <: AbstractFloat}
     new_grid = similar(grid.grid, T)
     new_axes = T === TF ? grid.axes : ntuple(i -> T.(grid.axes[i]), D)
 
@@ -129,7 +129,7 @@ column-major linear indexing of `grid.size`.
 # Parameters
 - ` :: Type{Cartesian}` :
   Explicit coordinate-system dispatch for Cartesian grids.
-- `grid :: StructuredGrid{D,TF}` :
+- `grid :: StructuredGrid{D, TF}` :
   The structured grid container.
 
 # Returns
@@ -137,7 +137,7 @@ column-major linear indexing of `grid.size`.
 - For each `d = 1:D`, `coor[d]` is a vector of length `N = prod(grid.size)`.
 - The linear index `i` is consistent with `vec(grid.grid)`.
 """
-function coordinate_grid( :: Type{Cartesian}, grid :: StructuredGrid{D,TF}) where {D,TF <: AbstractFloat}
+function coordinate_grid( :: Type{Cartesian}, grid :: StructuredGrid{D, TF}) where {D, TF <: AbstractFloat}
     sz = grid.size
     gv = vec(grid.grid)
     coor = ntuple(_ -> similar(gv), D)
@@ -173,7 +173,7 @@ function coordinate_grid( :: Type{Polar}, grid :: StructuredGrid{2,TF}) where {T
     return (x, y)
 end
 
-function coordinate_grid( :: Type{Cylindrical}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
+function coordinate_grid( :: Type{Cylindrical}, grid :: StructuredGrid{3, TF}) where {TF <: AbstractFloat}
     sz = grid.size
     gv = vec(grid.grid)
     x = similar(gv)
@@ -195,7 +195,7 @@ function coordinate_grid( :: Type{Cylindrical}, grid :: StructuredGrid{3,TF}) wh
     return (x, y, z)
 end
 
-function coordinate_grid( :: Type{Spherical}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
+function coordinate_grid( :: Type{Spherical}, grid :: StructuredGrid{3, TF}) where {TF <: AbstractFloat}
     sz = grid.size
     gv = vec(grid.grid)
     x = similar(gv)
@@ -218,20 +218,20 @@ function coordinate_grid( :: Type{Spherical}, grid :: StructuredGrid{3,TF}) wher
 end
 
 """
-    reduce_mean(grid :: StructuredGrid{D,TF,V,A}, dim :: Int=1) where {D,TF <: AbstractFloat,V <: AbstractVector{TF},A <: AbstractArray{TF,D}}
+    reduce_mean(grid :: StructuredGrid{D, TF, V, A}, dim :: Int = 1) where {D, TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}}
 
 Average `grid.grid` along dimension `dim` and drop that dimension.
 Axes and size are reduced accordingly.
 
 # Parameters
-- `grid :: StructuredGrid{D,TF,V,A}` : Input structured grid.
+- `grid :: StructuredGrid{D, TF, V,A}` : Input structured grid.
 - `dim :: Int=1` : Dimension to average over (1-based).
 
 # Returns
 - `StructuredGrid{D-1,TF,V,A2}` : Structured grid with one fewer dimension, where `A2 <: AbstractArray{TF, D-1}`.
 
 """
-function reduce_mean(grid :: StructuredGrid{D,TF,V,A}, dim :: Int=1) where {D,TF <: AbstractFloat,V <: AbstractVector{TF},A <: AbstractArray{TF,D}}
+function reduce_mean(grid :: StructuredGrid{D, TF, V, A}, dim :: Int = 1) where {D, TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}}
     1 ≤ dim ≤ D || throw(ArgumentError("dim must be in 1:$D, got $dim"))
     D == 1      && throw(ArgumentError("cannot reduce a 1D grid to 0D StructuredGrid"))
 
@@ -262,11 +262,11 @@ All axes must share the same floating-point type `TF`.
   A list of axis definitions. The number of axes determines the dimension `D`.
 
 # Returns
-- `StructuredGrid{D,TF,Vector{TF},Array{TF,D}}` :
+- `StructuredGrid{D, TF, Vector{TF},Array{TF,D}}` :
   A structured grid with fields:
   - `grid` : zero-initialized `Array{TF,D}` of shape given by `(n₁, n₂, …, nD)`.
-  - `axes` : `NTuple{D,Vector{TF}}`, each axis created by `collect(LinRange(...))`.
-  - `size` : `NTuple{D,Int}`, storing grid dimensions.
+  - `axes` : `NTuple{D, Vector{TF}}`, each axis created by `collect(LinRange(...))`.
+  - `size` : `NTuple{D, Int}`, storing grid dimensions.
 
 # Notes
 - Axes are stored as `Vector{TF}` (via `collect`) for compatibility with GPU

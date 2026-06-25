@@ -78,6 +78,34 @@ end
     end
 end
 
+@testset "PointSamples interpolation -- smoothing-volume CPU consistency" begin
+    standard_input, smoothing_input, catalog = make_smoothing_volume_grid_interpolation_fixture()
+    grid_template = make_point_samples_template()
+
+    standard_result = PointSamples_interpolation(CPUComputeBackend(), grid_template, standard_input, catalog, itpScatter)
+    smoothing_result = PointSamples_interpolation(CPUComputeBackend(), grid_template, smoothing_input, catalog, itpScatter)
+
+    @test smoothing_result.names == standard_result.names
+    @test length(smoothing_result.grids) == length(standard_result.grids)
+    for i in eachindex(standard_result.grids)
+        @test smoothing_result.grids[i].coor == standard_result.grids[i].coor
+        @test approx_with_nan(smoothing_result.grids[i].grid, standard_result.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
+    end
+
+    standard_input_lbvh, smoothing_input_lbvh, catalog_lbvh = make_smoothing_volume_grid_interpolation_fixture()
+    standard_lbvh = LinearBVH!(standard_input_lbvh)
+    smoothing_lbvh = LinearBVH!(smoothing_input_lbvh)
+
+    standard_manual = PointSamples_interpolation(CPUComputeBackend(), grid_template, standard_input_lbvh, standard_lbvh, catalog_lbvh, itpScatter)
+    smoothing_manual = PointSamples_interpolation(CPUComputeBackend(), grid_template, smoothing_input_lbvh, smoothing_lbvh, catalog_lbvh, itpScatter)
+
+    @test smoothing_manual.names == standard_manual.names
+    for i in eachindex(standard_manual.grids)
+        @test smoothing_manual.grids[i].coor == standard_manual.grids[i].coor
+        @test approx_with_nan(smoothing_manual.grids[i].grid, standard_manual.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
+    end
+end
+
 # ── 1c. PointSamples — externally supplied LBVH ──────────────────────── #
 
 @testset "PointSamples interpolation -- externally supplied LBVH" begin
@@ -151,6 +179,36 @@ end
 
         @test isapprox(result.grids[1].grid[i], expected[1]; atol = 1.0e-12, rtol = 1.0e-10)
         @test isapprox(result.grids[2].grid[i], expected[2]; atol = 1.0e-12, rtol = 1.0e-10)
+    end
+end
+
+@testset "LineSamples interpolation -- smoothing-volume CPU scatter consistency" begin
+    standard_input, smoothing_input, catalog = make_smoothing_volume_line_interpolation_fixture()
+    grid_template = make_line_samples_template()
+
+    standard_result = LineSamples_interpolation(CPUComputeBackend(), grid_template, standard_input, catalog, itpScatter)
+    smoothing_result = LineSamples_interpolation(CPUComputeBackend(), grid_template, smoothing_input, catalog, itpScatter)
+
+    @test smoothing_result.names == standard_result.names
+    @test length(smoothing_result.grids) == length(standard_result.grids)
+    for i in eachindex(standard_result.grids)
+        @test smoothing_result.grids[i].origin == standard_result.grids[i].origin
+        @test smoothing_result.grids[i].direction == standard_result.grids[i].direction
+        @test approx_with_nan(smoothing_result.grids[i].grid, standard_result.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
+    end
+
+    standard_input_lbvh, smoothing_input_lbvh, catalog_lbvh = make_smoothing_volume_line_interpolation_fixture()
+    standard_lbvh = LinearBVH!(standard_input_lbvh)
+    smoothing_lbvh = LinearBVH!(smoothing_input_lbvh)
+
+    standard_manual = LineSamples_interpolation(CPUComputeBackend(), grid_template, standard_input_lbvh, standard_lbvh, catalog_lbvh, itpScatter)
+    smoothing_manual = LineSamples_interpolation(CPUComputeBackend(), grid_template, smoothing_input_lbvh, smoothing_lbvh, catalog_lbvh, itpScatter)
+
+    @test smoothing_manual.names == standard_manual.names
+    for i in eachindex(standard_manual.grids)
+        @test smoothing_manual.grids[i].origin == standard_manual.grids[i].origin
+        @test smoothing_manual.grids[i].direction == standard_manual.grids[i].direction
+        @test approx_with_nan(smoothing_manual.grids[i].grid, standard_manual.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
     end
 end
 

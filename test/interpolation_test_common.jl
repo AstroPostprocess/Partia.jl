@@ -36,12 +36,12 @@ end
 
 @inline within_radius(d2, radius) = d2 <= radius * radius
 
-@inline function kernel_weight(ref :: NTuple{3,T}, rb :: NTuple{3,T}, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
+@inline function kernel_weight(ref :: NTuple{3, T}, rb :: NTuple{3, T}, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
     hsel = strategy === itpGather ? ha : hb
     return Smoothed_kernel_function(typeof(kern), ref, rb, hsel)
 end
 
-@inline function kernel_gradient(ref :: NTuple{3,T}, rb :: NTuple{3,T}, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
+@inline function kernel_gradient(ref :: NTuple{3, T}, rb :: NTuple{3, T}, ha :: T, hb :: T, strategy) where {T <: AbstractFloat}
     hsel = strategy === itpGather ? ha : hb
     return Smoothed_gradient_kernel_function(typeof(kern), ref, rb, hsel)
 end
@@ -51,7 +51,7 @@ end
     return line_integrated_kernel_function(typeof(kern), Δr, hsel)
 end
 
-@inline function squared_distance_point_line(point :: NTuple{3,T}, origin :: NTuple{3,T}, direction :: NTuple{3,T}) where {T <: AbstractFloat}
+@inline function squared_distance_point_line(point :: NTuple{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}) where {T <: AbstractFloat}
     Δ2 = zero(T)
     Δm = zero(T)
     @inbounds for d in 1:3
@@ -64,7 +64,7 @@ end
 
 # ====================== Single-point brute-force references ================== #
 
-function brute_density(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, strategy) where {T}
+function brute_density(input :: InterpolationInput{3, T}, ref :: NTuple{3, T}, ha :: T, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ρ = zero(T)
     @inbounds for i in 1:input.Npart
@@ -80,7 +80,7 @@ function brute_density(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha 
     return ρ
 end
 
-function brute_number_density(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, strategy) where {T}
+function brute_number_density(input :: InterpolationInput{3, T}, ref :: NTuple{3, T}, ha :: T, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     n = zero(T)
     @inbounds for i in 1:input.Npart
@@ -96,7 +96,7 @@ function brute_number_density(input :: InterpolationInput{3,T}, ref :: NTuple{3,
     return n
 end
 
-function brute_quantity(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, col :: Int, strategy) where {T}
+function brute_quantity(input :: InterpolationInput{3, T}, ref :: NTuple{3, T}, ha :: T, col :: Int, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     numer = zero(T)
     denom = zero(T)
@@ -115,7 +115,7 @@ function brute_quantity(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha
     return iszero(denom) ? T(NaN) : numer / denom
 end
 
-function brute_line_integrated_density(input :: InterpolationInput{3,T}, origin :: NTuple{3,T}, direction :: NTuple{3,T}, ha :: T, strategy) where {T}
+function brute_line_integrated_density(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     Sigma = zero(T)
     @inbounds for i in 1:input.Npart
@@ -132,7 +132,7 @@ function brute_line_integrated_density(input :: InterpolationInput{3,T}, origin 
     return Sigma
 end
 
-function brute_gradient_density(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, strategy) where {T}
+function brute_gradient_density(input :: InterpolationInput{3, T}, ref :: NTuple{3, T}, ha :: T, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ∇ρf = zeros(T, 3)
     ∇ρb = zeros(T, 3)
@@ -165,7 +165,7 @@ function brute_gradient_density(input :: InterpolationInput{3,T}, ref :: NTuple{
     )
 end
 
-function brute_gradient_quantity(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, col :: Int, strategy) where {T}
+function brute_gradient_quantity(input :: InterpolationInput{3, T}, ref :: NTuple{3, T}, ha :: T, col :: Int, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ∇Af = zeros(T, 3)
     ∇Ab = zeros(T, 3)
@@ -206,7 +206,7 @@ function brute_gradient_quantity(input :: InterpolationInput{3,T}, ref :: NTuple
     )
 end
 
-function brute_divergence(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, cols :: NTuple{3,Int}, strategy) where {T}
+function brute_divergence(input :: InterpolationInput{3, T}, ref :: NTuple{3, T}, ha :: T, cols :: NTuple{3, Int}, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ∇Af = zero(T)
     ∇Axb = zero(T)
@@ -251,7 +251,7 @@ function brute_divergence(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, 
     return ∇Af - (Ax * ∇Axb + Ay * ∇Ayb + Az * ∇Azb)
 end
 
-function brute_curl(input :: InterpolationInput{3,T}, ref :: NTuple{3,T}, ha :: T, cols :: NTuple{3,Int}, strategy) where {T}
+function brute_curl(input :: InterpolationInput{3, T}, ref :: NTuple{3, T}, ha :: T, cols :: NTuple{3, Int}, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     ∇Axf = zero(T)
     ∇Ayf = zero(T)
@@ -309,7 +309,7 @@ end
 
 # =================== Line-integrated brute-force references ================== #
 
-function brute_line_integrated_quantity(input :: InterpolationInput{3,T}, origin :: NTuple{3,T}, direction :: NTuple{3,T}, ha :: T, col :: Int, strategy) where {T}
+function brute_line_integrated_quantity(input :: InterpolationInput{3, T}, origin :: NTuple{3, T}, direction :: NTuple{3, T}, ha :: T, col :: Int, strategy) where {T}
     Kvalid = KernelFunctionValid(typeof(kern), T)
     numer = zero(T)
     denom = zero(T)

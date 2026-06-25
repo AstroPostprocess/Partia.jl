@@ -63,6 +63,38 @@ function make_grid_interpolation_fixture()
     return input, catalog, LBVH
 end
 
+function make_smoothing_volume_grid_interpolation_fixture()
+    hfact = 1.2
+    x = Float64[0.15, 0.35, 0.55, 0.75]
+    y = Float64[0.20, 0.60, 0.25, 0.70]
+    z = Float64[0.25, 0.45, 0.80, 0.30]
+    h = Float64[0.28, 0.24, 0.26, 0.22]
+    m = Float64[0.4, 0.45, 0.42, 0.38]
+    rho = m .* hfact^3 ./ h.^3
+    temp = Float64[10.0, 11.0, 13.0, 12.0]
+    vx = Float64[0.1, -0.2, 0.3, -0.1]
+    vy = Float64[0.0, 0.25, -0.15, 0.2]
+    vz = Float64[-0.05, 0.1, 0.2, -0.1]
+    quant = (temp, vx, vy, vz)
+
+    standard_input = InterpolationInput(
+        copy(x), copy(y), copy(z), copy(m), copy(h), copy(rho), map(copy, quant);
+        smoothed_kernel = M4_spline,
+    )
+    smoothing_input = InterpolationSmoothingVolumeInput(
+        hfact,
+        copy(x), copy(y), copy(z), copy(m), copy(h), map(copy, quant);
+        smoothed_kernel = M4_spline,
+    )
+    catalog = InterpolationCatalog(
+        (:temp, :vx, :vy, :vz), Val(3);
+        scalars = (:temp,),
+        divergences = (:v,),
+    )
+
+    return standard_input, smoothing_input, catalog
+end
+
 function make_point_samples_template()
     x = Float64[0.20, 0.40, 0.65]
     y = Float64[0.25, 0.55, 0.50]
@@ -128,6 +160,35 @@ function make_line_interpolation_fixture()
     return input, catalog, LBVH
 end
 
+function make_smoothing_volume_line_interpolation_fixture()
+    hfact = 1.2
+    x = Float64[0.15, 0.35, 0.55, 0.75]
+    y = Float64[0.20, 0.60, 0.25, 0.70]
+    z = Float64[0.25, 0.45, 0.80, 0.30]
+    h = Float64[0.28, 0.24, 0.26, 0.22]
+    m = Float64[0.4, 0.45, 0.42, 0.38]
+    rho = m .* hfact^3 ./ h.^3
+    temp = Float64[10.0, 11.0, 13.0, 12.0]
+    vx = Float64[0.1, -0.2, 0.3, -0.1]
+    quant = (temp, vx)
+
+    standard_input = InterpolationInput(
+        copy(x), copy(y), copy(z), copy(m), copy(h), copy(rho), map(copy, quant);
+        smoothed_kernel = M4_spline,
+    )
+    smoothing_input = InterpolationSmoothingVolumeInput(
+        hfact,
+        copy(x), copy(y), copy(z), copy(m), copy(h), map(copy, quant);
+        smoothed_kernel = M4_spline,
+    )
+    catalog = InterpolationCatalog(
+        (:temp, :vx), Val(3);
+        scalars = (:temp, :vx),
+    )
+
+    return standard_input, smoothing_input, catalog
+end
+
 function make_line_samples_template()
     invsqrt2 = inv(sqrt(2.0))
     origin = (
@@ -177,7 +238,7 @@ function make_analytic_spherical_grid()
     )
 end
 
-function explicit_cartesian_coords( :: Type{Cartesian}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
+function explicit_cartesian_coords( :: Type{Cartesian}, grid :: StructuredGrid{3, TF}) where {TF <: AbstractFloat}
     return ntuple(d -> begin
         out = similar(vec(grid.grid))
         L = LinearIndices(grid.size)
@@ -202,7 +263,7 @@ function explicit_cartesian_coords( :: Type{Polar}, grid :: StructuredGrid{2,TF}
     return (x, y)
 end
 
-function explicit_cartesian_coords( :: Type{Cylindrical}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
+function explicit_cartesian_coords( :: Type{Cylindrical}, grid :: StructuredGrid{3, TF}) where {TF <: AbstractFloat}
     x = similar(vec(grid.grid))
     y = similar(vec(grid.grid))
     z = similar(vec(grid.grid))
@@ -219,7 +280,7 @@ function explicit_cartesian_coords( :: Type{Cylindrical}, grid :: StructuredGrid
     return (x, y, z)
 end
 
-function explicit_cartesian_coords( :: Type{Spherical}, grid :: StructuredGrid{3,TF}) where {TF <: AbstractFloat}
+function explicit_cartesian_coords( :: Type{Spherical}, grid :: StructuredGrid{3, TF}) where {TF <: AbstractFloat}
     x = similar(vec(grid.grid))
     y = similar(vec(grid.grid))
     z = similar(vec(grid.grid))
@@ -239,7 +300,7 @@ end
 
 # =========================== Brute-force references ========================== #
 
-@inline function brute_nearest_h(input, point :: NTuple{3,T}) where {T <: AbstractFloat}
+@inline function brute_nearest_h(input, point :: NTuple{3, T}) where {T <: AbstractFloat}
     x = get_xcoord(input)
     y = get_ycoord(input)
     z = get_zcoord(input)

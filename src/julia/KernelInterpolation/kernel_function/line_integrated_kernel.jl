@@ -67,7 +67,7 @@ with a 3D SPH smoothing kernel,
 
 where `r` is the transverse distance from the integration line. Internally,
 the computation is performed through the dimensionless transverse coordinate
-`q_perp = r / h`, followed by the physical `1 / h` prefactor.
+`q_perp = r / h`, followed by the physical `1 / h^2` prefactor.
 
 This is the splash-style full line integration lookup and is intended for
 column-density or other line-integrated quantity evaluations. It is not a
@@ -83,14 +83,14 @@ replacement for the original 3D kernel in volumetric interactions.
 
 # Returns
 - `T`
-  Physical line-integrated kernel value, including the `1 / h` scaling.
+  Physical line-integrated kernel value, including the `1 / h^2` scaling.
 
 """
 @inline function line_integrated_kernel_function( :: Type{K}, r :: T, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     invh = inv(h)
     q_perp = r * invh
     q_perp >= KernelFunctionValid(K, T) && return zero(T)
-    return invh * lookup_line_integrated_kernel(K, q_perp)
+    return invh * invh * lookup_line_integrated_kernel(K, q_perp)
 end
 
 @inline function line_integrated_kernel_function( :: Type{K}, r :: T, h :: S) where {K <: AbstractSPHKernel, T <: AbstractFloat, S <: AbstractFloat}
@@ -130,7 +130,7 @@ line-integrated kernel value
 
 # Returns
 - `T`
-  Physical line-integrated kernel value, including the `1 / h` scaling.
+  Physical line-integrated kernel value, including the `1 / h^2` scaling.
 """
 @inline function line_integrated_kernel_function( :: Type{K}, ra :: NTuple{2,T}, rb :: NTuple{2,T}, h :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     rax, ray = ra

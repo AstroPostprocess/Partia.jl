@@ -12,6 +12,18 @@ function Partia.to_MtlVector(input :: InterpolationInput{D, T, V, K, NCOLUMN}) w
     )
 end
 
+function Partia.to_MtlVector(input :: InterpolationSmoothingVolumeInput{D, T, V, K, NCOLUMN}) where {D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN}
+    return InterpolationSmoothingVolumeInput{D, Float32, MtlVector{Float32}, K, NCOLUMN}(
+        input.Npart,
+        Float32(input.hfact),
+        input.smoothed_kernel,
+        ntuple(i -> MtlVector{Float32}(input.coord[i]), Val(D)),
+        MtlVector{Float32}(input.m),
+        MtlVector{Float32}(input.h),
+        ntuple(i -> MtlVector{Float32}(input.quant[i]), Val(NCOLUMN))
+    )
+end
+
 function Partia.to_MtlVector(enc :: MortonEncoding{D, TF, TI, VF, VI}) where {D, TF <: AbstractFloat, TI <: Unsigned, VF <: AbstractVector{TF}, VI <: AbstractVector{TI}}
     return MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}(
         MtlVector{TI}(enc.order),
