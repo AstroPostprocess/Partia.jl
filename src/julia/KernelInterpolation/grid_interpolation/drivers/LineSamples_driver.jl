@@ -1,146 +1,43 @@
+######################################################################################
+
+#     LineSamples interpolation drivers
+
+######################################################################################
 """
-    LineSamples_interpolation(backend :: CPUComputeBackend, grid_template :: LineSamples{3, TF},
-                              input :: AbstractInterpolationInput{3, TF}, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N},
-                              itp_strategy :: Type{ITPSTRATEGY} = itpScatter)
+    LineSamples_interpolation!(
+        grids :: NTuple{N, LS},
+        input :: AbstractInterpolationInput{3, TF, Vector{TF}},
+        catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0},
+        LBVH :: LinearBVH{3, TF, Vector{TF}},
+    ) where {N, TF <: AbstractFloat, LS <: LineSamples{3, TF, Vector{TF}}}
 
-Perform CPU-based SPH interpolation for an unstructured collection of line samples.
-This routine initialises the interpolation data structures for the CPU backend,
-allocates the output `LineSamples` containers, and evaluates each line sample in
-parallel using threaded execution.
+Evaluate line-sample interpolation in place using already prepared interpolation
+state.
 
-Each sample is interpreted as a line primitive defined by the corresponding
-origin and direction stored in `grid_template`. For the `i`-th sample, the
-interpolation kernel evaluates line-integrated quantities associated with that
-line and stores the resulting scalar values into the output grids.
-
-At present, this routine only supports `itpScatter`. For line-integrated
-samples there is no well-defined query smoothing length `ha`, so
-`itpGather` is rejected explicitly.
-
-# Parameters
-- `backend :: CPUComputeBackend`
-  Execution backend specifying CPU-based interpolation.
-
-- `grid_template :: LineSamples{3, TF}`
-  Template sample container defining the dimensionality, line geometry, and
-  output container layout.
-
-- `input :: AbstractInterpolationInput{3, TF}`
-  An interpolation input object containing particle positions, smoothing
-  lengths, field values, and the SPH kernel.
-
-- `catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}`
-  Interpolation catalog describing the requested output quantities.
-  In the current implementation, only scalar line-integrated quantities are
-  supported.
-
-- `itp_strategy :: Type{ITPSTRATEGY}`
-  Interpolation strategy type. Only `itpScatter` is supported.
-
-# Returns
-- `GridBundle`
-  A bundle containing:
-  - `grids` : output `LineSamples` containers storing the interpolated scalar values
-  - `names` : ordered quantity names matching the output grid order
+This is the core CPU implementation for reusable output grids. It assumes the
+output `grids`, particle `input`, concise catalog, and Morton-reordered `LBVH`
+have already been prepared by an outer wrapper. The function writes directly
+into the supplied `LineSamples` grids and does not allocate a `GridBundle`.
 """
-function LineSamples_interpolation(backend :: CPUComputeBackend, grid_template :: LineSamples{3, TF}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    itp_strategy === itpScatter || throw(ArgumentError(
-        "LineSamples_interpolation only supports itpScatter. " *
-        "Line-integrated samples do not have a well-defined query smoothing length ha, " *
-        "so itpGather is not supported."
-    ))
+function LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, Vector{TF}}) where {N, TF <: AbstractFloat, LS <: LineSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
+    # Exit if nothing to do
+    N == 0 && return nothing
 
-    grids_result, LBVH, names, catalog_consice = initialize_interpolation(backend, grid_template, input, catalog)
-    npoints = length(grid_template)
-
-    @info "     SPH Interpolation: Start interpolation..."
-    @inbounds @threads for i in 1:npoints
-        _line_samples_interpolation_kernel!(backend, grids_result, i, input, catalog_consice, LBVH, itp_strategy)
+    # Make sure every grids share the same geometry
+    if N > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output LineSamples grids must share the same line geometry. " *
+            "Expected every grid to reuse the same origin and direction vectors."
+        ))
     end
-    @info "     SPH Interpolation: End interpolation..."
 
-    grids = grids_result
-    return GridBundle(grids, names)
-end
+    # Prepare multiprocessing
+    npoints = length(grids[1])
 
-"""
-    LineSamples_interpolation(backend :: CPUComputeBackend, grid_template :: LineSamples{3, TF},
-                              input :: AbstractInterpolationInput{3, TF}, LBVH :: LinearBVH{3, TF},
-                              catalog :: InterpolationCatalog{3, N, 0, 0, 0, N},
-                              itp_strategy :: Type{ITPSTRATEGY} = itpScatter)
-
-Perform CPU-based SPH interpolation for an unstructured collection of line
-samples using an externally supplied `LinearBVH`.
-
-This routine initialises the interpolation output structures for the CPU
-backend, validates that the provided `LBVH` matches the current Morton-reordered
-particle ordering stored in `input`, and evaluates each line sample in parallel
-using threaded execution.
-
-Each sample is interpreted as a line primitive defined by the corresponding
-origin and direction stored in `grid_template`. For the `i`-th sample, the
-interpolation kernel evaluates line-integrated quantities associated with that
-line and stores the resulting scalar values into the output grids.
-
-At present, this routine only supports `itpScatter`. For line-integrated
-samples there is no well-defined query smoothing length `ha`, so
-`itpGather` is rejected explicitly.
-
-# Parameters
-- `backend :: CPUComputeBackend`
-  Execution backend specifying CPU-based interpolation.
-
-- `grid_template :: LineSamples{3, TF}`
-  Template sample container defining the dimensionality, line geometry, and
-  output container layout.
-
-- `input :: AbstractInterpolationInput{3, TF}`
-  An interpolation input object containing particle positions, smoothing
-  lengths, field values, and the SPH kernel. Its current ordering must already
-  match the leaf ordering stored in `LBVH`.
-
-- `LBVH :: LinearBVH{3, TF}`
-  A prebuilt `LinearBVH` used for neighbour traversal during interpolation.
-
-- `catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}`
-  Interpolation catalog describing the requested output quantities.
-  In the current implementation, only scalar line-integrated quantities are
-  supported.
-
-- `itp_strategy :: Type{ITPSTRATEGY}`
-  Interpolation strategy type. Only `itpScatter` is supported.
-
-# Returns
-- `GridBundle`
-  A bundle containing:
-  - `grids` : output `LineSamples` containers storing the interpolated scalar values
-  - `names` : ordered quantity names matching the output grid order
-
-# Throws
-- `ArgumentError`: If `itp_strategy !== itpScatter`, or if the leaf order stored
-  in `LBVH` does not match the current spatial ordering of `input`.
-"""
-function LineSamples_interpolation(backend :: CPUComputeBackend, grid_template :: LineSamples{3, TF}, input :: INPUT, LBVH :: LinearBVH{3, TF}, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    itp_strategy === itpScatter || throw(ArgumentError(
-        "LineSamples_interpolation only supports itpScatter. " *
-        "Line-integrated samples do not have a well-defined query smoothing length ha, " *
-        "so itpGather is not supported."
-    ))
-
-    matches_lbvh_leaf_order(input, LBVH) || throw(ArgumentError(
-        "Provided LBVH leaf order does not match the current input ordering. " *
-        "Ensure the LBVH was built from the same Morton-reordered input."
-    ))
-
-    grids_result, names, catalog_consice = initialize_interpolation(backend, grid_template, catalog)
-    npoints = length(grid_template)
-
-    @info "     SPH Interpolation: Start interpolation..."
+    # Do interpolation
     @inbounds @threads for i in 1:npoints
-        _line_samples_interpolation_kernel!(backend, grids_result, i, input, catalog_consice, LBVH, itp_strategy)
+        _line_samples_interpolation_kernel!(grids, i, input, catalog_consice, LBVH)
     end
-    @info "     SPH Interpolation: End interpolation..."
 
-    grids = grids_result
-    return GridBundle(grids, names)
+    return nothing
 end

@@ -4,7 +4,7 @@
 # # Need providing smoothed radius
 
 ######################################################################################
-@inline function _point_samples_interpolation_kernel!( :: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpGather}) where {N, G, Div, C, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}}
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PS}, i :: Int, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpGather}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
     # Get point
     @inbounds begin
         geometry = grids[1]
@@ -73,7 +73,7 @@
 end
 
 ## Not providing smoothed radius
-@inline function _point_samples_interpolation_kernel!( :: CPUComputeBackend, grids :: NTuple{L, PointSamples{3, TF}}, i :: Int, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}}
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PS}, i :: Int, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
     # Get point
     @inbounds begin
         geometry = grids[1]

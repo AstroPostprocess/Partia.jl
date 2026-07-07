@@ -30,6 +30,32 @@ function Adapt.adapt_structure(to, x :: SG) where {D, TF <: AbstractFloat, V <: 
     )
 end
 
+"""
+    same_coordinates(grids :: Vararg{StructuredGrid{D}}) where {D}
+
+Check whether all supplied structured grids share the same coordinate axes.
+
+This compares axis containers by object identity (`===`) for each dimension. It
+does not compare axis values, so independently allocated axes with equal
+contents are treated as different coordinates.
+
+# Parameters
+- `grids :: Vararg{StructuredGrid{D}}` :
+  Structured grids with the same dimensionality.
+
+# Returns
+- `Bool` :
+  `true` if every grid reuses the same axis vector for each dimension;
+  otherwise `false`.
+"""
+@inline function same_coordinates(grids :: Vararg{StructuredGrid{D}}) where {D}
+    ref = grids[1].axes
+    @inbounds for i in 2:length(grids), d in 1:D
+        grids[i].axes[d] === ref[d] || return false
+    end
+    return true
+end
+
 ## Extent Base functions
 """
     Base.size(grid :: StructuredGrid)

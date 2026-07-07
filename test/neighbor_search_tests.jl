@@ -174,7 +174,7 @@ end
 
 # ── 1. Binary Radix Tree — Structural invariants ─────────────────────── #
 
-@testset "BinaryRadixTree — structural invariants" begin
+@testset "BinaryRadixTree -- structural invariants" begin
     offsets = 0:4
     for offset in offsets, D in (Val(2), Val(3)), n in 1:20
         enc = build_encoding(D, n, offset)
@@ -233,7 +233,7 @@ end
 
 # ── 1b. Identical-code degenerate case ───────────────────────────────── #
 
-@testset "BinaryRadixTree — identical Morton codes" begin
+@testset "BinaryRadixTree -- identical Morton codes" begin
     for D in (Val(2), Val(3)), n in (1, 2, 8, 16)
         enc = identical_encoding(D, n)
         brt = BinaryRadixTree(enc)
@@ -248,7 +248,7 @@ end
 
 # ── 2a. LinearBVH — AABB containment ────────────────────────────────── #
 
-@testset "LinearBVH — AABB containment" begin
+@testset "LinearBVH -- AABB containment" begin
     for D in (Val(2), Val(3)), n in (2, 8, 32)
         dim = typeof(D).parameters[1]
         coords = ntuple(_ -> collect(range(0.0, stop=1.0, length=n)), dim)
@@ -288,7 +288,7 @@ end
 
 # ── 2b. LinearBVH — node scale ───────────────────────────────────────── #
 
-@testset "LinearBVH — node scale" begin
+@testset "LinearBVH -- node scale" begin
     rng = MersenneTwister(0xBEEF)
     for dim in (2, 3)
         n = 64
@@ -306,7 +306,7 @@ end
 
 # ── 2c. LinearBVH — neighbour queries ───────────────────────────────── #
 
-@testset "LinearBVH — neighbour queries" begin
+@testset "LinearBVH -- neighbour queries" begin
     x = [0.0, 1.0, 0.0, 1.0]
     y = [0.0, 0.0, 1.0, 1.0]
     z = [0.0, 0.0, 0.0, 0.0]
@@ -334,7 +334,7 @@ end
 
 # ── 3a. Scatter pruning ─────────────────────────────────────────────── #
 
-@testset "LinearBVH — scatter pruning matches brute force" begin
+@testset "LinearBVH -- scatter pruning matches brute force" begin
     rng = MersenneTwister(0xCAFE)
     n = 128
     coords = ntuple(_ -> rand(rng, n), 3)
@@ -363,7 +363,7 @@ end
 
 # ── 3b. scale pruning tightens traversal ──────────────────────────────── #
 
-@testset "LinearBVH — scale pruning tightens traversal" begin
+@testset "LinearBVH -- scale pruning tightens traversal" begin
     rng = MersenneTwister(0x1234)
     n = 256
     coords = ntuple(_ -> rand(rng, n), 3)

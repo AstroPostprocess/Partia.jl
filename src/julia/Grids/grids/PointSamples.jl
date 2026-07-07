@@ -46,6 +46,32 @@ function Adapt.adapt_structure(to, x :: PointSamples{D}) where {D}
 end
 
 """
+    same_coordinates(grids :: Vararg{PointSamples{D}}) where {D}
+
+Check whether all supplied point-sample grids share the same coordinate vectors.
+
+This compares the coordinate containers by object identity (`===`) for each
+dimension. It does not compare coordinate values, so independently allocated
+coordinate arrays with equal contents are treated as different coordinates.
+
+# Parameters
+- `grids :: Vararg{PointSamples{D}}` :
+  Point-sample grids with the same dimensionality.
+
+# Returns
+- `Bool` :
+  `true` if every grid reuses the same coordinate vector for each dimension;
+  otherwise `false`.
+"""
+@inline function same_coordinates(grids :: Vararg{PointSamples{D}}) where {D}
+    ref = grids[1].coor
+    @inbounds for i in 2:length(grids), d in 1:D
+        grids[i].coor[d] === ref[d] || return false
+    end
+    return true
+end
+
+"""
     similar(grid :: PointSamples)
 
 Construct a new `PointSamples` with fresh storage for values but sharing

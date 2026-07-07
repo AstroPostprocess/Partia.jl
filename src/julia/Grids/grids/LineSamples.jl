@@ -55,6 +55,34 @@ function Adapt.adapt_structure(to, x :: LineSamples{D}) where {D}
 end
 
 """
+    same_coordinates(grids :: Vararg{LineSamples{D}}) where {D}
+
+Check whether all supplied line-sample grids share the same line geometry.
+
+This compares the origin and direction containers by object identity (`===`) for
+each dimension. It does not compare coordinate values, so independently
+allocated line geometry with equal contents is treated as different geometry.
+
+# Parameters
+- `grids :: Vararg{LineSamples{D}}` :
+  Line-sample grids with the same dimensionality.
+
+# Returns
+- `Bool` :
+  `true` if every grid reuses the same origin and direction vectors for each
+  dimension; otherwise `false`.
+"""
+@inline function same_coordinates(grids :: Vararg{LineSamples{D}}) where {D}
+    ref_origin = grids[1].origin
+    ref_direction = grids[1].direction
+    @inbounds for i in 2:length(grids), d in 1:D
+        grids[i].origin[d] === ref_origin[d] || return false
+        grids[i].direction[d] === ref_direction[d] || return false
+    end
+    return true
+end
+
+"""
     similar(grid :: LineSamples)
 
 Construct a new `LineSamples` with fresh storage for sample values while

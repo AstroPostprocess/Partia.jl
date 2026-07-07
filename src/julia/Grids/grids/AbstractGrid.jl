@@ -52,3 +52,16 @@ stored arrays or values.
 - `Type{TF}`: The floating-point element type parameter of the grid type.
 """
 @inline datatype( :: GRID) where {TF <: AbstractFloat, GRID <: AbstractGrid{TF}} = TF
+
+"""
+    same_coordinates()
+    same_coordinates(grid :: AbstractGrid)
+
+Return `true` for the empty and single-grid cases.
+
+Concrete grid types provide multi-grid methods that check whether all supplied
+grids share the same coordinate storage. For zero or one grid, the condition is
+vacuously true.
+"""
+@inline same_coordinates() = true
+@inline same_coordinates( :: AbstractGrid) = true

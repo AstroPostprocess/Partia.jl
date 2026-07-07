@@ -1,114 +1,93 @@
+######################################################################################
+
+#     PointSamples interpolation drivers
+
+######################################################################################
+
+#     Gather interpolation
+
+######################################################################################
 """
-    PointSamples_interpolation(backend :: CPUComputeBackend, grid_template :: PointSamples{3, TF},
-                          input :: AbstractInterpolationInput{3, TF}, catalog :: InterpolationCatalog{3, N, G, Div, C, L},
-                          itp_strategy :: Type{ITPSTRATEGY} = itpScatter)
+    PointSamples_interpolation!(
+        grids :: NTuple{L, PS},
+        input :: AbstractInterpolationInput{3, TF, Vector{TF}},
+        catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C},
+        LBVH :: LinearBVH{3, TF, Vector{TF}},
+        :: Type{itpGather},
+    ) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}}
 
-Perform SPH interpolation over an arbitrary point-sample grid using CPU execution.
-This routine dispatches to the CPU backend, prepares all interpolation structures,
-and evaluates each grid point in parallel using threaded execution.
+Evaluate point-sample interpolation in place using gather interpolation and
+already prepared interpolation state.
 
-# Parameters
-- `backend :: CPUComputeBackend`
-  Execution backend specifying CPU-based interpolation.
-
-- `grid_template :: PointSamples{3, TF}`
-  Template grid defining dimensionality, coordinate arrays, and memory layout of
-  all output grids.
-
-- `input :: AbstractInterpolationInput{3, TF}`
-  The interpolation input holding particle positions, smoothing lengths, field
-  data, and the SPH kernel.
-
-- `catalog :: InterpolationCatalog{3, N, G, Div, C, L}`
-  Full interpolation catalog describing which scalar, gradient, divergence, and
-  curl quantities are to be produced.
-
-- `itp_strategy :: Type{ITPSTRATEGY}`
-  Interpolation strategy type controlling gather/scatter modes.
-
-# Returns
-`GridBundle{L, typeof(grids[1])}` containing:
-- `grids` : NTuple of output grids storing interpolated results.
-- `names` : Ordered list of all output quantity names, matching the grid tuple order.
+This is the core CPU implementation for reusable output grids. It assumes the
+output `grids`, particle `input`, concise catalog, and Morton-reordered `LBVH`
+have already been prepared by an outer wrapper. The function writes directly
+into the supplied `PointSamples` grids and does not allocate a `GridBundle`.
 """
-function PointSamples_interpolation(backend :: CPUComputeBackend, grid_template :: PointSamples{3, TF}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, G, Div, C, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    grids_result, LBVH, names, catalog_consice = initialize_interpolation(backend, grid_template, input, catalog)
-    npoints = length(grid_template)
-    @info "     SPH Interpolation: Start interpolation..."
-    @inbounds @threads for i in 1:npoints
-        _point_samples_interpolation_kernel!(backend, grids_result, i, input, catalog_consice, LBVH, itp_strategy)
+function PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpGather}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
+    # Exit if nothing to do
+    L == 0 && return nothing
+
+    # Make sure every grids share the same geometry
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
     end
-    @info "     SPH Interpolation: End interpolation..."
 
-    # Output (No extra operation, keep interface clean)
-    grids = grids_result
-    return GridBundle(grids, names)
+    # Prepare multiprocessing
+    npoints = length(grids[1])
+
+    # Do interpolation
+    @inbounds @threads for i in 1:npoints
+        _point_samples_interpolation_kernel!(grids, i, input, catalog_consice, LBVH, itpGather)
+    end
+
+    return nothing
 end
 
+######################################################################################
 
+#     Scatter interpolation
+
+######################################################################################
 """
-    PointSamples_interpolation(backend :: CPUComputeBackend, grid_template :: PointSamples{3, TF},
-                               input :: AbstractInterpolationInput{3, TF}, LBVH :: LinearBVH{3, TF},
-                               catalog :: InterpolationCatalog{3, N, G, Div, C, L},
-                               itp_strategy :: Type{ITPSTRATEGY} = itpScatter)
+    PointSamples_interpolation!(
+        grids :: NTuple{L, PS},
+        input :: AbstractInterpolationInput{3, TF, Vector{TF}},
+        catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C},
+        LBVH :: LinearBVH{3, TF, Vector{TF}},
+        :: Type{itpScatter},
+    ) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}}
 
-Perform SPH interpolation over an arbitrary point-sample grid using CPU
-execution with an externally supplied `LinearBVH`.
+Evaluate point-sample interpolation in place using scatter interpolation and
+already prepared interpolation state.
 
-This routine assumes that `input` has already been reordered into the same
-Morton leaf order used to build `LBVH`. Before interpolation begins, it checks
-that the reordered spatial layout of `input` matches the leaf ordering stored in
-`LBVH`. It then allocates output grids, builds the concise interpolation
-catalog, and evaluates each grid point in parallel using threaded execution.
-
-# Parameters
-- `backend :: CPUComputeBackend`
-  Execution backend specifying CPU-based interpolation.
-
-- `grid_template :: PointSamples{3, TF}`
-  Template grid defining dimensionality, coordinate arrays, and memory layout of
-  all output grids.
-
-- `input :: AbstractInterpolationInput{3, TF}`
-  The interpolation input holding particle positions, smoothing lengths, field
-  data, and the SPH kernel. Its current ordering must already match the LBVH
-  leaf ordering.
-
-- `LBVH :: LinearBVH{3, TF}`
-  A prebuilt `LinearBVH` used for neighbour traversal during interpolation.
-
-- `catalog :: InterpolationCatalog{3, N, G, Div, C, L}`
-  Full interpolation catalog describing which scalar, gradient, divergence, and
-  curl quantities are to be produced.
-
-- `itp_strategy :: Type{ITPSTRATEGY}`
-  Interpolation strategy type controlling gather/scatter modes.
-
-# Returns
-`GridBundle{L, typeof(grids[1])}` containing:
-- `grids` : NTuple of output grids storing interpolated results.
-- `names` : Ordered list of all output quantity names, matching the grid tuple order.
-
-# Throws
-- `ArgumentError`: If the leaf order stored in `LBVH` does not match the
-  current spatial ordering of `input`.
+This is the core CPU implementation for reusable output grids. It assumes the
+output `grids`, particle `input`, concise catalog, and Morton-reordered `LBVH`
+have already been prepared by an outer wrapper. The function writes directly
+into the supplied `PointSamples` grids and does not allocate a `GridBundle`.
 """
-function PointSamples_interpolation(backend :: CPUComputeBackend, grid_template :: PointSamples{3, TF}, input :: INPUT, LBVH :: LinearBVH{3, TF}, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, G, Div, C, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    # Consistency test for LBVH
-    matches_lbvh_leaf_order(input, LBVH) || throw(ArgumentError(
-        "Provided LBVH leaf order does not match the current input ordering. " *
-        "Ensure the LBVH was built from the same Morton-reordered input."
-    ))
+function PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
+    # Exit if nothing to do
+    L == 0 && return nothing
 
-    grids_result, names, catalog_consice = initialize_interpolation(backend, grid_template, catalog)
-    npoints = length(grid_template)
-    @info "     SPH Interpolation: Start interpolation..."
-    @inbounds @threads for i in 1:npoints
-        _point_samples_interpolation_kernel!(backend, grids_result, i, input, catalog_consice, LBVH, itp_strategy)
+    # Make sure every grids share the same geometry
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
     end
-    @info "     SPH Interpolation: End interpolation..."
 
-    # Output (No extra operation, keep interface clean)
-    grids = grids_result
-    return GridBundle(grids, names)
+    # Prepare multiprocessing
+    npoints = length(grids[1])
+
+    # Do interpolation
+    @inbounds @threads for i in 1:npoints
+        _point_samples_interpolation_kernel!(grids, i, input, catalog_consice, LBVH, itpScatter)
+    end
+
+    return nothing
 end

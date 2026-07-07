@@ -53,7 +53,7 @@ end
 @testset "PointSamples interpolation -- CPU consistency" begin
     input, catalog, LBVH = make_grid_interpolation_fixture()
     grid_template = make_point_samples_template()
-    result = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog)
+    result = PointSamples_interpolation(grid_template, input, catalog)
 
     scalar_slot = ki_mod.scalar_index(catalog, :temp)
     div_slots = ki_mod.div_slots(catalog, :v)
@@ -82,8 +82,8 @@ end
     standard_input, smoothing_input, catalog = make_smoothing_volume_grid_interpolation_fixture()
     grid_template = make_point_samples_template()
 
-    standard_result = PointSamples_interpolation(CPUComputeBackend(), grid_template, standard_input, catalog, itpScatter)
-    smoothing_result = PointSamples_interpolation(CPUComputeBackend(), grid_template, smoothing_input, catalog, itpScatter)
+    standard_result = PointSamples_interpolation(grid_template, standard_input, catalog, itpScatter)
+    smoothing_result = PointSamples_interpolation(grid_template, smoothing_input, catalog, itpScatter)
 
     @test smoothing_result.names == standard_result.names
     @test length(smoothing_result.grids) == length(standard_result.grids)
@@ -96,8 +96,8 @@ end
     standard_lbvh = LinearBVH!(standard_input_lbvh)
     smoothing_lbvh = LinearBVH!(smoothing_input_lbvh)
 
-    standard_manual = PointSamples_interpolation(CPUComputeBackend(), grid_template, standard_input_lbvh, standard_lbvh, catalog_lbvh, itpScatter)
-    smoothing_manual = PointSamples_interpolation(CPUComputeBackend(), grid_template, smoothing_input_lbvh, smoothing_lbvh, catalog_lbvh, itpScatter)
+    standard_manual = PointSamples_interpolation(grid_template, standard_input_lbvh, catalog_lbvh, standard_lbvh, itpScatter)
+    smoothing_manual = PointSamples_interpolation(grid_template, smoothing_input_lbvh, catalog_lbvh, smoothing_lbvh, itpScatter)
 
     @test smoothing_manual.names == standard_manual.names
     for i in eachindex(standard_manual.grids)
@@ -112,8 +112,8 @@ end
     input, catalog, LBVH = make_grid_interpolation_fixture()
     grid_template = make_point_samples_template()
 
-    result_auto = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog)
-    result_manual = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, LBVH, catalog)
+    result_auto = PointSamples_interpolation(grid_template, input, catalog)
+    result_manual = PointSamples_interpolation(grid_template, input, catalog, LBVH)
 
     @test result_manual.names == result_auto.names
     @test length(result_manual.grids) == length(result_auto.grids)
@@ -135,11 +135,10 @@ end
     end
 
     @test_throws ArgumentError PointSamples_interpolation(
-        CPUComputeBackend(),
         grid_template,
         mismatched_input,
-        LBVH,
         catalog,
+        LBVH,
         itpScatter,
     )
 end
@@ -149,7 +148,7 @@ end
 @testset "LineSamples interpolation -- CPU scatter consistency" begin
     input, catalog, _ = make_line_interpolation_fixture()
     grid_template = make_line_samples_template()
-    result = LineSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, itpScatter)
+    result = LineSamples_interpolation(grid_template, input, catalog)
 
     scalar_slots = catalog.scalar_slots
 
@@ -186,8 +185,8 @@ end
     standard_input, smoothing_input, catalog = make_smoothing_volume_line_interpolation_fixture()
     grid_template = make_line_samples_template()
 
-    standard_result = LineSamples_interpolation(CPUComputeBackend(), grid_template, standard_input, catalog, itpScatter)
-    smoothing_result = LineSamples_interpolation(CPUComputeBackend(), grid_template, smoothing_input, catalog, itpScatter)
+    standard_result = LineSamples_interpolation(grid_template, standard_input, catalog)
+    smoothing_result = LineSamples_interpolation(grid_template, smoothing_input, catalog)
 
     @test smoothing_result.names == standard_result.names
     @test length(smoothing_result.grids) == length(standard_result.grids)
@@ -201,8 +200,8 @@ end
     standard_lbvh = LinearBVH!(standard_input_lbvh)
     smoothing_lbvh = LinearBVH!(smoothing_input_lbvh)
 
-    standard_manual = LineSamples_interpolation(CPUComputeBackend(), grid_template, standard_input_lbvh, standard_lbvh, catalog_lbvh, itpScatter)
-    smoothing_manual = LineSamples_interpolation(CPUComputeBackend(), grid_template, smoothing_input_lbvh, smoothing_lbvh, catalog_lbvh, itpScatter)
+    standard_manual = LineSamples_interpolation(grid_template, standard_input_lbvh, catalog_lbvh, standard_lbvh)
+    smoothing_manual = LineSamples_interpolation(grid_template, smoothing_input_lbvh, catalog_lbvh, smoothing_lbvh)
 
     @test smoothing_manual.names == standard_manual.names
     for i in eachindex(standard_manual.grids)
@@ -218,8 +217,8 @@ end
     input, catalog, LBVH = make_line_interpolation_fixture()
     grid_template = make_line_samples_template()
 
-    result_auto = LineSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, itpScatter)
-    result_manual = LineSamples_interpolation(CPUComputeBackend(), grid_template, input, LBVH, catalog, itpScatter)
+    result_auto = LineSamples_interpolation(grid_template, input, catalog)
+    result_manual = LineSamples_interpolation(grid_template, input, catalog, LBVH)
 
     @test result_manual.names == result_auto.names
     @test length(result_manual.grids) == length(result_auto.grids)
@@ -242,12 +241,10 @@ end
     end
 
     @test_throws ArgumentError LineSamples_interpolation(
-        CPUComputeBackend(),
         grid_template,
         mismatched_input,
-        LBVH,
         catalog,
-        itpScatter,
+        LBVH,
     )
 end
 
@@ -257,10 +254,10 @@ end
     line_input, line_catalog, _ = make_line_interpolation_fixture()
     line_template = make_line_samples_template()
 
-    @test_throws ArgumentError LineSamples_interpolation(CPUComputeBackend(), line_template, line_input, line_catalog, itpGather)
+    @test_throws MethodError LineSamples_interpolation(line_template, line_input, line_catalog, itpGather)
 
     point_input, point_catalog, _ = make_grid_interpolation_fixture()
-    @test_throws MethodError LineSamples_interpolation(CPUComputeBackend(), line_template, point_input, point_catalog, itpScatter)
+    @test_throws MethodError LineSamples_interpolation(line_template, point_input, point_catalog)
 end
 
 # ── 3. PointSamples — analytic linear-field regression ───────────────── #
@@ -270,7 +267,7 @@ end
     grid_template = make_analytic_point_samples()
 
     for strategy in (itpGather, itpScatter)
-        result = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, strategy)
+        result = PointSamples_interpolation(grid_template, input, catalog, strategy)
 
         for i in eachindex(grid_template.grid)
             point = (

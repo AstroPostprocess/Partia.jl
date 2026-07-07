@@ -4,7 +4,7 @@
 # # Line-integrated samples use particle-side smoothing lengths only
 
 ######################################################################################
-@inline function _line_samples_interpolation_kernel!( :: CPUComputeBackend, grids :: NTuple{N, LineSamples{3, TF}}, i :: Int, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}}
+@inline function _line_samples_interpolation_kernel!(grids :: NTuple{N, LS}, i :: Int, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, Vector{TF}}) where {N, TF <: AbstractFloat, LS <: LineSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
     # Get line sample geometry
     @inbounds begin
         geometry = grids[1]

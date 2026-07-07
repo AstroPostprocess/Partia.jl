@@ -103,7 +103,12 @@ include(joinpath(@__DIR__, "grid_interpolation", "kernels", "LineSamples_kernel.
 ### Drivers
 include(joinpath(@__DIR__, "grid_interpolation", "drivers", "PointSamples_driver.jl"))
 include(joinpath(@__DIR__, "grid_interpolation", "drivers", "LineSamples_driver.jl"))
-include(joinpath(@__DIR__, "grid_interpolation", "drivers", "StructuredGrid_driver.jl"))
+
+### Wrappers
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "wrapper_utils.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "PointSamples_wrapper.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "LineSamples_wrapper.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "StructuredGrid_wrapper.jl"))
 
 
 # Export function, marco, const...

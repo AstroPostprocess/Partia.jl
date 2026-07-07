@@ -259,14 +259,12 @@ end
     flattened_template = Partia.Grids.flatten(Cartesian, structured_template)
 
     point_result = PointSamples_interpolation(
-        CPUComputeBackend(),
         flattened_template,
         input,
         catalog,
         itpScatter,
     )
     structured_result = StructuredGrid_interpolation(
-        CPUComputeBackend(),
         Cartesian,
         structured_template,
         input,
@@ -288,7 +286,6 @@ end
     structured_template = make_structured_grid_template()
 
     standard_result = StructuredGrid_interpolation(
-        CPUComputeBackend(),
         Cartesian,
         structured_template,
         standard_input,
@@ -296,7 +293,6 @@ end
         itpScatter,
     )
     smoothing_result = StructuredGrid_interpolation(
-        CPUComputeBackend(),
         Cartesian,
         structured_template,
         smoothing_input,
@@ -323,14 +319,12 @@ end
     )
         flattened_template = Partia.Grids.flatten(coord, template)
         point_result = PointSamples_interpolation(
-            CPUComputeBackend(),
             flattened_template,
             input,
             catalog,
             itpScatter,
         )
         structured_result = StructuredGrid_interpolation(
-            CPUComputeBackend(),
             coord,
             template,
             input,
@@ -361,7 +355,7 @@ end
             sample_coords = explicit_cartesian_coords(coord, structured_template)
 
             for strategy in (itpGather, itpScatter)
-                result = StructuredGrid_interpolation(CPUComputeBackend(), coord, structured_template, input, catalog, strategy)
+                result = StructuredGrid_interpolation(coord, structured_template, input, catalog, strategy)
 
                 q_grid = vec(result.grids[1].grid)
                 gradx_grid = vec(result.grids[2].grid)
