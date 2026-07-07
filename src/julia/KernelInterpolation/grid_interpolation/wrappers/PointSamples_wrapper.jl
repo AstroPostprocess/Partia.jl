@@ -32,7 +32,7 @@ function PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, cat
     # Concise catalog
     catalog_consice = to_concise_catalog(catalog)
 
-    PointSamples_interpolation!(grids, input, catalog_consice, LBVH, itp_strategy)
+    PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH, itp_strategy)
 
     return GridBundle(grids, names)
 end

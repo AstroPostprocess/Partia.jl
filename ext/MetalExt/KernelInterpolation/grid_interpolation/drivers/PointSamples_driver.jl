@@ -7,7 +7,7 @@
 #     Gather interpolation
 
 ######################################################################################
-function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}, :: Type{itpGather}) where {N, G, Div, C, L, TF <: Float32, PS <: PointSamples{3, TF, MtlVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
+function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}, :: Type{itpGather}) where {N, G, Div, C, L, TF <: Float32, PS <: PointSamples{3, TF, MtlVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
     L == 0 && return nothing
 
     if L > 1
@@ -31,7 +31,7 @@ end
 #     Scatter interpolation
 
 ######################################################################################
-function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: Float32, PS <: PointSamples{3, TF, MtlVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
+function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: Float32, PS <: PointSamples{3, TF, MtlVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
     L == 0 && return nothing
 
     if L > 1

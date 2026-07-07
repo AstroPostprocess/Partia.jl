@@ -8,7 +8,7 @@
 
 ######################################################################################
 """
-    PointSamples_interpolation!(
+    PointSamples_interpolation_prepared!(
         grids :: NTuple{L, PS},
         input :: AbstractInterpolationInput{3, TF, Vector{TF}},
         catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C},
@@ -24,7 +24,7 @@ output `grids`, particle `input`, concise catalog, and Morton-reordered `LBVH`
 have already been prepared by an outer wrapper. The function writes directly
 into the supplied `PointSamples` grids and does not allocate a `GridBundle`.
 """
-function PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpGather}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
+function PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpGather}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
     # Exit if nothing to do
     L == 0 && return nothing
 
@@ -53,7 +53,7 @@ end
 
 ######################################################################################
 """
-    PointSamples_interpolation!(
+    PointSamples_interpolation_prepared!(
         grids :: NTuple{L, PS},
         input :: AbstractInterpolationInput{3, TF, Vector{TF}},
         catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C},
@@ -69,7 +69,7 @@ output `grids`, particle `input`, concise catalog, and Morton-reordered `LBVH`
 have already been prepared by an outer wrapper. The function writes directly
 into the supplied `PointSamples` grids and does not allocate a `GridBundle`.
 """
-function PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
+function PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
     # Exit if nothing to do
     L == 0 && return nothing
 

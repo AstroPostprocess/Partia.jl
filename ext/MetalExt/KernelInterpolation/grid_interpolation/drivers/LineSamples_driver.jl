@@ -3,7 +3,7 @@
 #     Metal LineSamples interpolation drivers
 
 ######################################################################################
-function Partia.LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}) where {N, TF <: Float32, LS <: LineSamples{3, TF, MtlVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
+function Partia.LineSamples_interpolation_prepared!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}) where {N, TF <: Float32, LS <: LineSamples{3, TF, MtlVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
     N == 0 && return nothing
 
     if N > 1
