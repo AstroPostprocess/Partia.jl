@@ -93,9 +93,6 @@ include(joinpath(@__DIR__, "single_point_interpolation", "scatter_interpolation.
 include(joinpath(@__DIR__, "line_integrated_interpolation", "line_integrated_scalar_interpolation.jl"))
 
 ## Grid interpolation
-### Setup
-include(joinpath(@__DIR__, "grid_interpolation", "setup", "initialize_interpolation.jl"))
-
 ### Kernels
 include(joinpath(@__DIR__, "grid_interpolation", "kernels", "PointSamples_kernel.jl"))
 include(joinpath(@__DIR__, "grid_interpolation", "kernels", "LineSamples_kernel.jl"))
