@@ -2,7 +2,7 @@
 
 # Morton encoding data structure and constructors for particle spatial indexing.
 #     by Wei-Shan Su,
-#     May 4, 2026
+#     July 12, 2026
 
 ######################################################################################
 ################# Define structures #################

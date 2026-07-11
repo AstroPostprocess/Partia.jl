@@ -2,7 +2,7 @@
 
 # Fused coordinate quantization and Morton encoding kernels.
 #     by Wei-Shan Su,
-#     May 4, 2026
+#     July 12, 2026
 
 ######################################################################################
 

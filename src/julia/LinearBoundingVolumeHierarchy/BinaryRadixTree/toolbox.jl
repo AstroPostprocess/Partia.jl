@@ -3,7 +3,7 @@
 # Binary radix tree helper routines for unified node IDs, Karras range/split
 # construction, and stackless escape-link generation.
 #     by Wei-Shan Su,
-#     May 4, 2026
+#     July 12, 2026
 
 ######################################################################################
 @inline is_leaf_id(node :: Int32, nleaf :: Int) = (node != 0) & (node >= Int32(nleaf))

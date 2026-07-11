@@ -8,7 +8,7 @@ Implementations live under the `MortonEncoding/`, `BinaryRadixTree/`,
 `AxisAlignedBoundingBox/`, `BoxScale/`, and `LinearBVH/` directories.
 
     by Wei-Shan Su,
-    May 4, 2026
+    July 12, 2026
 """
 module LinearBoundingVolumeHierarchy
 using .Threads

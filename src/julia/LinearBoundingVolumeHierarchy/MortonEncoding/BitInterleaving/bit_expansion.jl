@@ -2,7 +2,7 @@
 
 # Bit spreading primitives for Morton interleaving.
 #     by Wei-Shan Su,
-#     May 4, 2026
+#     July 12, 2026
 
 # The 3D expansion masks are adapted from:
 # https://stackoverflow.com/questions/1024754/how-to-compute-a-3d-morton-number-interleave-the-bits-of-3-ints
