@@ -17,8 +17,12 @@ using StaticArrays
 using Adapt
 
 # Morton encoding
+include(joinpath(@__DIR__, "MortonEncoding", "CoordinateQuantization", "quantization_scale.jl"))
+include(joinpath(@__DIR__, "MortonEncoding", "BitInterleaving", "bit_expansion.jl"))
+include(joinpath(@__DIR__, "MortonEncoding", "BitInterleaving", "morton_code.jl"))
+include(joinpath(@__DIR__, "MortonEncoding", "morton_encoding_kernel.jl"))
 include(joinpath(@__DIR__, "MortonEncoding", "MortonEncoding.jl"))
-include(joinpath(@__DIR__, "MortonEncoding", "toolbox.jl"))
+include(joinpath(@__DIR__, "MortonOrdering", "morton_ordering.jl"))
 
 # Binary radix tree
 include(joinpath(@__DIR__, "BinaryRadixTree", "toolbox.jl"))
@@ -37,8 +41,8 @@ include(joinpath(@__DIR__, "BoxScale", "BoxScale.jl"))
 # Linear bounding volume hierarchy (LinearBVH)
 include(joinpath(@__DIR__, "LinearBVH", "LinearBVH.jl"))
 include(joinpath(@__DIR__, "LinearBVH", "toolbox.jl"))
-include(joinpath(@__DIR__, "LinearBVH", "LinearBVHTraversalMacros.jl"))
-include(joinpath(@__DIR__, "LinearBVH", "LinearBVHQueries.jl"))
+include(joinpath(@__DIR__, "LinearBVH", "linear_bvh_traversal_macros.jl"))
+include(joinpath(@__DIR__, "LinearBVH", "linear_bvh_queries.jl"))
 
 # Export functions, macros, constants, and types.
 for name in filter(s -> !startswith(string(s), "#"), names(@__MODULE__, all = true))

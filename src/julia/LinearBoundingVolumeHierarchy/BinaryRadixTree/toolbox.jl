@@ -11,6 +11,35 @@
 @inline leaf_index(node :: Int32, nleaf :: Int) = Int(node) - (nleaf - 1)               # 1..nleaf
 @inline internal_index(node :: Int32) = Int(node)                                     # 1..ninternal
 
+"""
+    _longest_common_prefix_length(a, b)
+
+Return the number of shared leading bits between two Morton codes.
+"""
+@inline function _longest_common_prefix_length(a :: T, b :: T) :: Int64 where {T <: Unsigned}
+    return leading_zeros(xor(a, b))
+end
+
+"""
+    _longest_common_prefix_length(codes, i, j)
+
+Return the shared leading-bit count for two entries, breaking equal codes by index.
+"""
+@inline function _longest_common_prefix_length(codes :: V, i :: Int, j :: Int) :: Int64 where {T <: Unsigned, V <: AbstractVector{T}}
+    a = codes[i]
+    b = codes[j]
+    return a == b ? _longest_common_prefix_length(UInt64(i), UInt64(j)) : _longest_common_prefix_length(a, b)
+end
+
+"""
+    _longest_common_prefix_length(codes, i)
+
+Return the shared leading-bit count for adjacent entries `i` and `i + 1`.
+"""
+@inline function _longest_common_prefix_length(codes :: V, i :: Int) :: Int64 where {T <: Unsigned, V <: AbstractVector{T}}
+    return _longest_common_prefix_length(codes, i, i + 1)
+end
+
 @inline function _range_direction(codes :: V, i :: Int) where {TI <: Unsigned, V <: AbstractVector{TI}}
     δL = (i > 1) ?  _longest_common_prefix_length(codes, i, i - 1) : -1
     δR = (i < length(codes)) ? _longest_common_prefix_length(codes, i, i + 1) : -1
