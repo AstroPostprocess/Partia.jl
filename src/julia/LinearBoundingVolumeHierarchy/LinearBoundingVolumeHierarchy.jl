@@ -15,6 +15,7 @@ using .Threads
 using Statistics
 using StaticArrays
 using Adapt
+using UnsignedRadixSorts
 
 # Morton encoding
 include(joinpath(@__DIR__, "MortonEncoding", "CoordinateQuantization", "quantization_scale.jl"))

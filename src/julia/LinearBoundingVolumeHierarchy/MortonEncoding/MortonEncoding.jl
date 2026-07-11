@@ -22,19 +22,23 @@ end
 
 ################# Encoding Morton code #################
 """
-    MortonEncoding(x :: V, y :: V, z :: V; CodeType :: Type{TI}=UInt64)
+    MortonEncoding(x::Vector{T}, y::Vector{T}, z::Vector{T}, ::Val{TileSize}=Val(4096);
+                   CodeType=UInt64,
+                   SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
 Encode a set of 3D particle coordinates into Morton codes.
 
 # Parameters
-- `x, y, z :: AbstractVector{T}`: Particle positions along each axis (floating-point).
+- `x, y, z :: Vector{T}`: Particle positions along each axis (floating-point).
 - `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`).
+- `SortWorkSpace :: OnesweepWorkspace{TI}`: Reusable workspace for Morton-code sorting.
+- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
 
 # Returns
-- `MortonEncoding{3, T, TI, V, typeof(order)}`: Encoding containing Morton codes,
+- `MortonEncoding{3, T, TI, Vector{T}, Vector{TI}}`: Encoding containing Morton codes,
   original particle indices, and copied coordinates, all ordered by Morton code.
 """
-function MortonEncoding(x :: V, y :: V, z :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
+function MortonEncoding(x :: Vector{T}, y :: Vector{T}, z :: Vector{T}, :: Val{TileSize} = Val(4096); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
     # Verify length of input arrays
     isempty(x) && throw(ArgumentError("coordinates must not be empty"))
     isempty(y) && throw(ArgumentError("coordinates must not be empty"))
@@ -81,15 +85,17 @@ function MortonEncoding(x :: V, y :: V, z :: V; CodeType :: Type{TI} = UInt64) w
     end
 
     # Construct structure
-    enc = MortonEncoding{3, T, TI, V, typeof(order)}(order, codes, (xcopy, ycopy, zcopy))
+    enc = MortonEncoding{3, T, TI, Vector{T}, Vector{TI}}(order, codes, (xcopy, ycopy, zcopy))
 
     # Sort by morton
-    sort_by_morton!(enc)
+    sort_by_morton!(enc, SortWorkSpace, Val(TileSize))
     return enc
 end
 
 """
-    MortonEncoding(points :: NTuple{3,V}; CodeType :: Type{TI}=UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
+    MortonEncoding(points::NTuple{3,Vector{T}}, ::Val{TileSize}=Val(4096);
+                   CodeType=UInt64,
+                   SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
 Encode a set of 3D particle coordinates into Morton codes.
 
@@ -98,33 +104,39 @@ where `points = (x, y, z)`. It forwards to
 `MortonEncoding(x, y, z; CodeType=CodeType)`.
 
 # Parameters
-- `points :: NTuple{3,V}`: Particle coordinates stored as `(x, y, z)`.
+- `points :: NTuple{3,Vector{T}}`: Particle coordinates stored as `(x, y, z)`.
 - `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding
   (`UInt32` or `UInt64`).
+- `SortWorkSpace :: OnesweepWorkspace{TI}`: Reusable workspace for Morton-code sorting.
+- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
 
 # Returns
 - A 3D `MortonEncoding` with codes, indices, and coordinates ordered by Morton code.
 """
-function MortonEncoding(points :: NTuple{3, V}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
+function MortonEncoding(points :: NTuple{3, Vector{T}}, :: Val{TileSize} = Val(4096); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
     x = points[1]; y = points[2]; z = points[3]
-    return MortonEncoding(x, y, z, CodeType = CodeType)
+    return MortonEncoding(x, y, z, Val(TileSize); CodeType, SortWorkSpace)
 end
 
 """
-    MortonEncoding(x :: V, y :: V; CodeType :: Type{TI}=UInt64)
+    MortonEncoding(x::Vector{T}, y::Vector{T}, ::Val{TileSize}=Val(4096);
+                   CodeType=UInt64,
+                   SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
 Encode a set of 2D particle coordinates into Morton codes.
 
 # Parameters
-- `x, y :: AbstractVector{T}`: Particle positions along each axis (floating-point).
+- `x, y :: Vector{T}`: Particle positions along each axis (floating-point).
 - `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding
   (`UInt32` or `UInt64`).
+- `SortWorkSpace :: OnesweepWorkspace{TI}`: Reusable workspace for Morton-code sorting.
+- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
 
 # Returns
-- `MortonEncoding{2, T, TI, V, typeof(order)}`: Encoding containing Morton codes,
+- `MortonEncoding{2, T, TI, Vector{T}, Vector{TI}}`: Encoding containing Morton codes,
   original particle indices, and copied coordinates, all ordered by Morton code.
 """
-function MortonEncoding(x :: V, y :: V; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
+function MortonEncoding(x :: Vector{T}, y :: Vector{T}, :: Val{TileSize} = Val(4096); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
     # Verify length of input arrays
     isempty(x) && throw(ArgumentError("coordinates must not be empty"))
     isempty(y) && throw(ArgumentError("coordinates must not be empty"))
@@ -164,13 +176,15 @@ function MortonEncoding(x :: V, y :: V; CodeType :: Type{TI} = UInt64) where {TI
         _morton_encoding_kernel!(codes, i, (xcopy, ycopy), (invΔx, invΔy), (cx, cy))
     end
 
-    enc = MortonEncoding{2, T, TI, V, typeof(order)}(order, codes, (xcopy, ycopy))
-    sort_by_morton!(enc)
+    enc = MortonEncoding{2, T, TI, Vector{T}, Vector{TI}}(order, codes, (xcopy, ycopy))
+    sort_by_morton!(enc, SortWorkSpace, Val(TileSize))
     return enc
 end
 
 """
-    MortonEncoding(points :: NTuple{2,V}; CodeType :: Type{TI}=UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
+    MortonEncoding(points::NTuple{2,Vector{T}}, ::Val{TileSize}=Val(4096);
+                   CodeType=UInt64,
+                   SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
 Encode a set of 2D particle coordinates into Morton codes.
 
@@ -179,14 +193,16 @@ where `points = (x, y)`. It forwards to
 `MortonEncoding(x, y; CodeType=CodeType)`.
 
 # Parameters
-- `points :: NTuple{2,V}`: Particle coordinates stored as `(x, y)`.
+- `points :: NTuple{2,Vector{T}}`: Particle coordinates stored as `(x, y)`.
 - `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding
   (`UInt32` or `UInt64`).
+- `SortWorkSpace :: OnesweepWorkspace{TI}`: Reusable workspace for Morton-code sorting.
+- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
 
 # Returns
 - A 2D `MortonEncoding` with codes, indices, and coordinates ordered by Morton code.
 """
-function MortonEncoding(points :: NTuple{2, V}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat, V <: AbstractVector{T}}
+function MortonEncoding(points :: NTuple{2, Vector{T}}, :: Val{TileSize} = Val(4096); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
     x = points[1]; y = points[2]
-    return MortonEncoding(x, y, CodeType = CodeType)
+    return MortonEncoding(x, y, Val(TileSize); CodeType, SortWorkSpace)
 end

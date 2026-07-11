@@ -6,23 +6,31 @@
 
 ######################################################################################
 """
-    sort_by_morton!(enc :: MortonEncoding)
+    sort_by_morton!(enc::MortonEncoding)
+    sort_by_morton!(enc::MortonEncoding, ws::OnesweepWorkspace,
+                    ::Val{TileSize})
 
-Sort particles by Morton code in-place.
+Sort a `Vector`-backed encoding in-place by ascending Morton code with the
+OneSweep radix sorter. The same permutation is applied to `enc.order` and every
+coordinate vector in `enc.coord`. Repeated codes are made strictly increasing
+after sorting, as required by the binary radix tree.
 
 # Parameters
-- `enc :: MortonEncoding`: The encoding struct to be sorted.
+
+- `enc`: `Vector`-backed Morton encoding to mutate.
+- `ws`: OneSweep workspace whose key-vector type matches `enc.codes`. Reuse it
+  across calls to avoid repeated workspace allocation.
+- `::Val{TileSize}`: Compile-time OneSweep tile size.
 
 # Returns
-- `p :: Vector{Int}`: The permutation indices used for sorting.
+
+The 1-based sorting permutation.
 """
-@inline function sort_by_morton!(enc :: MortonEncoding)
-    p = sortperm(enc.codes; alg=QuickSort)
+@inline function sort_by_morton!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, ws :: OnesweepWorkspace{TI, Vector{TI}, Vector{UInt32}}, :: Val{TileSize}) where {D, TF <: AbstractFloat, TI <: Unsigned, TileSize}
+    p = onesweep_sortperm!(enc.codes, ws, Val(TileSize))
     @inbounds for i in eachindex(enc.order)
-        enc.order[i] = i
+        enc.order[i] = p[i]
     end
-    Base.permute!(enc.codes, p)
-    Base.permute!(enc.order, p)
     for dir in enc.coord
         Base.permute!(dir, p)
     end
@@ -32,4 +40,9 @@ Sort particles by Morton code in-place.
         end
     end
     return p
+end
+
+@inline function sort_by_morton!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}) where {D, TF <: AbstractFloat, TI <: Unsigned}
+    ws = OnesweepWorkspace(typeof(enc.codes))
+    return sort_by_morton!(enc, ws, Val(4096))
 end

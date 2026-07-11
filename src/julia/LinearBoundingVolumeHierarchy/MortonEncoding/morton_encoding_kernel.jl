@@ -6,7 +6,7 @@
 
 ######################################################################################
 
-@inline function _morton_encoding_kernel!(codes :: VI, i :: Int, coords :: NTuple{2, V}, invΔ :: NTuple{2, T}, c :: NTuple{2, T}) where {TI <: Unsigned, T <: AbstractFloat, VI <: AbstractVector{TI}, V <: AbstractVector{T}}
+@inline function _morton_encoding_kernel!(codes :: Vector{TI}, i :: Int, coords :: NTuple{2, Vector{T}}, invΔ :: NTuple{2, T}, c :: NTuple{2, T}) where {TI <: Unsigned, T <: AbstractFloat}
     x, y = coords
     invΔx, invΔy = invΔ
     cx, cy = c
@@ -28,7 +28,7 @@
     return nothing
 end
 
-@inline function _morton_encoding_kernel!(codes :: VI, i :: Int, coords :: NTuple{3, V}, invΔ :: NTuple{3, T}, c :: NTuple{3, T}) where {TI <: Unsigned, T <: AbstractFloat, VI <: AbstractVector{TI}, V <: AbstractVector{T}}
+@inline function _morton_encoding_kernel!(codes :: Vector{TI}, i :: Int, coords :: NTuple{3, Vector{T}}, invΔ :: NTuple{3, T}, c :: NTuple{3, T}) where {TI <: Unsigned, T <: AbstractFloat}
     x, y, z = coords
     invΔx, invΔy, invΔz = invΔ
     cx, cy, cz = c
