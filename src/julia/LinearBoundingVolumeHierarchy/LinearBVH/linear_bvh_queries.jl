@@ -1,20 +1,19 @@
 """
     LBVH_probe_neighbors(LBVH, point, radius)
 
-Probe all leaf particles in a Linear Bounding Volume Hierarchy (LinearBVH) to
-find which leaves lie within a spherical query region of radius `radius`
-centred at `point`. Returns the number of intersecting leaves, the index of
-the closest leaf, and its squared distance.
+Find leaf bounding boxes whose distance from `point` does not exceed `radius`.
+Traversal uses the unified node layout and returns particle-order leaf indices,
+not unified node IDs.
 
 # Parameters
-- `LBVH :: LinearBVH{D,T}`: Linear BVH structure containing internal-node AABBs,
-  leaf particle coordinates, child relationships, and root index.
+- `LBVH :: LinearBVH{D,T}`: Hierarchy containing unified AABBs, scales, and
+  stackless `left`/`escape` topology.
 - `point :: NTuple{D,T}`: Query point in D-dimensional space.
 - `radius :: T`: Search radius.
 
 # Returns
 A 3-tuple `(count, closest_idx, closest_dist2)`:
-- `count :: Int`: Number of leaves whose particle centers intersect the sphere.
+- `count :: Int`: Number of leaf AABBs intersecting the query sphere.
 - `closest_idx :: Int`: Index of the closest intersecting leaf (0 if none).
 - `closest_dist2 :: T`: Minimum squared distance to an intersecting leaf
   (`typemax(T)` if none).
@@ -28,12 +27,12 @@ A 3-tuple `(count, closest_idx, closest_dist2)`:
 
     # Traversal
     leaf_idx :: Int = zero(Int)
-    p2leaf_d2 :: T   = zero(T)
+    point_to_leaf_aabb_d2 :: T = zero(T)
 
-    @LBVH_gather_point_traversal LBVH point r2 leaf_idx p2leaf_d2 begin
+    @LBVH_gather_point_traversal LBVH point r2 leaf_idx point_to_leaf_aabb_d2 begin
         count += 1
-        if p2leaf_d2 < closest_dist2
-            closest_dist2 = p2leaf_d2
+        if point_to_leaf_aabb_d2 < closest_dist2
+            closest_dist2 = point_to_leaf_aabb_d2
             closest_idx = leaf_idx
         end
     end
@@ -44,26 +43,22 @@ end
 """
     LBVH_find_nearest(LBVH, point)
 
-Find the nearest **leaf particle** to a query point in a `LinearBVH`.
+Find the leaf AABB nearest to a query point in a `LinearBVH`.
 
-The search is performed with a **stackless depth-first traversal** driven by the
-binary radix tree (BRT) tables `left` and `escape` (no explicit stack and no
-parent-walking during traversal). The current best squared distance is used as
-a tightening bound:
+The search uses stackless depth-first traversal over `LBVH.left` and
+`LBVH.escape`. Unified node IDs are partitioned as `1:nleaf-1` for internal
+nodes and `nleaf:2nleaf-1` for leaves. Node `1` is visited first.
 
 - For an internal node, if the point-to-AABB squared distance exceeds the current
   `best_dist2`, the whole subtree is pruned by jumping to `escape[node]`.
-- For a leaf node, the leaf is considered only when its point-to-particle squared
+- For a leaf node, the leaf is considered only when its point-to-AABB squared
   distance is within the current bound, and `best_idx/best_dist2` are updated if
   it improves the best.
 
 # Parameters
 - `LBVH :: LinearBVH{D,T}`:
-  Linear BVH containing:
-  - `LBVH.leaf_coor` (leaf particle coordinates)
-  - `LBVH.node_aabb` (internal AABBs)
-  - `LBVH.brt.left` and `LBVH.brt.escape` (stackless traversal tables)
-  - `LBVH.brt.root` and `LBVH.brt.nleaf`
+  Linear BVH containing `nleaf`, `left`, `escape`, and unified `aabb`/`scale`
+  arrays of length `2nleaf-1`.
 
 - `point :: NTuple{D,T}`:
   Query point in D-dimensional space. Values are assumed finite.
@@ -71,10 +66,10 @@ a tightening bound:
 # Returns
 A 2-tuple `(best_idx, best_dist2)`:
 - `best_idx :: Int`:
-  Leaf index (1-based) of the closest leaf particle. Returns `0` only if the BVH
+  Leaf index (1-based) of the closest leaf AABB. Returns `0` only if the BVH
   contains no leaves (should not happen if `nleaf ≥ 1`).
 - `best_dist2 :: T`:
-  Squared distance from `point` to the closest leaf particle.
+  Squared distance from `point` to the closest leaf AABB.
 """
 @inline function LBVH_find_nearest(LBVH :: LinearBVH{D,T}, point :: NTuple{D,T}) where {D,T <: AbstractFloat}
     # Initial best distance set to +∞
@@ -83,11 +78,11 @@ A 2-tuple `(best_idx, best_dist2)`:
 
     # Traversal
     leaf_idx :: Int = zero(Int)
-    p2leaf_d2 :: T   = zero(T)
+    point_to_leaf_aabb_d2 :: T = zero(T)
 
-    @LBVH_gather_point_traversal LBVH point best_dist2 leaf_idx p2leaf_d2 begin
-        if p2leaf_d2 < best_dist2
-            best_dist2 = p2leaf_d2
+    @LBVH_gather_point_traversal LBVH point best_dist2 leaf_idx point_to_leaf_aabb_d2 begin
+        if point_to_leaf_aabb_d2 < best_dist2
+            best_dist2 = point_to_leaf_aabb_d2
             best_idx = leaf_idx
         end
     end
@@ -97,17 +92,16 @@ end
 """
     LBVH_find_nearest_h(LBVH :: LinearBVH{D,T}, point :: NTuple{D,T}) where {D,T <: AbstractFloat}
 
-Return the smoothing length `h` of the nearest particle (leaf) to `point` in a
+Return the scale stored for the leaf AABB nearest to `point` in a
 `LinearBVH`.
 
-This routine traverses the BVH using point-to-AABB squared distances for internal
-pruning and exact point-to-particle squared distances for leaf tests. The
-returned value is `LBVH.leaf_scale[best_idx]`, where `best_idx` is the closest leaf.
+Both internal pruning and leaf acceptance use point-to-AABB squared distance.
+For a returned leaf index `i`, its unified node ID is `nleaf - 1 + i`, and the
+result is read from `LBVH.scale[nleaf - 1 + i]`.
 
 # Parameters
 - `LBVH :: LinearBVH{D,T}`
-  Bounding volume hierarchy built from Morton-sorted particle coordinates and
-  associated per-particle smoothing lengths `LBVH.leaf_scale`.
+  Bounding volume hierarchy with unified node AABBs and per-node scales.
 - `point :: NTuple{D,T}`
   Query point in the same coordinate space as the particles.
 
@@ -121,35 +115,34 @@ returned value is `LBVH.leaf_scale[best_idx]`, where `best_idx` is the closest l
     best_dist2 = typemax(T)
 
     # Smoothed radius
-    smoothed_radius = LBVH.leaf_scale
+    unified_scale = LBVH.scale
 
     # Traversal
     leaf_idx :: Int = zero(Int)
-    p2leaf_d2 :: T   = zero(T)
+    point_to_leaf_aabb_d2 :: T = zero(T)
 
-    @LBVH_gather_point_traversal LBVH point best_dist2 leaf_idx p2leaf_d2 begin
-        if p2leaf_d2 < best_dist2
-            best_dist2 = p2leaf_d2
+    @LBVH_gather_point_traversal LBVH point best_dist2 leaf_idx point_to_leaf_aabb_d2 begin
+        if point_to_leaf_aabb_d2 < best_dist2
+            best_dist2 = point_to_leaf_aabb_d2
             best_idx = leaf_idx
         end
     end
 
     best_idx == 0 && return T(NaN)   # 或 return (0, typemax(T))
-    best_h = smoothed_radius[best_idx]
+    best_h = unified_scale[(LBVH.nleaf - 1) + best_idx]
     return best_h
 end
 
 """
     LBVH_query!(pool, LBVH, point, radius)
 
-Collect leaf indices whose leaf particles intersect a spherical query region centered
+Collect leaf indices whose leaf AABBs intersect a spherical query region centered
 at `point` with radius `radius`, using a **stackless depth-first traversal** of a
 `LinearBVH`.
 
-Traversal is driven by the BRT tables `left` and `escape` (no explicit stack and
-no parent-walking). Nodes are visited in DFS preorder; accepted leaves are
-written into `pool` in that visit order. For each visited leaf, the point-to-particle
-squared distance is evaluated and compared against `radius^2`.
+Traversal is driven directly by `LBVH.left` and `LBVH.escape`. Nodes are visited
+in DFS preorder starting at unified node `1`; accepted leaves are written into
+`pool` using leaf indices in `1:nleaf`. Leaf AABBs are tested against `radius^2`.
 
 # Parameters
 - `pool :: AbstractVector{Int}`:
@@ -157,9 +150,7 @@ squared distance is evaluated and compared against `radius^2`.
   into `pool[1:count]`; the remaining entries are untouched.
 
 - `LBVH :: LinearBVH{D,T}`:
-  Linear BVH containing:
-  - `LBVH.leaf_coor` and `LBVH.node_aabb`
-  - `LBVH.brt.root`, `LBVH.brt.nleaf`, `LBVH.brt.left`, `LBVH.brt.escape`
+  Linear BVH containing unified `aabb`/`scale` storage and stackless topology.
 
 - `point :: NTuple{D,T}`:
   Query point in D-dimensional space.
@@ -177,7 +168,7 @@ squared distance is evaluated and compared against `radius^2`.
 # Notes
 - The traversal order is determined by `left`/`escape` (DFS preorder in unified node
   ID space). This is not the same mechanism as the older parent-pointer traversal.
-- Correctness assumes the BRT `left`/`escape` tables and leaf/internal ID mapping
+- Correctness assumes the `left`/`escape` tables and leaf/internal ID mapping
   (`is_leaf_id`, `leaf_index`, `internal_index`) are consistent with the LBVH build.
 """
 @inline function LBVH_query!(pool :: VI, LBVH :: LinearBVH{D, T},
@@ -191,13 +182,13 @@ squared distance is evaluated and compared against `radius^2`.
 
     # Traversal
     leaf_idx :: Int = zero(Int)
-    p2leaf_d2 :: T   = zero(T)
+    point_to_leaf_aabb_d2 :: T = zero(T)
 
-    @LBVH_gather_point_traversal LBVH point r2 leaf_idx p2leaf_d2 begin
+    @LBVH_gather_point_traversal LBVH point r2 leaf_idx point_to_leaf_aabb_d2 begin
         count += 1
         @inbounds pool[count] = leaf_idx
-        if p2leaf_d2 < closest_dist2
-          closest_dist2 = p2leaf_d2
+        if point_to_leaf_aabb_d2 < closest_dist2
+          closest_dist2 = point_to_leaf_aabb_d2
           closest_idx = leaf_idx
         end
     end

@@ -1,29 +1,6 @@
 ######################################################################################
 
-#  Test: LinearBoundingVolumeHierarchy — Morton Encoding, BRT, and Linear BVH
-#  What this file tests
-#  End-to-end validation of the spatial neighbour-search pipeline:
-#  1. BinaryRadixTree — Structural invariants
-#     • Root identity, node counts (2N − 1 total).
-#     • Parent–child consistency (parent[root] = 0, valid IDs).
-#     • Karras split rules: left/right child IDs match computed split
-#       positions in the Morton-sorted code array.
-#     • Escape links within bounds.
-#     • Identical-code degenerate case.
-#  2. LinearBVH — Construction, scale, and queries
-#     • AABB containment: each internal node's box encloses both children.
-#     • Node scale: per-node maximum smoothing length matches a recursive
-#       reference computation.
-#     • Neighbour queries: `LBVH_query!` returns exactly the same set as
-#       an O(N²) brute-force scan.
-#  3. Traversal pruning
-#     • Scatter pruning: stackless traversal with per-particle radii
-#       matches brute force.
-#     • scale pruning: node-level scale never visits more nodes than a
-#       global-scale baseline.
-#  All invariants are tested for 2D and 3D, across tree sizes N = 1…20,
-#  using deterministic pseudo-random coordinates seeded by prime-offset
-#  hashing.
+# Unified LinearBVH construction and traversal regression tests.
 
 ######################################################################################
 using Test
@@ -31,419 +8,147 @@ using Random
 using Partia
 using Partia.LinearBoundingVolumeHierarchy
 
-# ========================== Module aliases ================================== #
+const lbvh_mod = Partia.LinearBoundingVolumeHierarchy
 
-ns_mod = Partia.LinearBoundingVolumeHierarchy
+function encoding(::Val{2}, n, seed)
+    rng = MersenneTwister(seed)
+    MortonEncoding(rand(rng, n), rand(rng, n))
+end
 
-# ========================== Helper functions ================================ #
+function encoding(::Val{3}, n, seed)
+    rng = MersenneTwister(seed)
+    MortonEncoding(rand(rng, n), rand(rng, n), rand(rng, n))
+end
 
-# ── Coordinate generators ────────────────────────────────────────────── #
+@inline right_child(lbvh, node) = lbvh.escape[Int(lbvh.left[Int(node)])]
 
-primes = (37, 61, 97, 131, 197, 263)
-
-"""Build `dim` coordinate vectors of length `n` using prime-hashing."""
-function build_coords(dim :: Int, n :: Int, offset :: Int)
-    coords = Vector{Vector{Float64}}(undef, dim)
-    modulus = 1021
-    for d in 1:dim
-        prime = primes[d]
-        shift = primes[d + dim]
-        coords[d] = [Float64(mod(prime * i + shift * offset, modulus)) / modulus for i in 1:n]
+function visit_nodes(lbvh)
+    visited = Int[]
+    node = Int32(1)
+    while !iszero(node)
+        push!(visited, Int(node))
+        node = lbvh_mod.is_leaf_id(node, lbvh.nleaf) ? lbvh.escape[Int(node)] : lbvh.left[Int(node)]
     end
-    return coords
+    visited
 end
 
-function build_encoding( :: Val{2}, n :: Int, offset :: Int)
-    coords = build_coords(2, n, offset)
-    return MortonEncoding(coords[1], coords[2])
+function brute_force(enc, point, radius)
+    radius2 = radius^2
+    sort!([i for i in eachindex(enc.coord[1]) if
+        sum((enc.coord[d][i] - point[d])^2 for d in eachindex(point)) <= radius2])
 end
 
-function build_encoding( :: Val{3}, n :: Int, offset :: Int)
-    coords = build_coords(3, n, offset)
-    return MortonEncoding(coords[1], coords[2], coords[3])
-end
+@testset "LinearBVH -- unified topology" begin
+    for D in (Val(2), Val(3)), n in 1:30
+        enc = encoding(D, n, 1000 + n)
+        h = n == 1 ? [0.1] : collect(range(0.01, 0.2; length=n))
+        lbvh = LinearBVH(enc, h)
+        total = 2n - 1
 
-identical_encoding( :: Val{2}, n :: Int) =
-    MortonEncoding(fill(0.5, n), fill(0.5, n))
+        @test lbvh.nleaf == n
+        @test length(lbvh.left) == n - 1
+        @test length(lbvh.escape) == total
+        @test length(lbvh.scale) == total
+        @test all(length(lbvh.aabb.min[d]) == total for d in 1:length(enc.coord))
+        @test sort(visit_nodes(lbvh)) == collect(1:total)
+        @test lbvh.escape[1] == 0
 
-identical_encoding( :: Val{3}, n :: Int) =
-    MortonEncoding(fill(0.5, n), fill(0.5, n), fill(0.5, n))
-
-# ── Brute-force neighbour search ─────────────────────────────────────── #
-
-"""O(N²) brute-force: find all particle indices within `radius` of `point`."""
-function brute_force_neighbors(enc, point :: NTuple{D, T}, radius) where {D, T}
-    coords = enc.coord
-    r2 = radius * radius
-    tol = eps(eltype(coords[1])) * 16
-    n = length(coords[1])
-    hits = Int[]
-    for i in 1:n
-        dist2 = zero(eltype(coords[1]))
-        for d in 1:D
-            δ = coords[d][i] - point[d]
-            dist2 += δ * δ
-        end
-        if dist2 <= r2 + tol
-            push!(hits, i)
-        end
-    end
-    sort!(hits)
-    return hits
-end
-
-# ── Recursive scale reference ─────────────────────────────────────────── #
-
-"""Compute expected `node_scale` by recursive subtree traversal."""
-function subtree_scale_reference(leaf_scale, brt)
-    nleaf = brt.nleaf
-    nint = nleaf - 1
-    out = zeros(eltype(leaf_scale), nint)
-    root = brt.root
-    root == 0 && return out
-
-    function visit(node :: Int32)
-        if ns_mod.is_leaf_id(node, nleaf)
-            return leaf_scale[ns_mod.leaf_index(node, nleaf)]
-        end
-        idx = ns_mod.internal_index(node)
-        hl = visit(brt.left[idx])
-        hr = visit(brt.right[idx])
-        out[idx] = max(hl, hr)
-        return out[idx]
-    end
-    visit(root)
-    return out
-end
-
-# ── Scatter traversal reference ──────────────────────────────────────── #
-
-"""Stackless traversal with per-particle radii (for scatter-pruning test)."""
-function scatter_neighbors_reference(lbvh, point :: NTuple{D, T}, Kvalid :: T, hvec) where {D, T}
-    node_min = lbvh.node_aabb.min
-    node_max = lbvh.node_aabb.max
-    leaf_coor = lbvh.leaf_coor
-    brt = lbvh.brt
-    left = brt.left
-    escape = brt.escape
-    nleaf = brt.nleaf
-    hits = Int[]
-    node = brt.root
-
-    if node == 0
-        @inbounds for leaf in 1:nleaf
-            r2 = (Kvalid * hvec[leaf])^2
-            d2 = ns_mod._squared_distance_point_coords(point, leaf_coor, leaf)
-            d2 <= r2 && push!(hits, leaf)
-        end
-        sort!(hits)
-        return hits
-    end
-    while node != 0
-        if ns_mod.is_leaf_id(node, nleaf)
-            leaf = ns_mod.leaf_index(node, nleaf)
-            r2 = (Kvalid * hvec[leaf])^2
-            d2 = ns_mod._squared_distance_point_coords(point, leaf_coor, leaf)
-            d2 <= r2 && push!(hits, leaf)
-            node = escape[Int(node)]
-            continue
-        end
-        idx = ns_mod.internal_index(node)
-        r2node = (Kvalid * lbvh.node_scale[idx])^2
-        d2node = ns_mod._squared_distance_point_aabb(point, node_min, node_max, idx)
-        node = (d2node <= r2node) ? left[idx] : escape[idx]
-    end
-    sort!(hits)
-    return hits
-end
-
-"""O(N) brute-force line query against leaf particle coordinates."""
-function line_neighbors_reference(lbvh, origin :: NTuple{D, T}, direction :: NTuple{D, T}, radius2_of) where {D, T}
-    nleaf = lbvh.brt.nleaf
-    hits = Int[]
-    @inbounds for leaf in 1:nleaf
-        point = ntuple(d -> lbvh.leaf_coor[d][leaf], D)
-        d2 = ns_mod._squared_distance_point_line(point, origin, direction)
-        d2 <= radius2_of(leaf) && push!(hits, leaf)
-    end
-    sort!(hits)
-    return hits
-end
-
-# ============================== Test body =================================== #
-
-# ── 1. Binary Radix Tree — Structural invariants ─────────────────────── #
-
-@testset "BinaryRadixTree -- structural invariants" begin
-    offsets = 0:4
-    for offset in offsets, D in (Val(2), Val(3)), n in 1:20
-        enc = build_encoding(D, n, offset)
-        brt = BinaryRadixTree(enc)
-
-        ntotal = 2n - 1
-
-        # Node counts
-        @test brt.nleaf == n
-        @test length(brt.left)   == ntotal
-        @test length(brt.right)  == ntotal
-        @test length(brt.escape) == ntotal
-        @test length(brt.parent) == ntotal
-
-        # Root identity
-        @test brt.root === (n >= 2 ? Int32(1) : Int32(0))
-        if brt.root != 0
-            @test brt.parent[Int(brt.root)] == 0
+        leaf_nodes = n:total
+        @test lbvh.scale[leaf_nodes] == h
+        for d in 1:length(enc.coord)
+            @test lbvh.aabb.min[d][leaf_nodes] == enc.coord[d]
+            @test lbvh.aabb.max[d][leaf_nodes] == enc.coord[d]
         end
 
-        # All parent IDs valid
-        @test all(p -> 0 <= p < Int32(ntotal + 1), brt.parent)
-
-        # Karras split rules for internal nodes
-        codes = enc.codes
-        leaf_offset = n - 1
-        for i in 1:(n - 1)
-            lo, hi = ns_mod._find_range(codes, i)
-            split = ns_mod._split_position(codes, lo, hi)
-
-            l = brt.left[i]
-            r = brt.right[i]
-
-            @test ns_mod.is_internal_id(l, n) || ns_mod.is_leaf_id(l, n)
-            @test ns_mod.is_internal_id(r, n) || ns_mod.is_leaf_id(r, n)
-
-            if ns_mod.is_leaf_id(l, n)
-                @test ns_mod.leaf_index(l, n) == lo
-                @test l == Int32(leaf_offset + lo)
-            else
-                @test l == Int32(split)
-            end
-
-            if ns_mod.is_leaf_id(r, n)
-                @test ns_mod.leaf_index(r, n) == hi
-                @test r == Int32(leaf_offset + hi)
-            else
-                @test r == Int32(split + 1)
-            end
-        end
-
-        # Escape links within bounds
-        @test all(e -> 0 <= e <= Int32(ntotal), brt.escape)
-    end
-end
-
-# ── 1b. Identical-code degenerate case ───────────────────────────────── #
-
-@testset "BinaryRadixTree -- identical Morton codes" begin
-    for D in (Val(2), Val(3)), n in (1, 2, 8, 16)
-        enc = identical_encoding(D, n)
-        brt = BinaryRadixTree(enc)
-
-        @test brt.root === (n >= 2 ? Int32(1) : Int32(0))
-        if n >= 2
-            @test brt.parent[Int(brt.root)] == 0
-        end
-        @test count(==(Int32(0)), brt.parent) == 1
-    end
-end
-
-# ── 2a. LinearBVH — AABB containment ────────────────────────────────── #
-
-@testset "LinearBVH -- AABB containment" begin
-    for D in (Val(2), Val(3)), n in (2, 8, 32)
-        dim = typeof(D).parameters[1]
-        coords = ntuple(_ -> collect(range(0.0, stop=1.0, length=n)), dim)
-        h = fill(0.1, n)
-        enc = dim == 2 ?
-            MortonEncoding(coords[1], coords[2]) :
-            MortonEncoding(coords[1], coords[2], coords[3])
-        brt = BinaryRadixTree(enc)
-        lbvh = LinearBVH(enc, brt, h)
-
-        @test lbvh.brt.root == (n >= 2 ? Int32(1) : Int32(0))
-        @test length(lbvh.leaf_coor[1]) == n
-        @test length(lbvh.node_aabb.min[1]) == n - 1
-
-        # Leaf coordinates match sorted coordinates
-        for d in 1:dim
-            @test lbvh.leaf_coor[d] == enc.coord[d]
-        end
-
-        # Internal node AABBs enclose both children
-        L = brt.left;  R = brt.right
-        nmin = lbvh.node_aabb.min;  nmax = lbvh.node_aabb.max
-        lcoor = lbvh.leaf_coor
-
-        for i in 1:(n - 1)
-            for d in 1:dim
-                cmin_l = ns_mod.is_leaf_id(L[i], n) ? lcoor[d][ns_mod.leaf_index(L[i], n)] : nmin[d][ns_mod.internal_index(L[i])]
-                cmin_r = ns_mod.is_leaf_id(R[i], n) ? lcoor[d][ns_mod.leaf_index(R[i], n)] : nmin[d][ns_mod.internal_index(R[i])]
-                cmax_l = ns_mod.is_leaf_id(L[i], n) ? lcoor[d][ns_mod.leaf_index(L[i], n)] : nmax[d][ns_mod.internal_index(L[i])]
-                cmax_r = ns_mod.is_leaf_id(R[i], n) ? lcoor[d][ns_mod.leaf_index(R[i], n)] : nmax[d][ns_mod.internal_index(R[i])]
-                @test nmin[d][i] == min(cmin_l, cmin_r)
-                @test nmax[d][i] == max(cmax_l, cmax_r)
+        for node in 1:n-1
+            left = Int(lbvh.left[node])
+            right = Int(right_child(lbvh, Int32(node)))
+            @test 1 <= left <= total
+            @test 1 <= right <= total
+            @test lbvh.scale[node] == max(lbvh.scale[left], lbvh.scale[right])
+            for d in 1:length(enc.coord)
+                @test lbvh.aabb.min[d][node] == min(lbvh.aabb.min[d][left], lbvh.aabb.min[d][right])
+                @test lbvh.aabb.max[d][node] == max(lbvh.aabb.max[d][left], lbvh.aabb.max[d][right])
             end
         end
     end
 end
 
-# ── 2b. LinearBVH — node scale ───────────────────────────────────────── #
-
-@testset "LinearBVH -- node scale" begin
-    rng = MersenneTwister(0xBEEF)
-    for dim in (2, 3)
-        n = 64
-        coords = ntuple(_ -> rand(rng, n), dim)
-        h = rand(rng, n)
-        enc = dim == 2 ?
-            MortonEncoding(coords[1], coords[2]) :
-            MortonEncoding(coords[1], coords[2], coords[3])
-        brt = BinaryRadixTree(enc)
-        lbvh = LinearBVH(enc, brt, h)
-        expected = subtree_scale_reference(lbvh.leaf_scale, brt)
-        @test lbvh.node_scale == expected
+@testset "LinearBVH -- identical Morton codes" begin
+    for D in (Val(2), Val(3)), n in 1:24
+        dim = D isa Val{2} ? 2 : 3
+        coords = ntuple(_ -> fill(0.5, n), dim)
+        enc = MortonEncoding(coords...)
+        lbvh = LinearBVH(enc, ones(n))
+        @test sort(visit_nodes(lbvh)) == collect(1:2n-1)
+        @test all(==(0.5), (lbvh.aabb.min[d][1] for d in 1:dim))
     end
 end
 
-# ── 2c. LinearBVH — neighbour queries ───────────────────────────────── #
-
-@testset "LinearBVH -- neighbour queries" begin
-    x = [0.0, 1.0, 0.0, 1.0]
-    y = [0.0, 0.0, 1.0, 1.0]
-    z = [0.0, 0.0, 0.0, 0.0]
-    h = fill(0.1, length(x))
-
-    enc2 = MortonEncoding(x, y)
-    enc3 = MortonEncoding(x, y, z)
-
-    cases_2d = [((0.1, 0.1), 0.25), ((0.9, 0.9), 0.25), ((0.5, 0.5), 0.75)]
-    cases_3d = [((0.1, 0.1, 0.0), 0.25), ((0.9, 0.9, 0.0), 0.25), ((0.5, 0.5, 0.0), 0.75)]
-
-    for (enc, cases) in ((enc2, cases_2d), (enc3, cases_3d))
-        brt = BinaryRadixTree(enc)
-        lbvh = LinearBVH(enc, brt, h)
-        pool = zeros(Int, length(enc.codes))
-
-        for (point, radius) in cases
-            expected = brute_force_neighbors(enc, point, radius)
+@testset "LinearBVH -- point queries match brute force" begin
+    rng = MersenneTwister(42)
+    for D in (Val(2), Val(3)), n in (1, 2, 7, 32)
+        dim = D isa Val{2} ? 2 : 3
+        enc = encoding(D, n, 2000 + n)
+        lbvh = LinearBVH(enc, fill(0.1, n))
+        pool = Vector{Int}(undef, n)
+        for _ in 1:20
+            point = ntuple(_ -> rand(rng), dim)
+            radius = rand(rng) * 0.5
             result = LBVH_query!(pool, lbvh, point, radius)
-            got = sort(result.pool[1:result.count])
-            @test got == expected
+            @test sort(collect(valid_indices(result))) == brute_force(enc, point, radius)
         end
     end
 end
 
-# ── 3a. Scatter pruning ─────────────────────────────────────────────── #
+@testset "LinearBVH -- point and line traversal" begin
+    enc = encoding(Val(3), 64, 99)
+    h = rand(MersenneTwister(8), 64) .* 0.15 .+ 0.01
+    lbvh = LinearBVH(enc, h)
+    point = (0.4, 0.5, 0.6)
+    K = 2.0
+    expected = sort([i for i in 1:64 if sum((enc.coord[d][i] - point[d])^2 for d in 1:3) <= (K*h[i])^2])
+    actual = Int[]
+    leaf = 0; d2 = 0.0; hb = 0.0
+    @LBVH_scatter_point_traversal lbvh point K leaf d2 hb push!(actual, leaf)
+    @test sort(actual) == expected
 
-@testset "LinearBVH -- scatter pruning matches brute force" begin
-    rng = MersenneTwister(0xCAFE)
-    n = 128
-    coords = ntuple(_ -> rand(rng, n), 3)
-    h = rand(rng, n) .* 0.2 .+ 0.05
-    enc = MortonEncoding(coords[1], coords[2], coords[3])
-    brt = BinaryRadixTree(enc)
-    lbvh = LinearBVH(enc, brt, h)
-    Kvalid = 1.0
-    point = (0.5, 0.5, 0.5)
-
-    h_sorted = lbvh.leaf_scale
-    coords_sorted = enc.coord
-
-    # Brute-force reference
-    brute = Int[]
-    @inbounds for i in 1:n
-        r2 = (Kvalid * h_sorted[i])^2
-        d2 = sum((coords_sorted[d][i] - point[d])^2 for d in 1:3)
-        d2 <= r2 && push!(brute, i)
-    end
-    sort!(brute)
-
-    accel = scatter_neighbors_reference(lbvh, point, Kvalid, h_sorted)
-    @test accel == brute
+    origin = (0.5, 0.5, 0.5)
+    direction = (1.0, 0.0, 0.0)
+    radius2 = 0.1^2
+    expected_line = sort([i for i in 1:64 if
+        lbvh_mod._squared_distance_point_line(ntuple(d -> enc.coord[d][i], 3), origin, direction) <= radius2])
+    empty!(actual)
+    @LBVH_gather_line_traversal lbvh origin direction radius2 leaf d2 push!(actual, leaf)
+    @test sort(actual) == expected_line
 end
 
-# ── 3b. scale pruning tightens traversal ──────────────────────────────── #
+@testset "LinearBVH -- finite leaf AABB traversal" begin
+    enc = MortonEncoding([0.5], [1.5])
+    leaf_min = ([0.0], [1.0])
+    leaf_max = ([1.0], [2.0])
+    lbvh = LinearBVH(enc, [0.1], leaf_min, leaf_max)
 
-@testset "LinearBVH -- scale pruning tightens traversal" begin
-    rng = MersenneTwister(0x1234)
-    n = 256
-    coords = ntuple(_ -> rand(rng, n), 3)
-    h = rand(rng, n) .* 0.3 .+ 0.01
-    enc = MortonEncoding(coords[1], coords[2], coords[3])
-    brt = BinaryRadixTree(enc)
-    lbvh = LinearBVH(enc, brt, h)
-    Kvalid = 1.0
-    point = (0.1, 0.2, 0.3)
-
-    global_scale = maximum(h)
-    node_min = lbvh.node_aabb.min
-    node_max = lbvh.node_aabb.max
-    left = brt.left
-    escape = brt.escape
-    nleaf = brt.nleaf
-
-    # Count visits with global scale
-    visits_global = 0
-    node = brt.root
-    while node != 0
-        if ns_mod.is_leaf_id(node, nleaf)
-            node = escape[Int(node)]; continue
-        end
-        visits_global += 1
-        idx = ns_mod.internal_index(node)
-        r2 = (Kvalid * global_scale)^2
-        d2 = ns_mod._squared_distance_point_aabb(point, node_min, node_max, idx)
-        node = (d2 <= r2) ? left[idx] : escape[idx]
-    end
-
-    # Count visits with per-node scale
-    visits_scale = 0
-    node = brt.root
-    while node != 0
-        if ns_mod.is_leaf_id(node, nleaf)
-            node = escape[Int(node)]; continue
-        end
-        visits_scale += 1
-        idx = ns_mod.internal_index(node)
-        r2 = (Kvalid * lbvh.node_scale[idx])^2
-        d2 = ns_mod._squared_distance_point_aabb(point, node_min, node_max, idx)
-        node = (d2 <= r2) ? left[idx] : escape[idx]
-    end
-
-    @test visits_scale <= visits_global
-end
-
-@testset "LinearBVH - line traversal matches brute force" begin
-    x = [0.0, 0.1, 0.2, 0.3, 0.4]
-    y = [0.0, 0.15, 0.3, 0.6, 1.0]
-    h = [0.05, 0.2, 0.35, 0.55, 0.2]
-
-    enc = MortonEncoding(x, y)
-    brt = BinaryRadixTree(enc)
-    lbvh = LinearBVH(enc, brt, h)
-
-    origin = (0.0, 0.0)
-    direction = (1.0, 0.0)
-    Kvalid = 1.0
-    radius2 = 0.04
-
-    gather_expected = line_neighbors_reference(lbvh, origin, direction, _ -> radius2)
-    scatter_expected = line_neighbors_reference(lbvh, origin, direction, leaf -> (Kvalid * lbvh.leaf_scale[leaf])^2)
-
-    gather_hits = Int[]
-    leaf_idx = 0
+    # The query is inside the box but far from the encoded leaf point.
+    point = (0.05, 1.05)
+    point_hits = Int[]
+    leaf = 0
     d2 = 0.0
-    ns_mod.@LBVH_gather_line_traversal lbvh origin direction radius2 leaf_idx d2 begin
-        push!(gather_hits, leaf_idx)
-    end
-    sort!(gather_hits)
+    @LBVH_gather_point_traversal lbvh point 0.01^2 leaf d2 push!(point_hits, leaf)
+    @test point_hits == [1]
+    @test d2 == 0.0
+
+    # This line crosses the box while remaining far from its center point.
+    origin = (0.0, 1.05)
+    direction = (1.0, 0.0)
+    line_hits = Int[]
+    @LBVH_gather_line_traversal lbvh origin direction 0.01^2 leaf d2 push!(line_hits, leaf)
+    @test line_hits == [1]
+    @test d2 == 0.0
 
     scatter_hits = Int[]
     hb = 0.0
-    ns_mod.@LBVH_scatter_line_traversal lbvh origin direction Kvalid leaf_idx d2 hb begin
-        push!(scatter_hits, leaf_idx)
-    end
-    sort!(scatter_hits)
-
-    @test gather_hits == gather_expected
-    @test scatter_hits == scatter_expected
+    @LBVH_scatter_line_traversal lbvh origin direction 1.0 leaf d2 hb push!(scatter_hits, leaf)
+    @test scatter_hits == [1]
+    @test hb == 0.1
 end

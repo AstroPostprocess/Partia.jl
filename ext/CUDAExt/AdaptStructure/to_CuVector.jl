@@ -32,17 +32,6 @@ function Partia.to_CuVector(enc :: MortonEncoding{D, TF, TI, VF, VI}) where {D, 
     )
 end
 
-function Partia.to_CuVector(brt :: BinaryRadixTree{V}) where {V <: AbstractVector{Int32}}
-    return BinaryRadixTree{CuVector{Int32}}(
-        brt.root,
-        brt.nleaf,
-        CuVector{Int32}(brt.left),
-        CuVector{Int32}(brt.right),
-        CuVector{Int32}(brt.escape),
-        CuVector{Int32}(brt.parent)
-    )
-end
-
 function Partia.to_CuVector(AB :: AABB{D, TF, VF}) where {D, TF <: AbstractFloat, VF <: AbstractVector{TF}}
     return AABB{D, TF, CuVector{TF}}(
         ntuple(i -> CuVector{TF}(AB.min[i]), D),
@@ -52,11 +41,11 @@ end
 
 function Partia.to_CuVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: AbstractFloat, VF <: AbstractVector{TF}, VB <: AbstractVector{Int32}}
     return LinearBVH{D, TF, CuVector{TF}, CuVector{Int32}}(
-        to_CuVector(LBVH.brt),
-        ntuple(i -> CuVector{TF}(LBVH.leaf_coor[i]), D),
-        CuVector{TF}(LBVH.leaf_scale),
-        to_CuVector(LBVH.node_aabb),
-        CuVector{TF}(LBVH.node_scale)
+        LBVH.nleaf,
+        CuVector{Int32}(LBVH.left),
+        CuVector{Int32}(LBVH.escape),
+        to_CuVector(LBVH.aabb),
+        CuVector{TF}(LBVH.scale)
     )
 end
 

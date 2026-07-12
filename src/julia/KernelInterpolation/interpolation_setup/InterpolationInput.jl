@@ -198,8 +198,7 @@ function LinearBVH!(input :: InterpolationInput{3}; CodeType :: Type{TI} = UInt6
         Base.permute!(column, order)
     end
 
-    brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt, BoxScale(input.h, true))
+    return LinearBVH(enc, input.h)
 end
 
 ## 2D path
@@ -219,8 +218,7 @@ function LinearBVH!(input :: InterpolationInput{2}; CodeType :: Type{TI} = UInt6
         Base.permute!(column, order)
     end
 
-    brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt, BoxScale(input.h, true))
+    return LinearBVH(enc, input.h)
 end
 """
     matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) where {D}
@@ -240,10 +238,12 @@ stored in `lbvh`.
   treated as the reference ordering.
 
 # Returns
-- `Bool`: `true` if `input.coord[d] == lbvh.leaf_coor[d]` for every spatial
-  dimension `d` and `input.h == lbvh.leaf_scale`; otherwise `false`.
+- `Bool`: `true` when `input.coord` matches the leaf section of
+  `lbvh.aabb.min` and `input.h` matches the leaf section of `lbvh.scale`.
 
 """
 @inline function matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) :: Bool where {D}
-    all(input.coord[d] == lbvh.leaf_coor[d] for d in 1:D) && (input.h == lbvh.leaf_scale)
+    leaf_nodes = lbvh.nleaf:(2 * lbvh.nleaf - 1)
+    all(input.coord[d] == @view(lbvh.aabb.min[d][leaf_nodes]) for d in 1:D) &&
+        input.h == @view(lbvh.scale[leaf_nodes])
 end
