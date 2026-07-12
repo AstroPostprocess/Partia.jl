@@ -4,6 +4,10 @@ using CUDA
 using Reexport
 using Partia
 
+# Linear bounding volume hierarchy
+include(joinpath(@__DIR__, "CUDAExt", "LinearBoundingVolumeHierarchy", "LinearBoundingVolumeHierarchy.jl"))
+@reexport using .LinearBoundingVolumeHierarchy
+
 # Adapt structure
 include(joinpath(@__DIR__, "CUDAExt", "AdaptStructure", "AdaptStructure.jl"))
 @reexport using .AdaptStructure

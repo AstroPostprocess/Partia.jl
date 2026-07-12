@@ -4,6 +4,10 @@ using Metal
 using Reexport
 using Partia
 
+# Linear bounding volume hierarchy
+include(joinpath(@__DIR__, "MetalExt", "LinearBoundingVolumeHierarchy", "LinearBoundingVolumeHierarchy.jl"))
+@reexport using .LinearBoundingVolumeHierarchy
+
 # Adapt structure
 include(joinpath(@__DIR__, "MetalExt", "AdaptStructure", "AdaptStructure.jl"))
 @reexport using .AdaptStructure
