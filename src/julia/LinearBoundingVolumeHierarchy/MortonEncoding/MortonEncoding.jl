@@ -30,9 +30,13 @@ Encode a set of 3D particle coordinates into Morton codes.
 
 # Parameters
 - `x, y, z :: Vector{T}`: Particle positions along each axis (floating-point).
-- `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`).
-- `SortWorkSpace :: OnesweepWorkspace{TI}`: Reusable workspace for Morton-code sorting.
 - `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `CodeType` | `Type{TI}` | `UInt64` | Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`). |
+| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(Vector{CodeType})` | Reusable workspace for Morton-code sorting. |
 
 # Returns
 - `MortonEncoding{3, T, TI, Vector{T}, Vector{TI}}`: Encoding containing Morton codes,
@@ -46,7 +50,7 @@ function MortonEncoding(x :: Vector{T}, y :: Vector{T}, z :: Vector{T}, :: Val{T
 
     axes(x) == axes(y) == axes(z) || throw(DimensionMismatch("x, y, and z must have identical axes"))
 
-    # Copy the coordinate to prevent modification
+    # Copy the coordinates to prevent modification
     xcopy = copy(x); ycopy = copy(y); zcopy = copy(z)
     npart = length(xcopy)
 
@@ -70,16 +74,16 @@ function MortonEncoding(x :: Vector{T}, y :: Vector{T}, z :: Vector{T}, :: Val{T
     invΔy = degeneratey ? zero(T) : inv(Δy)
     invΔz = degeneratez ? zero(T) : inv(Δz)
 
-    # prepare the offset of normalization (fx = invΔx * xi + (- invΔx * xmin))
+    # Prepare the normalization offsets (fx = invΔx * xi + cx).
     cx = degeneratex ? T(0.5) : -invΔx * xmin
     cy = degeneratey ? T(0.5) : -invΔy * ymin
     cz = degeneratez ? T(0.5) : -invΔz * zmin
 
-    # Allocate vector for final result
+    # Allocate vectors for the final result
     codes = Vector{TI}(undef, npart)
     order = similar(codes)
 
-    # Go through all the points
+    # Encode all points without allocating normalized or quantized coordinates
     @inbounds @threads for i in eachindex(codes, xcopy, ycopy, zcopy)
         _morton_encoding_kernel!(codes, i, (xcopy, ycopy, zcopy), (invΔx, invΔy, invΔz), (cx, cy, cz))
     end
@@ -105,10 +109,13 @@ where `points = (x, y, z)`. It forwards to
 
 # Parameters
 - `points :: NTuple{3,Vector{T}}`: Particle coordinates stored as `(x, y, z)`.
-- `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding
-  (`UInt32` or `UInt64`).
-- `SortWorkSpace :: OnesweepWorkspace{TI}`: Reusable workspace for Morton-code sorting.
 - `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `CodeType` | `Type{TI}` | `UInt64` | Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`). |
+| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(Vector{CodeType})` | Reusable workspace for Morton-code sorting. |
 
 # Returns
 - A 3D `MortonEncoding` with codes, indices, and coordinates ordered by Morton code.
@@ -127,10 +134,13 @@ Encode a set of 2D particle coordinates into Morton codes.
 
 # Parameters
 - `x, y :: Vector{T}`: Particle positions along each axis (floating-point).
-- `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding
-  (`UInt32` or `UInt64`).
-- `SortWorkSpace :: OnesweepWorkspace{TI}`: Reusable workspace for Morton-code sorting.
 - `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `CodeType` | `Type{TI}` | `UInt64` | Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`). |
+| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(Vector{CodeType})` | Reusable workspace for Morton-code sorting. |
 
 # Returns
 - `MortonEncoding{2, T, TI, Vector{T}, Vector{TI}}`: Encoding containing Morton codes,
@@ -176,7 +186,10 @@ function MortonEncoding(x :: Vector{T}, y :: Vector{T}, :: Val{TileSize} = Val(4
         _morton_encoding_kernel!(codes, i, (xcopy, ycopy), (invΔx, invΔy), (cx, cy))
     end
 
+    # Construct structure
     enc = MortonEncoding{2, T, TI, Vector{T}, Vector{TI}}(order, codes, (xcopy, ycopy))
+
+    # Sort by morton
     sort_by_morton!(enc, SortWorkSpace, Val(TileSize))
     return enc
 end
@@ -194,10 +207,13 @@ where `points = (x, y)`. It forwards to
 
 # Parameters
 - `points :: NTuple{2,Vector{T}}`: Particle coordinates stored as `(x, y)`.
-- `CodeType :: Type{TI}`: Unsigned integer type used for Morton encoding
-  (`UInt32` or `UInt64`).
-- `SortWorkSpace :: OnesweepWorkspace{TI}`: Reusable workspace for Morton-code sorting.
 - `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `CodeType` | `Type{TI}` | `UInt64` | Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`). |
+| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(Vector{CodeType})` | Reusable workspace for Morton-code sorting. |
 
 # Returns
 - A 2D `MortonEncoding` with codes, indices, and coordinates ordered by Morton code.

@@ -78,4 +78,5 @@
         # Internal node 1 is always the root in the Karras ordering.
         parent_idx == 1 && return nothing
     end
+    return nothing
 end

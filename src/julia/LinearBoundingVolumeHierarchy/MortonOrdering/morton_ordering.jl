@@ -6,24 +6,31 @@
 
 ######################################################################################
 """
-    sort_by_morton!(enc::MortonEncoding)
-    sort_by_morton!(enc::MortonEncoding, ws::OnesweepWorkspace,
-                    ::Val{TileSize})
+    sort_by_morton!(
+        enc::MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}},
+        ::Val{TileSize} = Val(4096),
+    ) where {D, TileSize, TF <: AbstractFloat, TI <: Unsigned}
 
-Sort a `Vector`-backed encoding in-place by ascending Morton code with the
-OneSweep radix sorter. The same permutation is applied to `enc.order` and every
-coordinate vector in `enc.coord`.
+    sort_by_morton!(
+        enc::MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}},
+        ws::OnesweepWorkspace{TI, Vector{TI}, Vector{UInt32}},
+        ::Val{TileSize} = Val(4096),
+    ) where {D, TileSize, TF <: AbstractFloat, TI <: Unsigned}
+
+Sort a `Vector`-backed Morton encoding in ascending Morton-code order using the
+OneSweep radix sorter. The resulting permutation is stored in `enc.order` and
+applied in place to every coordinate vector in `enc.coord`.
 
 # Parameters
-- `enc`: `Vector`-backed Morton encoding to mutate.
-- `ws`: OneSweep workspace whose key-vector type matches `enc.codes`. Reuse it
-  across calls to avoid repeated workspace allocation.
-- `::Val{TileSize}`: Compile-time OneSweep tile size.
+- `enc`: `Vector`-backed Morton encoding to sort in place.
+- `ws`: OneSweep workspace compatible with `enc.codes`. Reuse the workspace
+  across calls to avoid repeated allocation.
+- `::Val{TileSize}`: Compile-time OneSweep tile size. Defaults to `Val(4096)`.
 
 # Returns
 The 1-based sorting permutation.
 """
-@inline function sort_by_morton!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, ws :: OnesweepWorkspace{TI, Vector{TI}, Vector{UInt32}}, :: Val{TileSize}) where {D, TF <: AbstractFloat, TI <: Unsigned, TileSize}
+@inline function sort_by_morton!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, ws :: OnesweepWorkspace{TI, Vector{TI}, Vector{UInt32}}, :: Val{TileSize} = Val(4096)) where {D, TileSize, TF <: AbstractFloat, TI <: Unsigned}
     p = onesweep_sortperm!(enc.codes, ws, Val(TileSize))
 
     copyto!(enc.order, p)
@@ -35,7 +42,7 @@ The 1-based sorting permutation.
     return p
 end
 
-@inline function sort_by_morton!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}) where {D, TF <: AbstractFloat, TI <: Unsigned}
+@inline function sort_by_morton!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, :: Val{TileSize} = Val(4096)) where {D, TileSize, TF <: AbstractFloat, TI <: Unsigned}
     ws = OnesweepWorkspace(typeof(enc.codes))
-    return sort_by_morton!(enc, ws, Val(4096))
+    return sort_by_morton!(enc, ws, Val(TileSize))
 end

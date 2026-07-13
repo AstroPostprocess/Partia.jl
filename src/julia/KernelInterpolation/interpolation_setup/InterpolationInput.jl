@@ -180,12 +180,13 @@ end
 
 # Input helper for LBVH
 ## 3D path
-function LinearBVH!(input :: InterpolationInput{3}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+function LinearBVH!(input :: InterpolationInput{3}, :: Val{TileSize} = Val(4096);
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
     z = get_zcoord(input)
 
-    enc = MortonEncoding(x, y, z, CodeType = CodeType)
+    enc = MortonEncoding(x, y, z, Val(TileSize); CodeType, SortWorkSpace)
     order = enc.order
 
     Base.permute!(x, order)
@@ -202,11 +203,12 @@ function LinearBVH!(input :: InterpolationInput{3}; CodeType :: Type{TI} = UInt6
 end
 
 ## 2D path
-function LinearBVH!(input :: InterpolationInput{2}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+function LinearBVH!(input :: InterpolationInput{2}, :: Val{TileSize} = Val(4096);
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
 
-    enc = MortonEncoding(x, y, CodeType = CodeType)
+    enc = MortonEncoding(x, y, Val(TileSize); CodeType, SortWorkSpace)
     order = enc.order
 
     Base.permute!(x, order)

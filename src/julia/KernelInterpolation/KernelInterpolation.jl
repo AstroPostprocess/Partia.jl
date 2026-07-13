@@ -57,6 +57,7 @@ module KernelInterpolation
 using .Threads
 using StaticArrays
 using Adapt
+using UnsignedRadixSorts
 
 using Partia.Grids
 using Partia.LinearBoundingVolumeHierarchy

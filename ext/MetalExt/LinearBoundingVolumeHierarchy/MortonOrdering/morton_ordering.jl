@@ -1,5 +1,5 @@
-function Partia.sort_by_morton!(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, ws :: OnesweepWorkspace{TI, MtlVector{TI}, MtlVector{UInt32}}, :: Val{TileSize}) where {D, TI <: Unsigned, TileSize}
-    p = onesweep_sortperm!(enc.codes, ws, Val(TileSize))
+function Partia.sort_by_morton!(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, ws :: OnesweepWorkspace{TI, MtlVector{TI}, OffsetV}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256)) where {D, TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned, OffsetV <: MtlVector{UInt32}}
+    p = onesweep_sortperm!(enc.codes, ws, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
 
     copyto!(enc.order, p)
 
@@ -10,8 +10,7 @@ function Partia.sort_by_morton!(enc :: MortonEncoding{D, Float32, TI, MtlVector{
     return p
 end
 
-
-@inline function sort_by_morton!(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}) where {D, TI <: Unsigned}
+@inline function Partia.sort_by_morton!(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256)) where {D, TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned}
     ws = OnesweepWorkspace(typeof(enc.codes))
-    return sort_by_morton!(enc, ws, Val(4096))
+    return Partia.sort_by_morton!(enc, ws, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
 end
