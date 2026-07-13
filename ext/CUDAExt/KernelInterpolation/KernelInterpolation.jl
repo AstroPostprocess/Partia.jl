@@ -1,6 +1,11 @@
 module KernelInterpolation
 using Partia
 using CUDA
+using UnsignedRadixSorts
+
+# Interpolation setup
+include(joinpath(@__DIR__, "interpolation_setup", "InterpolationInput.jl"))
+include(joinpath(@__DIR__, "interpolation_setup", "InterpolationSmoothingVolumeInput.jl"))
 
 # Grid interpolation
 include(joinpath(@__DIR__, "grid_interpolation", "kernels", "PointSamples_kernel.jl"))

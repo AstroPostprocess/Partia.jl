@@ -3,8 +3,17 @@ using Partia
 using CUDA
 using UnsignedRadixSorts
 
+# Morton encoding
+include(joinpath(@__DIR__, "MortonEncoding", "morton_encoding_kernel.jl"))
+include(joinpath(@__DIR__, "MortonEncoding", "MortonEncoding.jl"))
+
 # Sorting
 include(joinpath(@__DIR__, "MortonOrdering", "morton_ordering.jl"))
+
+# Linear bounding volume hierarchy (LinearBVH)
+include(joinpath(@__DIR__, "LinearBVH", "initialize_leaf_node.jl"))
+include(joinpath(@__DIR__, "LinearBVH", "LinearBVH.jl"))
+include(joinpath(@__DIR__, "LinearBVH", "ascend_from_leaf.jl"))
 
 # Export function, marco, const...
 for name in filter(s -> !startswith(string(s), "#"), names(@__MODULE__, all = true))
