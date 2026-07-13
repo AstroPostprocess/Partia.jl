@@ -1,35 +1,97 @@
-######################################################################################
-
-# CUDA LBVH setup for smoothing-volume interpolation input.
-
-######################################################################################
+# Input helper for LBVH
+## 3D path
 """
-    LinearBVH!(input::InterpolationSmoothingVolumeInput{D,TF,CuVector{TF}},
-               ::Val{TileSize}=Val(4096),
-               ::Val{NBlocks}=Val(256),
-               ::Val{ThreadsPerBlock}=Val(256);
-               CodeType=UInt64,
-               SortWorkSpace=OnesweepWorkspace(CuVector{CodeType}))
+    LinearBVH!(input :: InterpolationSmoothingVolumeInput{3}, ::Val{TileSize}=Val(4096), ::Val{NBlocks}=Val(256), ::Val{ThreadsPerBlock}=Val(256);
+                CodeType=UInt64,
+                SortWorkSpace=OnesweepWorkspace(CuVector{CodeType}))
 
-Build a CUDA LBVH for a smoothing-volume interpolation input. Coordinates,
-mass, smoothing length, and quantity columns are permuted in-place into Morton
-leaf order. The returned hierarchy uses `input.h` as its per-leaf scale.
+Build a 3D `LinearBVH` for a smoothing-volume interpolation input.
+
+The input arrays are permuted in-place into Morton leaf order, matching the
+behavior of `LinearBVH!(input :: InterpolationInput{3})`. The mass,
+smoothing-length, and quantity columns are reordered together with the
+coordinates.
 
 # Parameters
-- `TileSize`: OneSweep radix-sort tile size; defaults to 4096.
-- `NBlocks`: CUDA block count; defaults to 256.
-- `ThreadsPerBlock`: CUDA threads per block; defaults to 256.
+- `input :: InterpolationSmoothingVolumeInput{3}`: Smoothing-volume interpolation input stored on CUDA.
+- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
+- `::Val{NBlocks}`: Number of CUDA blocks used by the radix sorter.
+- `::Val{ThreadsPerBlock}`: Number of threads used by the CUDA kernels.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `CodeType` | `Type{TI}` | `UInt64` | Unsigned Morton-code integer type. |
+| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(CuVector{CodeType})` | Reusable workspace for Morton-code sorting. |
+
+# Returns
+- `LinearBVH{3}`: Linear bounding volume hierarchy with leaf scales taken from
+  `input.h`.
 """
-function Partia.LinearBVH!(input :: InterpolationSmoothingVolumeInput{D, TF, CuVector{TF}}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256);
-    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {D, TF <: AbstractFloat, TileSize, NBlocks, ThreadsPerBlock, TI <: Unsigned}
-    # Generate one shared Morton permutation for every particle attribute.
-    coords = Partia.get_coord(input)
-    enc = Partia.MortonEncoding(coords, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock); CodeType, SortWorkSpace)
+function Partia.LinearBVH!(input :: InterpolationSmoothingVolumeInput{3, TF, CuVector{TF}}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256);
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {TF <: AbstractFloat, TileSize, NBlocks, ThreadsPerBlock, TI <: Unsigned}
+    x = get_xcoord(input)
+    y = get_ycoord(input)
+    z = get_zcoord(input)
+
+    enc = Partia.MortonEncoding(x, y, z, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock); CodeType, SortWorkSpace)
     order = enc.order
-    # Keep the structure-of-arrays fields aligned with the LBVH leaves.
-    foreach(v -> Base.permute!(v, order), coords)
+
+    Base.permute!(x, order)
+    Base.permute!(y, order)
+    Base.permute!(z, order)
     Base.permute!(input.m, order)
     Base.permute!(input.h, order)
-    foreach(v -> Base.permute!(v, order), input.quant)
+    for column in input.quant
+        Base.permute!(column, order)
+    end
+
+    return Partia.LinearBVH(enc, input.h, Val(NBlocks), Val(ThreadsPerBlock))
+end
+
+## 2D path
+"""
+    LinearBVH!(input :: InterpolationSmoothingVolumeInput{2}, ::Val{TileSize}=Val(4096), ::Val{NBlocks}=Val(256), ::Val{ThreadsPerBlock}=Val(256);
+                CodeType=UInt64,
+                SortWorkSpace=OnesweepWorkspace(CuVector{CodeType}))
+
+Build a 2D `LinearBVH` for a smoothing-volume interpolation input.
+
+The input arrays are permuted in-place into Morton leaf order. The mass,
+smoothing-length, and quantity columns are reordered together with the
+coordinates.
+
+# Parameters
+- `input :: InterpolationSmoothingVolumeInput{2}`: Smoothing-volume interpolation input stored on CUDA.
+- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
+- `::Val{NBlocks}`: Number of CUDA blocks used by the radix sorter.
+- `::Val{ThreadsPerBlock}`: Number of threads used by the CUDA kernels.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `CodeType` | `Type{TI}` | `UInt64` | Unsigned Morton-code integer type. |
+| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(CuVector{CodeType})` | Reusable workspace for Morton-code sorting. |
+
+# Returns
+- `LinearBVH{2}`: Linear bounding volume hierarchy with leaf scales taken from
+  `input.h`.
+"""
+function Partia.LinearBVH!(input :: InterpolationSmoothingVolumeInput{2, TF, CuVector{TF}}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256);
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {TF <: AbstractFloat, TileSize, NBlocks, ThreadsPerBlock, TI <: Unsigned}
+    x = get_xcoord(input)
+    y = get_ycoord(input)
+
+    enc = Partia.MortonEncoding(x, y, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock); CodeType, SortWorkSpace)
+    order = enc.order
+
+    Base.permute!(x, order)
+    Base.permute!(y, order)
+    Base.permute!(input.m, order)
+    Base.permute!(input.h, order)
+    for column in input.quant
+        Base.permute!(column, order)
+    end
+
     return Partia.LinearBVH(enc, input.h, Val(NBlocks), Val(ThreadsPerBlock))
 end

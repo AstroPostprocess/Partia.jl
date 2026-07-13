@@ -33,17 +33,21 @@ struct LineSamples{D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTupl
     origin :: VC
     direction :: VC
 
-    # Inner constructor
-    function LineSamples(grid :: VG, origin :: VC, direction :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
+    # Explicit inner constructor used when preserving a selected vector storage type.
+    function LineSamples{D, TF, VG, VC}(grid :: VG, origin :: VC, direction :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
         N = length(grid)
-
         @inbounds for d in 1:D
             length(origin[d]) == N || throw(ArgumentError("origin[$d] length mismatch"))
             length(direction[d]) == N || throw(ArgumentError("direction[$d] length mismatch"))
         end
-
         return new{D, TF, VG, VC}(grid, origin, direction)
     end
+end
+
+# Infer all structure parameters for ordinary construction, then reuse the
+# validating explicit inner constructor above.
+function LineSamples(grid :: VG, origin :: VC, direction :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
+    return LineSamples{D, TF, VG, VC}(grid, origin, direction)
 end
 
 function Adapt.adapt_structure(to, x :: LineSamples{D}) where {D}
@@ -100,10 +104,10 @@ The returned object allocates a new `grid` vector, but reuses
   A new `LineSamples` object with independent value storage and shared
   origin/direction containers.
 """
-function Base.similar(grid :: LineSamples)
+function Base.similar(grid :: LineSamples{D, TF, VG, VC}) where {D, TF, VG, VC}
     # Geometry is taken from grids[1] under the contract that `similar( :: LineSamples)`
     # shares `origin` and `direction` across all output grids.
-    return LineSamples(similar(grid.grid), grid.origin, grid.direction)
+    return LineSamples{D, TF, VG, VC}(similar(grid.grid), grid.origin, grid.direction)
 end
 
 """

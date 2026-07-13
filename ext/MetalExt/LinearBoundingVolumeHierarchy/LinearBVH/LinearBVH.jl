@@ -59,7 +59,8 @@ function Partia.LinearBVH(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float3
 
     # Initialise the leaf section: unified leaf IDs are n:(2n - 1).
     @metal threads=(ThreadsPerGroup,) groups=(cld(n, ThreadsPerGroup),) Partia.LinearBoundingVolumeHierarchy._initialize_leaf_node!(unified_scale, aabb, scale, leaf_min, leaf_max, n_internal)
-    Metal.synchronize()
+    # Metal commands submitted to the same queue are ordered, so the
+    # construction kernel below needs no intermediate host-side barrier.
 
     # Construct the LBVH storage.
     lbvh = Partia.LinearBVH{D, Float32, MtlVector{Float32}, MtlVector{Int32}}(n, left, escape, aabb, unified_scale)

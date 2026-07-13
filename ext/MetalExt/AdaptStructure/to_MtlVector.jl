@@ -50,14 +50,14 @@ function Partia.to_MtlVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: A
 end
 
 function Partia.to_MtlVector(grid :: PointSamples{D, TF, VG, VC}) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, Vector{TF}}}
-    return PointSamples(
+    return PointSamples{D, Float32, MtlVector{Float32}, NTuple{D, MtlVector{Float32}}}(
         MtlVector{Float32}(grid.grid),
         ntuple(i -> MtlVector{Float32}(grid.coor[i]), D)
     )
 end
 
 function Partia.to_MtlVector(grid :: LineSamples{D, TF, VG, VC}) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, Vector{TF}}}
-    return LineSamples(
+    return LineSamples{D, Float32, MtlVector{Float32}, NTuple{D, MtlVector{Float32}}}(
         MtlVector{Float32}(grid.grid),
         ntuple(i -> MtlVector{Float32}(grid.origin[i]), D),
         ntuple(i -> MtlVector{Float32}(grid.direction[i]), D)

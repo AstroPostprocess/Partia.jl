@@ -53,7 +53,8 @@ function Partia.LinearBVH(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVecto
 
     # Populate the leaf section before any parent thread reads it.
     @cuda threads=ThreadsPerBlock blocks=NBlocks Partia.LinearBoundingVolumeHierarchy._initialize_leaf_node!(unified_scale, aabb, scale, leaf_min, leaf_max, n_internal)
-    CUDA.synchronize()
+    # CUDA launches on the same stream are ordered, so the construction kernel
+    # below observes the initialized leaf section without a host-side barrier.
     lbvh = Partia.LinearBVH{D, TF, CuVector{TF}, CuVector{Int32}}(n, left, escape, aabb, unified_scale)
 
     if n_internal > 0

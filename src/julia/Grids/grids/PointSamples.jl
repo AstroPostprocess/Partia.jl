@@ -26,16 +26,20 @@ struct PointSamples{D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTup
     grid :: VG
     coor :: VC
 
-    # Inner constructor
-    function PointSamples(grid :: VG, coor :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
+    # Explicit inner constructor used when preserving a selected vector storage type.
+    function PointSamples{D, TF, VG, VC}(grid :: VG, coor :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
         N = length(grid)
-
         @inbounds for d in 1:D
             length(coor[d]) == N || throw(ArgumentError("coor[$d] length mismatch"))
         end
-
         return new{D, TF, VG, VC}(grid, coor)
     end
+end
+
+# Infer all structure parameters for ordinary construction, then reuse the
+# validating explicit inner constructor above.
+function PointSamples(grid :: VG, coor :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
+    return PointSamples{D, TF, VG, VC}(grid, coor)
 end
 
 function Adapt.adapt_structure(to, x :: PointSamples{D}) where {D}
@@ -84,10 +88,10 @@ the same coordinate container as the input grid.
 - `PointSamples` : A grid with independent value storage (`grid.grid`)
   and shared coordinates (`grid.coor`).
 """
-function Base.similar(grid :: PointSamples)
+function Base.similar(grid :: PointSamples{D, TF, VG, VC}) where {D, TF, VG, VC}
     # Geometry is taken from grids[1] under the contract that `similar( :: PointSamples)`
     # shares `coor` across all output grids.
-    return PointSamples(similar(grid.grid), grid.coor)
+    return PointSamples{D, TF, VG, VC}(similar(grid.grid), grid.coor)
 end
 
 """

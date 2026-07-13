@@ -1,5 +1,3 @@
-
-
 function Partia.to_CuVector(input :: InterpolationInput{D, T, V, K, NCOLUMN}) where {D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN}
     return InterpolationInput{D, T, CuVector{T}, K, NCOLUMN}(
         input.Npart,
@@ -50,14 +48,14 @@ function Partia.to_CuVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: Ab
 end
 
 function Partia.to_CuVector(grid :: PointSamples{D, TF, VG, VC}) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, Vector{TF}}}
-    return PointSamples(
+    return PointSamples{D, TF, CuVector{TF}, NTuple{D, CuVector{TF}}}(
         CuVector{TF}(grid.grid),
         ntuple(i -> CuVector{TF}(grid.coor[i]), D)
     )
 end
 
 function Partia.to_CuVector(grid :: LineSamples{D, TF, VG, VC}) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, Vector{TF}}}
-    return LineSamples(
+    return LineSamples{D, TF, CuVector{TF}, NTuple{D, CuVector{TF}}}(
         CuVector{TF}(grid.grid),
         ntuple(i -> CuVector{TF}(grid.origin[i]), D),
         ntuple(i -> CuVector{TF}(grid.direction[i]), D)
