@@ -80,11 +80,6 @@ function LinearBVH(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, sca
     aabb = AABB{D, TF, Vector{TF}}(ntuple(_ -> Vector{TF}(undef, total_length), D), ntuple(_ -> Vector{TF}(undef, total_length), D))
     unified_scale = Vector{TF}(undef, total_length)
 
-    # Initialise the leaf section: unified leaf IDs are n:(2n - 1).
-    @threads for i in 1:n
-        _initialize_leaf_node!(unified_scale, aabb, scale, leaf_min, leaf_max, n_internal, i)
-    end
-
     # Construct the LBVH storage.
     lbvh = LinearBVH{D, TF, Vector{TF}, Vector{Int32}}(n, left, escape, aabb, unified_scale)
 
@@ -92,14 +87,7 @@ function LinearBVH(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, sca
     # Zero indicates that no child subtree has reached this slot yet.
     store = zeros(Int32, n_internal)
 
-    if n_internal > 0
-        # Build the topology and unified node data by bottom-up merging.
-        @threads for i in 1:n
-            _ascend_from_leaf!(lbvh, store, codes, i)
-        end
-    end
-
-    return lbvh
+    return build!(lbvh, store, enc, scale, leaf_min, leaf_max)
 end
 
 function LinearBVH(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, scale :: Vector{TF}) where {D, TF <: AbstractFloat, TI <: Unsigned}

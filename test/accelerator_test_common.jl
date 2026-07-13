@@ -23,6 +23,7 @@
 using Test
 using Random
 using Partia
+using UnsignedRadixSorts
 
 # ========================== Shared includes ================================= #
 
@@ -263,10 +264,29 @@ function run_accelerator_test_suite(config)
             scale = collect(range(0.01f0, 0.20f0; length = length(coords[1])))
 
             cpu_enc = MortonEncoding(coords)
-            gpu_enc = MortonEncoding(ntuple(d -> to_device_vector(coords[d]), dim))
+            gpu_points = ntuple(d -> to_device_vector(coords[d]), dim)
+            gpu_enc = MortonEncoding(gpu_points)
             synchronize()
             host_enc = to_host(gpu_enc)
             accelerator_test_encoding_equal(host_enc, cpu_enc; atol, rtol)
+
+            # Rebuild the same encoding and sorting workspace through the
+            # coordinate-wise public build! API.
+            gpu_workspace = OnesweepWorkspace(typeof(gpu_enc.codes))
+            rebuilt_enc = dim == 2 ?
+                build!(gpu_enc, gpu_points[1], gpu_points[2], gpu_workspace) :
+                build!(gpu_enc, gpu_points[1], gpu_points[2], gpu_points[3], gpu_workspace)
+            @test rebuilt_enc === gpu_enc
+            synchronize()
+            accelerator_test_encoding_equal(to_host(rebuilt_enc), cpu_enc; atol, rtol)
+
+            no_copy_points = ntuple(d -> to_device_vector(coords[d]), dim)
+            no_copy_enc = dim == 2 ?
+                MortonEncoding!(no_copy_points[1], no_copy_points[2]) :
+                MortonEncoding!(no_copy_points[1], no_copy_points[2], no_copy_points[3])
+            @test no_copy_enc.coord === no_copy_points
+            synchronize()
+            accelerator_test_encoding_equal(to_host(no_copy_enc), cpu_enc; atol, rtol)
 
             adapted_enc = to_device(cpu_enc)
             synchronize()
@@ -279,6 +299,13 @@ function run_accelerator_test_suite(config)
             host_lbvh = to_host(gpu_lbvh)
             accelerator_test_lbvh_equal(host_lbvh, cpu_lbvh; atol, rtol)
             @test sort(accelerator_test_visit_nodes(host_lbvh)) == collect(1:(2 * host_lbvh.nleaf - 1))
+
+            # Rebuild the same hierarchy and rendezvous storage in place.
+            gpu_store = to_device_vector(fill(Int32(7), length(sorted_scale) - 1))
+            rebuilt = build!(gpu_lbvh, gpu_store, gpu_enc, to_device_vector(sorted_scale))
+            @test rebuilt === gpu_lbvh
+            synchronize()
+            accelerator_test_lbvh_equal(to_host(rebuilt), cpu_lbvh; atol, rtol)
 
             adapted_lbvh = to_device(cpu_lbvh)
             synchronize()

@@ -29,7 +29,7 @@ coordinates.
   `input.h`.
 """
 function Partia.LinearBVH!(input :: InterpolationSmoothingVolumeInput{3, TF, CuVector{TF}}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256);
-    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {TF <: AbstractFloat, TileSize, NBlocks, ThreadsPerBlock, TI <: Unsigned}
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {TileSize, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
     z = get_zcoord(input)
@@ -78,7 +78,7 @@ coordinates.
   `input.h`.
 """
 function Partia.LinearBVH!(input :: InterpolationSmoothingVolumeInput{2, TF, CuVector{TF}}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256);
-    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {TF <: AbstractFloat, TileSize, NBlocks, ThreadsPerBlock, TI <: Unsigned}
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {TileSize, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
 

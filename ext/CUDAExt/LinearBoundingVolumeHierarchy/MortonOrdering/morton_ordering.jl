@@ -7,7 +7,7 @@
 Sort CUDA Morton codes with OneSweep, store the permutation in `enc.order`,
 and apply it to every coordinate vector in `enc.coord`.
 """
-function Partia.sort_by_morton!(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}, ws :: OnesweepWorkspace{TI, CuVector{TI}, OffsetV}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256)) where {D, TF <: AbstractFloat, TI <: Unsigned, OffsetV <: CuVector{UInt32}, TileSize, NBlocks, ThreadsPerBlock}
+function Partia.sort_by_morton!(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}, ws :: OnesweepWorkspace{TI, CodeV, OffsetV}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256)) where {D, TileSize, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned, CodeV <: CuVector{TI}, OffsetV <: CuVector{UInt32}}
     p = onesweep_sortperm!(enc.codes, ws, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock))
 
     # Preserve the permutation for callers that need to reorder associated data.
@@ -22,7 +22,7 @@ function Partia.sort_by_morton!(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, C
 end
 
 
-@inline function Partia.sort_by_morton!(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256)) where {D, TF <: AbstractFloat, TI <: Unsigned, TileSize, NBlocks, ThreadsPerBlock}
+@inline function Partia.sort_by_morton!(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256)) where {D, TileSize, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
     ws = OnesweepWorkspace(typeof(enc.codes))
     return Partia.sort_by_morton!(enc, ws, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock))
 end

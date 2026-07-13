@@ -5,7 +5,6 @@
 #     July 13, 2026
 
 ######################################################################################
-################# Constructing LBVH #################
 """
     LinearBVH(enc :: MortonEncoding, scale, ::Val{ThreadsPerGroup}=Val(256))
     LinearBVH(enc :: MortonEncoding, scale, leaf_min, leaf_max, ::Val{ThreadsPerGroup}=Val(256))
@@ -57,25 +56,13 @@ function Partia.LinearBVH(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float3
     aabb = Partia.AABB{D, Float32, MtlVector{Float32}}(ntuple(_ -> MtlVector{Float32}(undef, total_length), D), ntuple(_ -> MtlVector{Float32}(undef, total_length), D))
     unified_scale = MtlVector{Float32}(undef, total_length)
 
-    # Initialise the leaf section: unified leaf IDs are n:(2n - 1).
-    @metal threads=(ThreadsPerGroup,) groups=(cld(n, ThreadsPerGroup),) Partia.LinearBoundingVolumeHierarchy._initialize_leaf_node!(unified_scale, aabb, scale, leaf_min, leaf_max, n_internal)
-    # Metal commands submitted to the same queue are ordered, so the
-    # construction kernel below needs no intermediate host-side barrier.
-
     # Construct the LBVH storage.
     lbvh = Partia.LinearBVH{D, Float32, MtlVector{Float32}, MtlVector{Int32}}(n, left, escape, aabb, unified_scale)
 
     # Temporary rendezvous storage indexed by split position.
     # Zero indicates that no child subtree has reached this slot yet.
-    store = Metal.zeros(Int32, n_internal)
-
-    if n_internal > 0
-        # Build the topology and unified node data by bottom-up merging.
-        @metal threads=(ThreadsPerGroup,) groups=(cld(n, ThreadsPerGroup),) Partia.LinearBoundingVolumeHierarchy._ascend_from_leaf!(lbvh, store, codes)
-        Metal.synchronize()
-    end
-
-    return lbvh
+    store = MtlVector{Int32}(undef, n_internal)
+    return Partia.build!(lbvh, store, enc, scale, leaf_min, leaf_max, Val(ThreadsPerGroup))
 end
 
 function Partia.LinearBVH(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, scale :: MtlVector{Float32}, :: Val{ThreadsPerGroup} = Val(256)) where {D, ThreadsPerGroup, TI <: Unsigned}

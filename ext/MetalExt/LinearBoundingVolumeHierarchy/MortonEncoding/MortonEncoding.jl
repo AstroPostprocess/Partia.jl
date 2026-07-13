@@ -5,7 +5,6 @@
 #     July 13, 2026
 
 ######################################################################################
-################# Encoding Morton code #################
 """
     MortonEncoding(x::MtlVector{Float32}, y::MtlVector{Float32}, z::MtlVector{Float32}, ::Val{TileSize}=Val(2048), ::Val{NThreadgroups}=Val(128), ::Val{ThreadsPerGroup}=Val(256);
                    CodeType=UInt64,

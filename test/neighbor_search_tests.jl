@@ -7,6 +7,7 @@ using Test
 using Random
 using Partia
 using Partia.LinearBoundingVolumeHierarchy
+using UnsignedRadixSorts
 
 const lbvh_mod = Partia.LinearBoundingVolumeHierarchy
 
@@ -82,6 +83,57 @@ end
         lbvh = LinearBVH(enc, ones(n))
         @test sort(visit_nodes(lbvh)) == collect(1:2n-1)
         @test all(==(0.5), (lbvh.aabb.min[d][1] for d in 1:dim))
+    end
+end
+
+@testset "MortonEncoding -- reusable build!" begin
+    for D in (Val(2), Val(3))
+        dim = D isa Val{2} ? 2 : 3
+        rng = MersenneTwister(0xC0DE + dim)
+        points = ntuple(_ -> rand(rng, 31), dim)
+        enc = MortonEncoding(points)
+        workspace = OnesweepWorkspace(Vector{UInt64})
+
+        # Rebuild through the coordinate-wise API requested by callers.
+        rebuilt = dim == 2 ? build!(enc, points[1], points[2], workspace) :
+            build!(enc, points[1], points[2], points[3], workspace)
+        reference = MortonEncoding(points)
+
+        @test rebuilt === enc
+        @test rebuilt.order == reference.order
+        @test rebuilt.codes == reference.codes
+        @test rebuilt.coord == reference.coord
+
+        no_copy_points = map(copy, points)
+        no_copy = dim == 2 ?
+            MortonEncoding!(no_copy_points[1], no_copy_points[2]) :
+            MortonEncoding!(no_copy_points[1], no_copy_points[2], no_copy_points[3])
+        @test no_copy.coord === no_copy_points
+        @test no_copy.order == reference.order
+        @test no_copy.codes == reference.codes
+        @test no_copy.coord == reference.coord
+    end
+end
+
+@testset "LinearBVH -- reusable build!" begin
+    for D in (Val(2), Val(3)), n in (1, 17)
+        enc = encoding(D, n, 3000 + n)
+        scale = n == 1 ? [0.02] : collect(range(0.02, 0.2; length=n))
+        lbvh = LinearBVH(enc, scale)
+        store = fill(Int32(7), n - 1)
+
+        # Corrupt reusable storage and hierarchy leaves before rebuilding to
+        # verify that build! resets the rendezvous state and overwrites data.
+        fill!(lbvh.scale, -1.0)
+        rebuilt = build!(lbvh, store, enc, scale)
+        reference = LinearBVH(enc, scale)
+
+        @test rebuilt === lbvh
+        @test rebuilt.left == reference.left
+        @test rebuilt.escape == reference.escape
+        @test rebuilt.aabb.min == reference.aabb.min
+        @test rebuilt.aabb.max == reference.aabb.max
+        @test rebuilt.scale == reference.scale
     end
 end
 

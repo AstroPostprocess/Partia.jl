@@ -10,11 +10,13 @@ include(joinpath(@__DIR__, "MortonEncoding", "MortonEncoding.jl"))
 
 # Sorting
 include(joinpath(@__DIR__, "MortonOrdering", "morton_ordering.jl"))
+include(joinpath(@__DIR__, "MortonEncoding", "build.jl"))
 
 # Linear bounding volume hierarchy (LinearBVH)
 include(joinpath(@__DIR__, "LinearBVH", "initialize_leaf_node.jl"))
 include(joinpath(@__DIR__, "LinearBVH", "LinearBVH.jl"))
 include(joinpath(@__DIR__, "LinearBVH", "ascend_from_leaf.jl"))
+include(joinpath(@__DIR__, "LinearBVH", "build.jl"))
 
 # Export functions, macros, constants, and types.
 for name in filter(s -> !startswith(string(s), "#"), names(@__MODULE__, all = true))

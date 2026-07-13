@@ -25,6 +25,7 @@ include(joinpath(@__DIR__, "MortonEncoding", "BitInterleaving", "morton_code.jl"
 include(joinpath(@__DIR__, "MortonEncoding", "morton_encoding_kernel.jl"))
 include(joinpath(@__DIR__, "MortonEncoding", "MortonEncoding.jl"))
 include(joinpath(@__DIR__, "MortonOrdering", "morton_ordering.jl"))
+include(joinpath(@__DIR__, "MortonEncoding", "build.jl"))
 
 # Shared neighbor selection container
 include(joinpath(@__DIR__, "NeighborSelection.jl"))
@@ -39,6 +40,7 @@ include(joinpath(@__DIR__, "LinearBVH", "Topology", "longest_common_prefix.jl"))
 include(joinpath(@__DIR__, "LinearBVH", "initialize_leaf_node.jl"))
 include(joinpath(@__DIR__, "LinearBVH", "LinearBVH.jl"))
 include(joinpath(@__DIR__, "LinearBVH", "ascend_from_leaf.jl"))
+include(joinpath(@__DIR__, "LinearBVH", "build.jl"))
 include(joinpath(@__DIR__, "LinearBVH", "linear_bvh_traversal_macros.jl"))
 include(joinpath(@__DIR__, "LinearBVH", "linear_bvh_queries.jl"))
 

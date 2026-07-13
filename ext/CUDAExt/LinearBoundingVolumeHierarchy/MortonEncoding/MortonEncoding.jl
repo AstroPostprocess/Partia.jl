@@ -33,38 +33,18 @@ whose `order` field maps the original particle order to that ordering.
 """
 function Partia.MortonEncoding(points :: NTuple{D, CuVector{TF}}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256);
     CodeType :: Type{TI} = UInt64,
-    SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {D, TF <: AbstractFloat, TileSize, NBlocks, ThreadsPerBlock, TI <: Unsigned}
+    SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {D, TileSize, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
     # Validate the structure-of-arrays input before launching a GPU kernel.
     D in (2, 3) || throw(ArgumentError("Morton encoding only supports two or three dimensions"))
     all(!isempty, points) || throw(ArgumentError("coordinates must not be empty"))
     all(axes(p) == axes(points[1]) for p in points) || throw(DimensionMismatch("coordinates must have identical axes"))
 
-    # Preserve the caller's coordinate arrays: sorting below is in-place.
-    coord = map(copy, points)
-
-    # Build an affine map from each physical coordinate range to [0, 1].
-    # A degenerate axis is placed at the midpoint so all equal coordinates
-    # receive the same stable quantized value.
-    bounds = map(extrema, coord)
-    inv_extent = ntuple(D) do d
-        extent = bounds[d][2] - bounds[d][1]
-        iszero(extent) ? zero(TF) : inv(extent)
-    end
-    offset = ntuple(D) do d
-        iszero(inv_extent[d]) ? TF(0.5) : -inv_extent[d] * bounds[d][1]
-    end
-
-    # Encode directly from physical coordinates, avoiding temporary normalized
-    # and quantized coordinate vectors.
-    codes = CuVector{TI}(undef, length(coord[1]))
+    # Allocate reusable encoding storage, then populate it through the in-place path.
+    coord = map(similar, points)
+    codes = CuVector{TI}(undef, length(points[1]))
     order = similar(codes)
-    @cuda threads=ThreadsPerBlock blocks=NBlocks Partia.LinearBoundingVolumeHierarchy._morton_encoding_kernel!(codes, coord, inv_extent, offset)
-    CUDA.synchronize()
-
-    # Sort codes and coordinate copies together and retain the permutation.
     enc = Partia.MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}(order, codes, coord)
-    Partia.sort_by_morton!(enc, SortWorkSpace, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock))
-    return enc
+    return Partia.build!(enc, points, SortWorkSpace, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock))
 end
 
 """Coordinate-wise 2D convenience overload for CUDA Morton encoding."""
