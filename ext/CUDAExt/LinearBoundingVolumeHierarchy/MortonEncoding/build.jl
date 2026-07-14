@@ -27,7 +27,7 @@ function Partia.build!(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{T
         copyto!(enc.coord[d], points[d])
     end
 
-    bounds = map(extrema, points)
+    bounds = Partia.LinearBoundingVolumeHierarchy._coordinate_bounds(points)
     inv_extent = ntuple(D) do d
         extent = bounds[d][2] - bounds[d][1]
         iszero(extent) ? zero(TF) : inv(extent)

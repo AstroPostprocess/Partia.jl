@@ -2,11 +2,8 @@
 
 # CPU/accelerator Morton encoding and LinearBVH scaling benchmark.
 #
-# Run without --project:
-#     julia temp/benchmark_gpu_cpu_lbvh.jl
-#
 # Example:
-#     julia temp/benchmark_gpu_cpu_lbvh.jl --backend auto \
+#     julia benckmark/benchmark_gpu_cpu_lbvh.jl --backend auto \
 #         --nparts 1000,10000,100000,1000000 --repeats 3 --dim 3 --type Float64
 
 ######################################################################################

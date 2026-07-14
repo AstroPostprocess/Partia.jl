@@ -12,6 +12,11 @@ struct MortonEncoding{D, TF <: AbstractFloat, TI <: Unsigned, VF <: AbstractVect
     coord :: NTuple{D, VF}  # Original data points
 end
 
+"""Return per-axis coordinate bounds using scalar reductions."""
+@inline function _coordinate_bounds(points :: NTuple{D, V}) where {D, V <: AbstractVector}
+    return map(point -> (minimum(point), maximum(point)), points)
+end
+
 function Adapt.adapt_structure(to, x :: ME) where {D, ME <: MortonEncoding{D}}
     MortonEncoding(
         Adapt.adapt(to, x.order),
@@ -54,10 +59,12 @@ function MortonEncoding(x :: Vector{T}, y :: Vector{T}, z :: Vector{T}, :: Val{T
     xcopy = copy(x); ycopy = copy(y); zcopy = copy(z)
     npart = length(xcopy)
 
-    # Get the extrema for each axis
-    xmin, xmax = extrema(xcopy)
-    ymin, ymax = extrema(ycopy)
-    zmin, zmax = extrema(zcopy)
+    # Compute each bound with a scalar reduction. In particular, this avoids
+    # tuple-valued `extrema` reductions on accelerator backends.
+    bounds = _coordinate_bounds((xcopy, ycopy, zcopy))
+    xmin, xmax = bounds[1]
+    ymin, ymax = bounds[2]
+    zmin, zmax = bounds[3]
 
     # Total length of the box
     Δx = xmax - xmin
@@ -157,9 +164,11 @@ function MortonEncoding(x :: Vector{T}, y :: Vector{T}, :: Val{TileSize} = Val(4
     xcopy = copy(x); ycopy = copy(y)
     npart = length(xcopy)
 
-    # Get the extrema for each axis
-    xmin, xmax = extrema(xcopy)
-    ymin, ymax = extrema(ycopy)
+    # Compute each bound with a scalar reduction. In particular, this avoids
+    # tuple-valued `extrema` reductions on accelerator backends.
+    bounds = _coordinate_bounds((xcopy, ycopy))
+    xmin, xmax = bounds[1]
+    ymin, ymax = bounds[2]
 
     # Total length of the box
     Δx = xmax - xmin

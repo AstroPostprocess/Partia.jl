@@ -41,10 +41,12 @@ function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32},
     xcopy = copy(x); ycopy = copy(y); zcopy = copy(z)
     npart = length(xcopy)
 
-    # Get the extrema for each axis
-    xmin, xmax = extrema(xcopy)
-    ymin, ymax = extrema(ycopy)
-    zmin, zmax = extrema(zcopy)
+    # Use separate scalar reductions because large tuple-valued `extrema`
+    # reductions can reset the Metal command buffer.
+    bounds = Partia.LinearBoundingVolumeHierarchy._coordinate_bounds((xcopy, ycopy, zcopy))
+    xmin, xmax = bounds[1]
+    ymin, ymax = bounds[2]
+    zmin, zmax = bounds[3]
 
     # Total length of the box
     Δx = xmax - xmin
@@ -149,9 +151,11 @@ function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32},
     xcopy = copy(x); ycopy = copy(y)
     npart = length(xcopy)
 
-    # Get the extrema for each axis
-    xmin, xmax = extrema(xcopy)
-    ymin, ymax = extrema(ycopy)
+    # Use separate scalar reductions because large tuple-valued `extrema`
+    # reductions can reset the Metal command buffer.
+    bounds = Partia.LinearBoundingVolumeHierarchy._coordinate_bounds((xcopy, ycopy))
+    xmin, xmax = bounds[1]
+    ymin, ymax = bounds[2]
 
     # Total length of the box
     Δx = xmax - xmin

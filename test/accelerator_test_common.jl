@@ -258,6 +258,18 @@ function run_accelerator_test_suite(config)
     # ── 2. Morton encoding and LinearBVH ───────────────────────────────── #
 
     @testset "$name -- MortonEncoding and LinearBVH" begin
+        # Large bounds reductions must remain scalar-valued. This specifically
+        # guards Metal against the tuple-valued `extrema` reduction that can
+        # reset its command buffer at this problem size.
+        large_bounds_coords = (
+            collect(range(-2.0f0, 3.0f0; length = 100_000)),
+            collect(range(4.0f0, -1.0f0; length = 100_000)),
+        )
+        device_bounds_coords = map(to_device_vector, large_bounds_coords)
+        device_bounds = Partia.LinearBoundingVolumeHierarchy._coordinate_bounds(device_bounds_coords)
+        synchronize()
+        @test device_bounds == ((-2.0f0, 3.0f0), (-1.0f0, 4.0f0))
+
         for D in (Val(2), Val(3))
             dim = D isa Val{2} ? 2 : 3
             coords = accelerator_test_morton_coordinates(D, 257, 0xBEEF + dim)

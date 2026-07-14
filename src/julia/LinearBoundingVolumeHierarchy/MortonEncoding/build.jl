@@ -28,7 +28,7 @@ function build!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, points
         copyto!(enc.coord[d], points[d])
     end
 
-    bounds = map(extrema, points)
+    bounds = _coordinate_bounds(points)
     inv_extent = ntuple(D) do d
         extent = bounds[d][2] - bounds[d][1]
         iszero(extent) ? zero(TF) : inv(extent)
