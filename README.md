@@ -134,7 +134,7 @@ Currently the package provides:
 - Line-sampled / line-integrated interpolation
 - Oriented sampling frames for local planes and boxes
 
-The current interpolation pipeline uses a **Linear Bounding Volume Hierarchy (LBVH)** acceleration structure, inspired by *SHAMROCK* ([David-Cleris et al. 2025](https://academic.oup.com/mnras/article/539/1/1/8085154)) (see [Lauterbach et al. (2009)](https://doi.org/10.1111/j.1467-8659.2009.01377.x) and [Karras (2012)](https://doi.org/10.2312/EGGH/HPG12/033-037) for more information). In particular, traversal of this LBVH follows the **stackless DFS traversal** presented by [Prokopenko & Lebrun-Grandié (2024)](https://doi.org/10.2172/2301619).
+The current interpolation pipeline uses a **Linear Bounding Volume Hierarchy (LBVH)** acceleration structure, inspired by *SHAMROCK* ([David-Cleris et al. 2025](https://academic.oup.com/mnras/article/539/1/1/8085154)). Its hierarchy construction follows the modified **Apetrei algorithm** described by [Prokopenko & Lebrun-Grandié (2024)](https://doi.org/10.2172/2301619), which is based on [Apetrei et al. (2014)](https://doi.org/10.2312/cgvc.20141206); see also [Lauterbach et al. (2009)](https://doi.org/10.1111/j.1467-8659.2009.01377.x) and [Karras (2012)](https://doi.org/10.2312/EGGH/HPG12/033-037). Traversal also follows the **stackless DFS traversal** presented by  [Prokopenko & Lebrun-Grandié (2024)](https://doi.org/10.2172/2301619).
 
 
 
@@ -166,7 +166,7 @@ The computation proceeds through the following stages:
 
 6. Evaluating the single-sample interpolation kernel.
 
-   Each sample is evaluated independently. Point samples dispatch to `_general_quantity_interpolate_kernel`, which accumulates the requested scalar, gradient, divergence, and curl quantities according to the concise catalog and its Shepard-normalization flags. Line samples dispatch to `_line_integrated_quantities_interpolate_kernel`, which evaluates line-integrated scalar quantities using particle-side smoothing lengths. The enclosing sample loop is then executed by the selected backend (`CPUComputeBackend`, `CUDAComputeBackend`, `MetalComputeBackend`).
+   Each sample is evaluated independently. Point samples dispatch to `_general_quantity_interpolate_kernel`, which accumulates the requested scalar, gradient, divergence, and curl quantities according to the concise catalog and its Shepard-normalization flags. Line samples dispatch to `_line_integrated_quantities_interpolate_kernel`, which evaluates line-integrated scalar quantities using particle-side smoothing lengths. The array storage used by the samples and interpolation input (`Vector`, `CuVector`, or `MtlVector`) selects the execution path.
 
 7. Writing results back into the output grids.
 
@@ -268,8 +268,6 @@ particles = Dict(
     "vz" => vz,
 )
 
-backend = CPUComputeBackend()
-
 x = particles["x"]
 y = particles["y"]
 z = particles["z"]
@@ -286,7 +284,6 @@ To interpolate **internal energy**, the **velocity components**, the **density g
 
 ```julia
 input, catalog = build_input(
-    backend,
     x,
     y,
     z,
@@ -333,7 +330,6 @@ grid_template = StructuredGrid(
 )
 
 result = StructuredGrid_interpolation(
-    backend,
     Cartesian,
     grid_template,
     input,
@@ -359,7 +355,6 @@ cyl_template = StructuredGrid(
 )
 
 cyl_result = StructuredGrid_interpolation(
-    backend,
     Cylindrical,
     cyl_template,
     input,
@@ -378,7 +373,6 @@ To evaluate interpolated quantities at an arbitrary set of sample points, use `P
 sample_points = PointSamples(x, y, z)
 
 point_result = PointSamples_interpolation(
-    backend,
     sample_points,
     input,
     catalog,
@@ -410,11 +404,9 @@ lines = LineSamples(
 )
 
 line_result = LineSamples_interpolation(
-    backend,
     lines,
     input,
     line_catalog,
-    itpScatter,
 )
 
 Sigma = line_result.grids[1].grid
@@ -475,26 +467,20 @@ At present, `read_GridDataset` reconstructs `StructuredGrid` and `PointSamples` 
 
 ## GPU capability
 
-`Partia.jl` provides GPU execution through Julia package extensions for [`CUDA.jl`](https://github.com/JuliaGPU/CUDA.jl) and [`Metal.jl`](https://github.com/JuliaGPU/Metal.jl). These are weak dependencies, so the corresponding extension is activated when the backend package is loaded.
+`Partia.jl` provides GPU execution through Julia package extensions for [`CUDA.jl`](https://github.com/JuliaGPU/CUDA.jl) and [`Metal.jl`](https://github.com/JuliaGPU/Metal.jl). These are weak dependencies, so the corresponding extension is activated when the GPU package is loaded.
 
-The available execution backends are:
-
-- `CPUComputeBackend()`
-- `CUDAComputeBackend()`
-- `MetalComputeBackend()`
-
-The interpolation interface is unchanged across backends. For example, a CUDA run uses
+There are no execution-backend selector objects. The interpolation methods dispatch from the storage type of the input and sampling grids. For example, a CUDA run uses
 
 ```julia
 using Partia
 using CUDA
 
-backend = CUDAComputeBackend()
+device_input = to_CuVector(input)
+device_samples = to_CuVector(sample_points)
 
 result = PointSamples_interpolation(
-    backend,
-    sample_points,
-    input,
+    device_samples,
+    device_input,
     catalog,
     itpScatter,
 )
@@ -504,7 +490,7 @@ At present, GPU execution is implemented for the 3D interpolation pipeline:
 
 - `PointSamples_interpolation`
 - `LineSamples_interpolation`
-- `StructuredGrid_interpolation`, which flattens the structured grid to `PointSamples`, dispatches through the selected backend, and restores the structured output afterwards
+- `StructuredGrid_interpolation`, which flattens the structured grid to `PointSamples`, dispatches from its storage type, and restores the structured output afterwards
 
 The extension layers also provide explicit data-movement helpers:
 
@@ -517,6 +503,8 @@ In the current implementation, GPU interpolation returns its results to host mem
 
 
 ## References
+
+Apetrei C., 2014, [doi:10.2312/cgvc.20141206](https://doi.org/10.2312/cgvc.20141206)
 
 David-Cleris T., Laibe G., Lapeyre Y., 2025, MNRAS, 539, 1, [doi:10.1093/mnras/staf444](https://doi.org/10.1093/mnras/staf444)
 

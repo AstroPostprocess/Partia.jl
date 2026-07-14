@@ -10,8 +10,7 @@
 
 ######################################################################################
 """
-    build_input( :: CPUComputeBackend,
-                x_col :: AbstractVector,
+    build_input(x_col :: AbstractVector,
                 y_col :: AbstractVector,
                 z_col :: AbstractVector,
                 m_col :: AbstractVector,
@@ -39,8 +38,6 @@ explicitly through positional arguments and are not part of the catalog lookup
 namespace.
 
 # Parameters
-- ` :: CPUComputeBackend`: Compute backend selector for the CPU interpolation
-  path.
 - `x_col :: AbstractVector`: Particle `x` coordinates.
 - `y_col :: AbstractVector`: Particle `y` coordinates.
 - `z_col :: AbstractVector`: Particle `z` coordinates.
@@ -66,7 +63,6 @@ namespace.
   3D interpolation catalog for the requested extra quantities.
 """
 function build_input(
-    :: CPUComputeBackend,
     x_col :: AbstractVector,
     y_col :: AbstractVector,
     z_col :: AbstractVector,
@@ -137,7 +133,6 @@ end
 
 
 function build_input(
-    :: CPUComputeBackend,
     hfact :: T,
     x_col :: AbstractVector,
     y_col :: AbstractVector,

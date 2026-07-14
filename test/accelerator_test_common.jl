@@ -195,7 +195,6 @@ function run_accelerator_test_suite(config)
     to_device_vector = config.to_device_vector
     to_host = config.to_host
     synchronize = config.synchronize
-    backend = config.backend
 
     atol = 5.0f-5
     rtol = 5.0f-4
@@ -222,37 +221,35 @@ function run_accelerator_test_suite(config)
         accelerator_test_grid_equal(to_host(to_device(line_template)), line_template; atol, rtol)
         accelerator_test_grid_equal(to_host(to_device(structured_template)), structured_template; atol, rtol)
 
-        backend_point = PointSamples(
-            point_template.coor[1],
-            point_template.coor[2],
-            point_template.coor[3],
-            backend,
+        device_point = PointSamples(
+            to_device_vector(point_template.coor[1]),
+            to_device_vector(point_template.coor[2]),
+            to_device_vector(point_template.coor[3]),
         )
-        backend_line = LineSamples(
-            line_template.origin[1],
-            line_template.origin[2],
-            line_template.origin[3],
-            line_template.direction[1],
-            line_template.direction[2],
-            line_template.direction[3],
-            backend,
+        device_line = LineSamples(
+            to_device_vector(line_template.origin[1]),
+            to_device_vector(line_template.origin[2]),
+            to_device_vector(line_template.origin[3]),
+            to_device_vector(line_template.direction[1]),
+            to_device_vector(line_template.direction[2]),
+            to_device_vector(line_template.direction[3]),
         )
         line2_template = LineSamples(
             zeros(Float32, length(line_template)),
             (line_template.origin[1], line_template.origin[2]),
             (line_template.direction[1], line_template.direction[2]),
         )
-        backend_line2 = LineSamples(
-            line2_template.origin[1],
-            line2_template.origin[2],
-            line2_template.direction[1],
-            line2_template.direction[2],
-            backend,
+        device_line2 = LineSamples(
+            to_device_vector(line2_template.origin[1]),
+            to_device_vector(line2_template.origin[2]),
+            to_device_vector(line2_template.direction[1]),
+            to_device_vector(line2_template.direction[2]),
         )
         synchronize()
-        accelerator_test_grid_equal(to_host(backend_point), point_template; atol, rtol)
-        accelerator_test_grid_equal(to_host(backend_line), line_template; atol, rtol)
-        accelerator_test_grid_equal(to_host(backend_line2), line2_template; atol, rtol)
+        accelerator_test_grid_equal(to_host(device_point), point_template; atol, rtol)
+        accelerator_test_grid_equal(to_host(device_line), line_template; atol, rtol)
+        accelerator_test_grid_equal(to_host(device_line2), line2_template; atol, rtol)
+
     end
 
     # ── 2. Morton encoding and LinearBVH ───────────────────────────────── #

@@ -117,7 +117,6 @@ end
     Bz = Float32[1.4, 1.5, 1.6]
 
     input, catalog = build_input(
-        CPUComputeBackend(),
         x, y, z, m, h, rho, (P, vx, vy, vz, Bx, By, Bz);
         column_names = (:P, :vx, :vy, :vz, :Bx, :By, :Bz),
         scalars = (:P,),
@@ -143,7 +142,6 @@ end
     @test all(input.quant[7] .== Float64.(Bz))
 
     @test_throws KeyError build_input(
-        CPUComputeBackend(),
         x, y, z, m, h, rho, (P, vx, vy, vz, Bx, By);
         column_names = (:P, :vx, :vy, :vz, :Bx, :By),
         scalars = (),
@@ -172,7 +170,6 @@ end
     Bz = Float32[1.4, 1.5, 1.6]
 
     input, catalog = build_input(
-        CPUComputeBackend(),
         x, y, z, m, h, rho, (P, vx, vy, vz, Bx, By, Bz);
         column_names = (:P, :vx, :vy, :vz, :Bx, :By, :Bz),
         scalars = (:P,),
@@ -192,7 +189,6 @@ end
     @test ki_mod.curl_slots(catalog, :B) == (5, 6, 7)
 
     @test_throws KeyError build_input(
-        CPUComputeBackend(),
         x, y, z, m, h, rho, (vx, vy, vz, Bx, By, Bz);
         column_names = (:vx, :vy, :vz, :Bx, :By, :Bz),
         scalars = (:P,),

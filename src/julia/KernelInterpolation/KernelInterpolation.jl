@@ -74,9 +74,6 @@ include(joinpath(@__DIR__, "kernel_function", "kernels", "C4_Wendland.jl"))
 include(joinpath(@__DIR__, "kernel_function", "kernels", "C6_Wendland.jl"))
 include(joinpath(@__DIR__, "kernel_function", "line_integrated_kernel.jl"))
 
-## Execution backends
-include(joinpath(@__DIR__, "ExecutionBackend", "AbstractExecutionBackend.jl"))
-
 ## Single point interpolation
 include(joinpath(@__DIR__, "interpolation_setup", "InterpolationStrategy.jl"))
 include(joinpath(@__DIR__, "interpolation_setup", "InterpolationCatalog.jl"))

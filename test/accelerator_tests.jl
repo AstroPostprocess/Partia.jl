@@ -51,7 +51,6 @@ end
             CUDA_mod = cuda_status.module_ref
             config = (
                 name = "CUDA",
-                backend = CUDAComputeBackend(),
                 to_device = Partia.to_CuVector,
                 to_device_vector = getproperty(CUDA_mod, :cu),
                 to_host = Partia.to_HostVector,
@@ -68,7 +67,6 @@ end
             Metal_mod = metal_status.module_ref
             config = (
                 name = "Metal",
-                backend = MetalComputeBackend(),
                 to_device = Partia.to_MtlVector,
                 to_device_vector = getproperty(Metal_mod, :mtl),
                 to_host = Partia.to_HostVector,
