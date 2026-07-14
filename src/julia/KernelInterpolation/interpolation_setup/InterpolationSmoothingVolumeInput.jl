@@ -191,7 +191,7 @@ end
 # Input helper for LBVH
 ## 3D path
 """
-    LinearBVH!(input :: InterpolationSmoothingVolumeInput{3}, ::Val{TileSize}=Val(4096);
+    LinearBVH!(input :: InterpolationSmoothingVolumeInput{3}, ::Val{TileSize}=Val(8192);
                 CodeType=UInt64,
                 SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
@@ -216,7 +216,7 @@ coordinates.
 - `LinearBVH{3}`: Linear bounding volume hierarchy with leaf scales taken from
   `input.h`.
 """
-function LinearBVH!(input :: InterpolationSmoothingVolumeInput{3}, :: Val{TileSize} = Val(4096);
+function LinearBVH!(input :: InterpolationSmoothingVolumeInput{3}, :: Val{TileSize} = Val(8192);
     CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
@@ -239,7 +239,7 @@ end
 
 ## 2D path
 """
-    LinearBVH!(input :: InterpolationSmoothingVolumeInput{2}, ::Val{TileSize}=Val(4096);
+    LinearBVH!(input :: InterpolationSmoothingVolumeInput{2}, ::Val{TileSize}=Val(8192);
                 CodeType=UInt64,
                 SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
@@ -263,7 +263,7 @@ coordinates.
 - `LinearBVH{2}`: Linear bounding volume hierarchy with leaf scales taken from
   `input.h`.
 """
-function LinearBVH!(input :: InterpolationSmoothingVolumeInput{2}, :: Val{TileSize} = Val(4096);
+function LinearBVH!(input :: InterpolationSmoothingVolumeInput{2}, :: Val{TileSize} = Val(8192);
     CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)

@@ -180,7 +180,7 @@ end
 
 # Input helper for LBVH
 ## 3D path
-function LinearBVH!(input :: InterpolationInput{3}, :: Val{TileSize} = Val(4096);
+function LinearBVH!(input :: InterpolationInput{3}, :: Val{TileSize} = Val(8192);
     CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
@@ -203,7 +203,7 @@ function LinearBVH!(input :: InterpolationInput{3}, :: Val{TileSize} = Val(4096)
 end
 
 ## 2D path
-function LinearBVH!(input :: InterpolationInput{2}, :: Val{TileSize} = Val(4096);
+function LinearBVH!(input :: InterpolationInput{2}, :: Val{TileSize} = Val(8192);
     CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)

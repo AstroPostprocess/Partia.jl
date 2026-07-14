@@ -27,7 +27,7 @@ end
 
 ################# Encoding Morton code #################
 """
-    MortonEncoding(x::Vector{T}, y::Vector{T}, z::Vector{T}, ::Val{TileSize}=Val(4096);
+    MortonEncoding(x::Vector{T}, y::Vector{T}, z::Vector{T}, ::Val{TileSize}=Val(8192);
                    CodeType=UInt64,
                    SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
@@ -47,7 +47,7 @@ Encode a set of 3D particle coordinates into Morton codes.
 - `MortonEncoding{3, T, TI, Vector{T}, Vector{TI}}`: Encoding containing Morton codes,
   original particle indices, and copied coordinates, all ordered by Morton code.
 """
-function MortonEncoding(x :: Vector{T}, y :: Vector{T}, z :: Vector{T}, :: Val{TileSize} = Val(4096); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
+function MortonEncoding(x :: Vector{T}, y :: Vector{T}, z :: Vector{T}, :: Val{TileSize} = Val(8192); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
     # Verify length of input arrays
     isempty(x) && throw(ArgumentError("coordinates must not be empty"))
     isempty(y) && throw(ArgumentError("coordinates must not be empty"))
@@ -104,7 +104,7 @@ function MortonEncoding(x :: Vector{T}, y :: Vector{T}, z :: Vector{T}, :: Val{T
 end
 
 """
-    MortonEncoding(points::NTuple{3,Vector{T}}, ::Val{TileSize}=Val(4096);
+    MortonEncoding(points::NTuple{3,Vector{T}}, ::Val{TileSize}=Val(8192);
                    CodeType=UInt64,
                    SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
@@ -127,13 +127,13 @@ where `points = (x, y, z)`. It forwards to
 # Returns
 - A 3D `MortonEncoding` with codes, indices, and coordinates ordered by Morton code.
 """
-function MortonEncoding(points :: NTuple{3, Vector{T}}, :: Val{TileSize} = Val(4096); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
+function MortonEncoding(points :: NTuple{3, Vector{T}}, :: Val{TileSize} = Val(8192); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
     x = points[1]; y = points[2]; z = points[3]
     return MortonEncoding(x, y, z, Val(TileSize); CodeType, SortWorkSpace)
 end
 
 """
-    MortonEncoding(x::Vector{T}, y::Vector{T}, ::Val{TileSize}=Val(4096);
+    MortonEncoding(x::Vector{T}, y::Vector{T}, ::Val{TileSize}=Val(8192);
                    CodeType=UInt64,
                    SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
@@ -153,7 +153,7 @@ Encode a set of 2D particle coordinates into Morton codes.
 - `MortonEncoding{2, T, TI, Vector{T}, Vector{TI}}`: Encoding containing Morton codes,
   original particle indices, and copied coordinates, all ordered by Morton code.
 """
-function MortonEncoding(x :: Vector{T}, y :: Vector{T}, :: Val{TileSize} = Val(4096); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
+function MortonEncoding(x :: Vector{T}, y :: Vector{T}, :: Val{TileSize} = Val(8192); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
     # Verify length of input arrays
     isempty(x) && throw(ArgumentError("coordinates must not be empty"))
     isempty(y) && throw(ArgumentError("coordinates must not be empty"))
@@ -204,7 +204,7 @@ function MortonEncoding(x :: Vector{T}, y :: Vector{T}, :: Val{TileSize} = Val(4
 end
 
 """
-    MortonEncoding(points::NTuple{2,Vector{T}}, ::Val{TileSize}=Val(4096);
+    MortonEncoding(points::NTuple{2,Vector{T}}, ::Val{TileSize}=Val(8192);
                    CodeType=UInt64,
                    SortWorkSpace=OnesweepWorkspace(Vector{CodeType}))
 
@@ -227,7 +227,7 @@ where `points = (x, y)`. It forwards to
 # Returns
 - A 2D `MortonEncoding` with codes, indices, and coordinates ordered by Morton code.
 """
-function MortonEncoding(points :: NTuple{2, Vector{T}}, :: Val{TileSize} = Val(4096); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
+function MortonEncoding(points :: NTuple{2, Vector{T}}, :: Val{TileSize} = Val(8192); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned, T <: AbstractFloat}
     x = points[1]; y = points[2]
     return MortonEncoding(x, y, Val(TileSize); CodeType, SortWorkSpace)
 end
