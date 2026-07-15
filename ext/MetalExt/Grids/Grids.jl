@@ -5,7 +5,13 @@ using Metal
 
 # Grid construction
 include(joinpath(@__DIR__, "PointSamples", "PointSamples.jl"))
+include(joinpath(@__DIR__, "PointSamples", "geometry_kernel.jl"))
+include(joinpath(@__DIR__, "PointSamples", "build.jl"))
+include(joinpath(@__DIR__, "PointSamples", "update.jl"))
 include(joinpath(@__DIR__, "LineSamples", "LineSamples.jl"))
+include(joinpath(@__DIR__, "LineSamples", "geometry_kernel.jl"))
+include(joinpath(@__DIR__, "LineSamples", "build.jl"))
+include(joinpath(@__DIR__, "LineSamples", "update.jl"))
 include(joinpath(@__DIR__, "StructuredGrid", "coordinate_grid_kernel.jl"))
 include(joinpath(@__DIR__, "StructuredGrid", "StructuredGrid.jl"))
 

@@ -254,6 +254,53 @@ function run_accelerator_test_suite(config)
 
     # ── 2. Morton encoding and LinearBVH ───────────────────────────────── #
 
+    @testset "$name -- Sample build! and update!" begin
+        frame1 = Frame((0.0f0, 0.0f0, 2.0f0), (0.0f0, 0.0f0, -1.0f0), (0.0f0, 1.0f0, 0.0f0))
+        frame2 = Frame((1.0f0, -2.0f0, 3.0f0), (1.0f0, 0.0f0, 0.0f0), (0.0f0, 0.0f0, 1.0f0))
+
+        point_cases = (
+            (Cartesian, ((-1.0f0, 1.0f0, 3), (-2.0f0, 2.0f0, 4))),
+            (Cartesian, ((-1.0f0, 1.0f0, 2), (-2.0f0, 2.0f0, 3), (-0.5f0, 0.5f0, 4))),
+            (Polar, ((0.0f0, 2.0f0, 3), (0.0f0, Float32(2π), 5))),
+            (Cylindrical, ((0.0f0, 2.0f0, 3), (0.0f0, Float32(π), 4), (-1.0f0, 1.0f0, 2))),
+        )
+
+        for (coordinate_system, params) in point_cases
+            sample = to_device(PointSamples(coordinate_system, frame1, params...))
+            fill!(sample.grid, 7.0f0)
+            result = Partia.build!(sample, coordinate_system, frame2, params...)
+            @test isnothing(result)
+            synchronize()
+            accelerator_test_grid_equal(to_host(sample), PointSamples(coordinate_system, frame2, params...); atol, rtol)
+
+            larger_params = map(param -> (param[1], param[2], param[3] + 1), params)
+            result = Partia.update!(sample, coordinate_system, frame1, larger_params...)
+            @test result === sample
+            synchronize()
+            accelerator_test_grid_equal(to_host(sample), PointSamples(coordinate_system, frame1, larger_params...); atol, rtol)
+        end
+
+        line_cases = (
+            (Cartesian, ((-1.0f0, 1.0f0, 3), (-2.0f0, 2.0f0, 4))),
+            (Polar, ((0.0f0, 2.0f0, 3), (0.0f0, Float32(2π), 5))),
+        )
+
+        for (coordinate_system, params) in line_cases
+            sample = to_device(LineSamples(coordinate_system, ParallelBeam, frame1, params...))
+            fill!(sample.grid, 7.0f0)
+            result = Partia.build!(sample, coordinate_system, ParallelBeam, frame2, params...)
+            @test isnothing(result)
+            synchronize()
+            accelerator_test_grid_equal(to_host(sample), LineSamples(coordinate_system, ParallelBeam, frame2, params...); atol, rtol)
+
+            larger_params = map(param -> (param[1], param[2], param[3] + 1), params)
+            result = Partia.update!(sample, coordinate_system, ParallelBeam, frame1, larger_params...)
+            @test result === sample
+            synchronize()
+            accelerator_test_grid_equal(to_host(sample), LineSamples(coordinate_system, ParallelBeam, frame1, larger_params...); atol, rtol)
+        end
+    end
+
     @testset "$name -- MortonEncoding and LinearBVH" begin
         # Large bounds reductions must remain scalar-valued. This specifically
         # guards Metal against the tuple-valued `extrema` reduction that can

@@ -6,25 +6,25 @@
 
 ######################################################################################
 
-function _cylindrical_coordinates(frame :: Frame{TF}, sparams :: AxisParam{TF}, phi_params :: AxisParam{TF}, zparams :: AxisParam{TF}) where {TF <: AbstractFloat}
+function _cylindrical_coordinates(frame :: Frame{TF}, sparams :: AxisParam{TF}, ϕparams :: AxisParam{TF}, zparams :: AxisParam{TF}) where {TF <: AbstractFloat}
     # Allocate cylindrical coordinates in structure-of-arrays form
-    coords = ntuple(_ -> Vector{TF}(undef, sparams[3] * phi_params[3] * zparams[3]), 3)
-    _cylindrical_coordinates!(coords, frame, sparams, phi_params, zparams)
+    coords = ntuple(_ -> Vector{TF}(undef, sparams[3] * ϕparams[3] * zparams[3]), 3)
+    _cylindrical_coordinates!(coords, frame, sparams, ϕparams, zparams)
     return coords
 end
 
-function _cylindrical_coordinates!(coords :: NTuple{3, Vector{TF}}, frame :: Frame{TF}, sparams :: AxisParam{TF}, phi_params :: AxisParam{TF}, zparams :: AxisParam{TF}) where {TF <: AbstractFloat}
+function _cylindrical_coordinates!(coords :: NTuple{3, Vector{TF}}, frame :: Frame{TF}, sparams :: AxisParam{TF}, ϕparams :: AxisParam{TF}, zparams :: AxisParam{TF}) where {TF <: AbstractFloat}
     smin, smax, ns = sparams
-    phi_min, phi_max, nphi = phi_params
+    ϕmin, ϕmax, nϕ = ϕparams
     zmin, zmax, nz = zparams
     smin >= zero(TF) || throw(ArgumentError("smin must be nonnegative."))
     smax > smin || throw(ArgumentError("smax must be greater than smin."))
     zmax > zmin || throw(ArgumentError("zmax must be greater than zmin."))
-    phi_min >= zero(TF) && (phi_max <= TF(2π) || isapprox(phi_max, TF(2π))) && phi_max > phi_min || throw(ArgumentError("angular range must satisfy 0 ≤ phi_min < phi_max ≤ 2π."))
+    ϕmin >= zero(TF) && (ϕmax <= TF(2π) || isapprox(ϕmax, TF(2π))) && ϕmax > ϕmin || throw(ArgumentError("angular range must satisfy 0 ≤ ϕmin < ϕmax ≤ 2π."))
     ns >= 2 || throw(ArgumentError("ns must be at least 2."))
-    nphi >= 1 || throw(ArgumentError("nphi must be at least 1."))
+    nϕ >= 1 || throw(ArgumentError("nϕ must be at least 1."))
     nz >= 2 || throw(ArgumentError("nz must be at least 2."))
-    length(coords[1]) == ns * nphi * nz || throw(DimensionMismatch("coordinate storage must have length $(ns * nphi * nz)"))
+    length(coords[1]) == ns * nϕ * nz || throw(DimensionMismatch("coordinate storage must have length $(ns * nϕ * nz)"))
 
     # Get the current centre and local cylindrical basis vectors
     x0, y0, z0 = frame_position(frame)
@@ -37,16 +37,16 @@ function _cylindrical_coordinates!(coords :: NTuple{3, Vector{TF}}, frame :: Fra
     dz = (zmax - zmin) / TF(nz - 1)
 
     # Sample the angular direction half-open, without duplicating the right boundary
-    dphi = (phi_max - phi_min) / TF(nphi)
+    Δϕ = (ϕmax - ϕmin) / TF(nϕ)
     @inbounds for k in 1:nz
         local_z = zmin + TF(k - 1) * dz
-        for j in 1:nphi
-            sin_phi, cos_phi = sincos(phi_min + TF(j - 1) * dphi)
+        for j in 1:nϕ
+            sinϕ, cosϕ = sincos(ϕmin + TF(j - 1) * Δϕ)
             @simd for i in 1:ns
                 s = smin + TF(i - 1) * ds
-                local_x = s * cos_phi
-                local_y = s * sin_phi
-                index = i + (j - 1) * ns + (k - 1) * ns * nphi
+                local_x = s * cosϕ
+                local_y = s * sinϕ
+                index = i + (j - 1) * ns + (k - 1) * ns * nϕ
                 coords[1][index] = x0 + local_x * rx + local_y * ux + local_z * fx
                 coords[2][index] = y0 + local_x * ry + local_y * uy + local_z * fy
                 coords[3][index] = z0 + local_x * rz + local_y * uz + local_z * fz
