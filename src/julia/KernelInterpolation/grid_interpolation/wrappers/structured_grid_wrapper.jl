@@ -77,7 +77,7 @@ function StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, 
 
     # Interpolation
     catalog_consice = to_concise_catalog(catalog)
-    PointSamples_interpolation_prepared!(point_grids, input, catalog_consice, LBVH, itp_strategy)
+    PointSamples_interpolation!(point_grids, input, catalog_consice, LBVH, itp_strategy)
 
     return GridBundle(grids, names)
 end
@@ -164,7 +164,7 @@ function StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, 
 
     # Interpolation
     catalog_consice = to_concise_catalog(catalog)
-    PointSamples_interpolation_prepared!(point_grids, input, catalog_consice, LBVH, itp_strategy)
+    PointSamples_interpolation!(point_grids, input, catalog_consice, LBVH, itp_strategy)
 
     return GridBundle(grids, names)
 end

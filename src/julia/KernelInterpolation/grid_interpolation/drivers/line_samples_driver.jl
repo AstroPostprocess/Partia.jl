@@ -4,7 +4,7 @@
 
 ######################################################################################
 """
-    LineSamples_interpolation_prepared!(
+    LineSamples_interpolation!(
         grids :: NTuple{N, LS},
         input :: AbstractInterpolationInput{3, TF, Vector{TF}},
         catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0},
@@ -28,7 +28,7 @@ into the supplied `LineSamples` grids and does not allocate a `GridBundle`.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function LineSamples_interpolation_prepared!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, Vector{TF}}) where {N, TF <: AbstractFloat, LS <: LineSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
+function LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, Vector{TF}}) where {N, TF <: AbstractFloat, LS <: LineSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
     # Exit if nothing to do
     N == 0 && return nothing
 

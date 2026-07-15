@@ -4,18 +4,6 @@
 
 ######################################################################################
 
-function _point_samples_interpolation_metal!(grids, input, catalog, LBVH, itp_strategy, threads_per_group)
-    names = catalog.ordered_names
-    length(names) == 0 && return GridBundle(grids, names)
-
-    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
-
-    catalog_consice = to_concise_catalog(catalog)
-    Partia.PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH, itp_strategy, threads_per_group)
-
-    return GridBundle(grids, names)
-end
-
 """
     PointSamples_interpolation!(grids, input, catalog, [LBVH],
                                 itp_strategy=itpScatter,
@@ -35,29 +23,57 @@ Evaluate Metal point-sample interpolation in place, optionally building the
 # Returns
 - `GridBundle`: The supplied grids paired with the catalog output names.
 """
-function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, LBVH :: LinearBVH{2, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, PS <: PointSamples{2, Float32, MtlVector{Float32}}, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    return _point_samples_interpolation_metal!(grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, LBVH :: LinearBVH{2, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, L, PS <: PointSamples{2, Float32, MtlVector{Float32}}, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+    names = catalog.ordered_names
+    L == 0 && return GridBundle(grids, names)
+
+    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
+
+    catalog_consice = to_concise_catalog(catalog)
+    Partia.PointSamples_interpolation!(grids, input, catalog_consice, LBVH, itp_strategy, Val(ThreadsPerGroup))
+
+    return GridBundle(grids, names)
 end
 
-function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, LBVH :: LinearBVH{3, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, PS <: PointSamples{3, Float32, MtlVector{Float32}}, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    return _point_samples_interpolation_metal!(grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, LBVH :: LinearBVH{3, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, C, L, PS <: PointSamples{3, Float32, MtlVector{Float32}}, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+    names = catalog.ordered_names
+    L == 0 && return GridBundle(grids, names)
+
+    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
+
+    catalog_consice = to_concise_catalog(catalog)
+    Partia.PointSamples_interpolation!(grids, input, catalog_consice, LBVH, itp_strategy, Val(ThreadsPerGroup))
+
+    return GridBundle(grids, names)
 end
 
-function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, PS <: PointSamples{2, Float32, MtlVector{Float32}}, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    L == 0 && return GridBundle(grids, catalog.ordered_names)
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, L, PS <: PointSamples{2, Float32, MtlVector{Float32}}, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+    names = catalog.ordered_names
+    L == 0 && return GridBundle(grids, names)
 
     LBVH = LinearBVH!(input, CodeType = UInt64)
 
-    return _point_samples_interpolation_metal!(grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
+
+    catalog_consice = to_concise_catalog(catalog)
+    Partia.PointSamples_interpolation!(grids, input, catalog_consice, LBVH, itp_strategy, Val(ThreadsPerGroup))
+
+    return GridBundle(grids, names)
 end
 
 
-function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, PS <: PointSamples{3, Float32, MtlVector{Float32}}, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    L == 0 && return GridBundle(grids, catalog.ordered_names)
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, C, L, PS <: PointSamples{3, Float32, MtlVector{Float32}}, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+    names = catalog.ordered_names
+    L == 0 && return GridBundle(grids, names)
 
     LBVH = LinearBVH!(input, CodeType = UInt64)
 
-    return _point_samples_interpolation_metal!(grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
+
+    catalog_consice = to_concise_catalog(catalog)
+    Partia.PointSamples_interpolation!(grids, input, catalog_consice, LBVH, itp_strategy, Val(ThreadsPerGroup))
+
+    return GridBundle(grids, names)
 end
 
 
@@ -79,29 +95,29 @@ Allocate Metal point-sample outputs and evaluate 2D or 3D interpolation.
 # Returns
 - `GridBundle`: Newly allocated Metal point-sample grids.
 """
-function Partia.PointSamples_interpolation(grid_template :: PointSamples{2, Float32, MtlVector{Float32}}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, LBVH :: LinearBVH{2, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.PointSamples_interpolation(grid_template :: PointSamples{2, Float32, MtlVector{Float32}}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, LBVH :: LinearBVH{2, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, L, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     grids = ntuple(_ -> similar(grid_template), Val(L))
 
-    return Partia.PointSamples_interpolation!(grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+    return Partia.PointSamples_interpolation!(grids, input, catalog, LBVH, itp_strategy, Val(ThreadsPerGroup))
 end
 
 
-function Partia.PointSamples_interpolation(grid_template :: PointSamples{3, Float32, MtlVector{Float32}}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, LBVH :: LinearBVH{3, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.PointSamples_interpolation(grid_template :: PointSamples{3, Float32, MtlVector{Float32}}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, LBVH :: LinearBVH{3, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, C, L, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     grids = ntuple(_ -> similar(grid_template), Val(L))
 
-    return Partia.PointSamples_interpolation!(grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+    return Partia.PointSamples_interpolation!(grids, input, catalog, LBVH, itp_strategy, Val(ThreadsPerGroup))
 end
 
 
-function Partia.PointSamples_interpolation(grid_template :: PointSamples{2, Float32, MtlVector{Float32}}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.PointSamples_interpolation(grid_template :: PointSamples{2, Float32, MtlVector{Float32}}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, L, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     grids = ntuple(_ -> similar(grid_template), Val(L))
 
-    return Partia.PointSamples_interpolation!(grids, input, catalog, itp_strategy, threads_per_group)
+    return Partia.PointSamples_interpolation!(grids, input, catalog, itp_strategy, Val(ThreadsPerGroup))
 end
 
 
-function Partia.PointSamples_interpolation(grid_template :: PointSamples{3, Float32, MtlVector{Float32}}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.PointSamples_interpolation(grid_template :: PointSamples{3, Float32, MtlVector{Float32}}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, C, L, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     grids = ntuple(_ -> similar(grid_template), Val(L))
 
-    return Partia.PointSamples_interpolation!(grids, input, catalog, itp_strategy, threads_per_group)
+    return Partia.PointSamples_interpolation!(grids, input, catalog, itp_strategy, Val(ThreadsPerGroup))
 end

@@ -8,7 +8,7 @@
 
 ######################################################################################
 """
-    PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+    PointSamples_interpolation!(grids, input, catalog_consice, LBVH,
                                          itpGather,
                                          ::Val{ThreadsPerBlock}=Val(256))
 
@@ -25,7 +25,7 @@ Launch the prepared 2D CUDA gather-interpolation kernel.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, CuVector{TF}}, :: Type{itpGather}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{2, VF}, PS <: PointSamples{2, TF, VF, VC}, INPUT <: AbstractInterpolationInput{2, TF, CuVector{TF}}}
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, CuVector{TF}}, :: Type{itpGather}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{2, VF}, PS <: PointSamples{2, TF, VF, VC}, INPUT <: AbstractInterpolationInput{2, TF, CuVector{TF}}}
     L == 0 && return nothing
 
     if L > 1
@@ -45,7 +45,7 @@ function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, inp
 end
 
 """
-    PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+    PointSamples_interpolation!(grids, input, catalog_consice, LBVH,
                                          itpGather,
                                          ::Val{ThreadsPerBlock}=Val(256))
 
@@ -62,7 +62,7 @@ Launch the prepared 3D CUDA gather-interpolation kernel.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, :: Type{itpGather}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, C, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{3, VF}, PS <: PointSamples{3, TF, VF, VC}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, :: Type{itpGather}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, C, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{3, VF}, PS <: PointSamples{3, TF, VF, VC}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
     L == 0 && return nothing
 
     if L > 1
@@ -87,7 +87,7 @@ end
 
 ######################################################################################
 """
-    PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+    PointSamples_interpolation!(grids, input, catalog_consice, LBVH,
                                          itpScatter,
                                          ::Val{ThreadsPerBlock}=Val(256))
 
@@ -104,7 +104,7 @@ Launch the prepared 2D CUDA scatter-interpolation kernel.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, CuVector{TF}}, :: Type{itpScatter}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{2, VF}, PS <: PointSamples{2, TF, VF, VC}, INPUT <: AbstractInterpolationInput{2, TF, CuVector{TF}}}
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, CuVector{TF}}, :: Type{itpScatter}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{2, VF}, PS <: PointSamples{2, TF, VF, VC}, INPUT <: AbstractInterpolationInput{2, TF, CuVector{TF}}}
     L == 0 && return nothing
 
     if L > 1
@@ -124,7 +124,7 @@ function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, inp
 end
 
 """
-    PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+    PointSamples_interpolation!(grids, input, catalog_consice, LBVH,
                                          itpScatter,
                                          ::Val{ThreadsPerBlock}=Val(256))
 
@@ -141,7 +141,7 @@ Launch the prepared 3D CUDA scatter-interpolation kernel.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, :: Type{itpScatter}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, C, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{3, VF}, PS <: PointSamples{3, TF, VF, VC}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, :: Type{itpScatter}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, C, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{3, VF}, PS <: PointSamples{3, TF, VF, VC}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
     L == 0 && return nothing
 
     if L > 1

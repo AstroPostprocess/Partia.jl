@@ -257,12 +257,12 @@ Axes and size are reduced accordingly.
 - `StructuredGrid{D-1,TF,V,A2}` : Structured grid with one fewer dimension, where `A2 <: AbstractArray{TF, D-1}`.
 
 """
-function reduce_mean(grid :: StructuredGrid{D, TF, V, A}, dim :: Int = 1) where {D, TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}}
+function Tools.reduce_mean(grid :: StructuredGrid{D, TF, V, A}, dim :: Int = 1) where {D, TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}}
     1 ≤ dim ≤ D || throw(ArgumentError("dim must be in 1:$D, got $dim"))
     D == 1      && throw(ArgumentError("cannot reduce a 1D grid to 0D StructuredGrid"))
 
     # reduce values and drop the reduced dimension
-    vals = reduce_mean(grid.grid, dim)
+    vals = Tools.reduce_mean(grid.grid, dim)
 
     # build new axes and size by removing the `dim`-th entry
     rem = ntuple(i -> (i < dim ? i : i + 1), D - 1)

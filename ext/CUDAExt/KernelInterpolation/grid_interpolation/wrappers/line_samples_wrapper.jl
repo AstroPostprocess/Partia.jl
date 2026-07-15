@@ -4,18 +4,6 @@
 
 ######################################################################################
 
-function _line_samples_interpolation_cuda!(grids, input, catalog, LBVH, threads_per_block)
-    names = catalog.ordered_names
-    length(names) == 0 && return GridBundle(grids, names)
-
-    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
-
-    catalog_consice = to_concise_catalog(catalog)
-    Partia.LineSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH, threads_per_block)
-
-    return GridBundle(grids, names)
-end
-
 """
     LineSamples_interpolation!(grids, input, catalog, [LBVH],
                                ::Val{ThreadsPerBlock}=Val(256))
@@ -32,17 +20,31 @@ Evaluate CUDA line-sample interpolation in place.
 # Returns
 - `GridBundle`: The supplied grids paired with the catalog output names.
 """
-function Partia.LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, threads_per_block :: Val{ThreadsPerBlock} = Val(256)) where {N, ThreadsPerBlock, TF <: AbstractFloat, LS <: LineSamples{3, TF, CuVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
-    return _line_samples_interpolation_cuda!(grids, input, catalog, LBVH, threads_per_block)
+function Partia.LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, :: Val{ThreadsPerBlock} = Val(256)) where {ThreadsPerBlock, N, TF <: AbstractFloat, LS <: LineSamples{3, TF, CuVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
+    names = catalog.ordered_names
+    N == 0 && return GridBundle(grids, names)
+
+    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
+
+    catalog_consice = to_concise_catalog(catalog)
+    Partia.LineSamples_interpolation!(grids, input, catalog_consice, LBVH, Val(ThreadsPerBlock))
+
+    return GridBundle(grids, names)
 end
 
 
-function Partia.LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, threads_per_block :: Val{ThreadsPerBlock} = Val(256)) where {N, ThreadsPerBlock, TF <: AbstractFloat, LS <: LineSamples{3, TF, CuVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
-    N == 0 && return GridBundle(grids, catalog.ordered_names)
+function Partia.LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, :: Val{ThreadsPerBlock} = Val(256)) where {ThreadsPerBlock, N, TF <: AbstractFloat, LS <: LineSamples{3, TF, CuVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
+    names = catalog.ordered_names
+    N == 0 && return GridBundle(grids, names)
 
     LBVH = LinearBVH!(input, CodeType = UInt64)
 
-    return _line_samples_interpolation_cuda!(grids, input, catalog, LBVH, threads_per_block)
+    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
+
+    catalog_consice = to_concise_catalog(catalog)
+    Partia.LineSamples_interpolation!(grids, input, catalog_consice, LBVH, Val(ThreadsPerBlock))
+
+    return GridBundle(grids, names)
 end
 
 
@@ -62,15 +64,15 @@ Allocate CUDA line-sample outputs and evaluate interpolation.
 # Returns
 - `GridBundle`: Newly allocated CUDA line-sample grids.
 """
-function Partia.LineSamples_interpolation(grid_template :: LineSamples{3, TF, CuVector{TF}}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, threads_per_block :: Val{ThreadsPerBlock} = Val(256)) where {N, ThreadsPerBlock, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
+function Partia.LineSamples_interpolation(grid_template :: LineSamples{3, TF, CuVector{TF}}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, :: Val{ThreadsPerBlock} = Val(256)) where {ThreadsPerBlock, N, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
     grids = ntuple(_ -> similar(grid_template), Val(N))
 
-    return Partia.LineSamples_interpolation!(grids, input, catalog, LBVH, threads_per_block)
+    return Partia.LineSamples_interpolation!(grids, input, catalog, LBVH, Val(ThreadsPerBlock))
 end
 
 
-function Partia.LineSamples_interpolation(grid_template :: LineSamples{3, TF, CuVector{TF}}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, threads_per_block :: Val{ThreadsPerBlock} = Val(256)) where {N, ThreadsPerBlock, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
+function Partia.LineSamples_interpolation(grid_template :: LineSamples{3, TF, CuVector{TF}}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, :: Val{ThreadsPerBlock} = Val(256)) where {ThreadsPerBlock, N, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
     grids = ntuple(_ -> similar(grid_template), Val(N))
 
-    return Partia.LineSamples_interpolation!(grids, input, catalog, threads_per_block)
+    return Partia.LineSamples_interpolation!(grids, input, catalog, Val(ThreadsPerBlock))
 end

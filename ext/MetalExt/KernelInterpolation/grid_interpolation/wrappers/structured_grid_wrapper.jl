@@ -4,27 +4,6 @@
 
 ######################################################################################
 
-function _structured_grid_interpolation_metal!( :: Type{COORD}, grids, input, catalog, LBVH, itp_strategy, threads_per_group) where {COORD <: AbstractCoordinateSystem}
-    names = catalog.ordered_names
-    length(names) == 0 && return GridBundle(grids, names)
-
-    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
-
-    if length(grids) > 1
-        same_coordinates(grids...) || throw(ArgumentError(
-            "All output StructuredGrid grids must share the same coordinate axes. " *
-            "Expected every grid to reuse the same axis vectors."
-        ))
-    end
-
-    point_grids = Partia.KernelInterpolation._flatten_structured_outputs(COORD, grids)
-
-    catalog_consice = to_concise_catalog(catalog)
-    Partia.PointSamples_interpolation_prepared!(point_grids, input, catalog_consice, LBVH, itp_strategy, threads_per_group)
-
-    return GridBundle(grids, names)
-end
-
 """
     StructuredGrid_interpolation!(COORD, grids, input, catalog, [LBVH],
                                   itp_strategy=itpScatter,
@@ -45,31 +24,51 @@ Evaluate Metal structured-grid interpolation in place, optionally building the
 # Returns
 - `GridBundle`: The supplied grids paired with the catalog output names.
 """
-function Partia.StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, LBVH :: LinearBVH{2, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, COORD <: AbstractCoordinateSystem, SG <: StructuredGrid{2, Float32}, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    return _structured_grid_interpolation_metal!(COORD, grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+function Partia.StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, LBVH :: LinearBVH{2, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, L, COORD <: AbstractCoordinateSystem, SG <: StructuredGrid{2, Float32}, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+    names = catalog.ordered_names
+    L == 0 && return GridBundle(grids, names)
+
+    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
+    L > 1 && !same_coordinates(grids...) && throw(ArgumentError("All output StructuredGrid grids must share the same coordinate axes. Expected every grid to reuse the same axis vectors."))
+
+    point_grids = Partia.KernelInterpolation._flatten_structured_outputs(COORD, grids)
+    catalog_consice = to_concise_catalog(catalog)
+    Partia.PointSamples_interpolation!(point_grids, input, catalog_consice, LBVH, itp_strategy, Val(ThreadsPerGroup))
+
+    return GridBundle(grids, names)
 end
 
 
-function Partia.StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, LBVH :: LinearBVH{3, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, COORD <: AbstractCoordinateSystem, SG <: StructuredGrid{3, Float32}, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    return _structured_grid_interpolation_metal!(COORD, grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+function Partia.StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, LBVH :: LinearBVH{3, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, C, L, COORD <: AbstractCoordinateSystem, SG <: StructuredGrid{3, Float32}, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+    names = catalog.ordered_names
+    L == 0 && return GridBundle(grids, names)
+
+    Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input, LBVH)
+    L > 1 && !same_coordinates(grids...) && throw(ArgumentError("All output StructuredGrid grids must share the same coordinate axes. Expected every grid to reuse the same axis vectors."))
+
+    point_grids = Partia.KernelInterpolation._flatten_structured_outputs(COORD, grids)
+    catalog_consice = to_concise_catalog(catalog)
+    Partia.PointSamples_interpolation!(point_grids, input, catalog_consice, LBVH, itp_strategy, Val(ThreadsPerGroup))
+
+    return GridBundle(grids, names)
 end
 
 
-function Partia.StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, COORD <: AbstractCoordinateSystem, SG <: StructuredGrid{2, Float32}, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, L, COORD <: AbstractCoordinateSystem, SG <: StructuredGrid{2, Float32}, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     L == 0 && return GridBundle(grids, catalog.ordered_names)
 
     LBVH = LinearBVH!(input, CodeType = UInt64)
 
-    return _structured_grid_interpolation_metal!(COORD, grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, LBVH, itp_strategy, Val(ThreadsPerGroup))
 end
 
 
-function Partia.StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, COORD <: AbstractCoordinateSystem, SG <: StructuredGrid{3, Float32}, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.StructuredGrid_interpolation!( :: Type{COORD}, grids :: NTuple{L, SG}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, C, L, COORD <: AbstractCoordinateSystem, SG <: StructuredGrid{3, Float32}, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     L == 0 && return GridBundle(grids, catalog.ordered_names)
 
     LBVH = LinearBVH!(input, CodeType = UInt64)
 
-    return _structured_grid_interpolation_metal!(COORD, grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, LBVH, itp_strategy, Val(ThreadsPerGroup))
 end
 
 
@@ -92,29 +91,29 @@ Allocate Metal structured-grid outputs and evaluate 2D or 3D interpolation.
 # Returns
 - `GridBundle`: Newly allocated Metal structured grids.
 """
-function Partia.StructuredGrid_interpolation( :: Type{COORD}, grid_template :: StructuredGrid{2, Float32}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, LBVH :: LinearBVH{2, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, COORD <: AbstractCoordinateSystem, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.StructuredGrid_interpolation( :: Type{COORD}, grid_template :: StructuredGrid{2, Float32}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, LBVH :: LinearBVH{2, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, L, COORD <: AbstractCoordinateSystem, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     grids = ntuple(_ -> similar(grid_template), Val(L))
 
-    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, LBVH, itp_strategy, Val(ThreadsPerGroup))
 end
 
 
-function Partia.StructuredGrid_interpolation( :: Type{COORD}, grid_template :: StructuredGrid{3, Float32}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, LBVH :: LinearBVH{3, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, COORD <: AbstractCoordinateSystem, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.StructuredGrid_interpolation( :: Type{COORD}, grid_template :: StructuredGrid{3, Float32}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, LBVH :: LinearBVH{3, Float32, MtlVector{Float32}}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, C, L, COORD <: AbstractCoordinateSystem, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     grids = ntuple(_ -> similar(grid_template), Val(L))
 
-    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, LBVH, itp_strategy, threads_per_group)
+    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, LBVH, itp_strategy, Val(ThreadsPerGroup))
 end
 
 
-function Partia.StructuredGrid_interpolation( :: Type{COORD}, grid_template :: StructuredGrid{2, Float32}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, COORD <: AbstractCoordinateSystem, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.StructuredGrid_interpolation( :: Type{COORD}, grid_template :: StructuredGrid{2, Float32}, input :: INPUT, catalog :: InterpolationCatalog{2, N, G, Div, 0, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, L, COORD <: AbstractCoordinateSystem, INPUT <: AbstractInterpolationInput{2, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     grids = ntuple(_ -> similar(grid_template), Val(L))
 
-    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, itp_strategy, threads_per_group)
+    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, itp_strategy, Val(ThreadsPerGroup))
 end
 
 
-function Partia.StructuredGrid_interpolation( :: Type{COORD}, grid_template :: StructuredGrid{3, Float32}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, threads_per_group :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, COORD <: AbstractCoordinateSystem, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
+function Partia.StructuredGrid_interpolation( :: Type{COORD}, grid_template :: StructuredGrid{3, Float32}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter, :: Val{ThreadsPerGroup} = Val(256)) where {ThreadsPerGroup, N, G, Div, C, L, COORD <: AbstractCoordinateSystem, INPUT <: AbstractInterpolationInput{3, Float32, MtlVector{Float32}}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     grids = ntuple(_ -> similar(grid_template), Val(L))
 
-    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, itp_strategy, threads_per_group)
+    return Partia.StructuredGrid_interpolation!(COORD, grids, input, catalog, itp_strategy, Val(ThreadsPerGroup))
 end

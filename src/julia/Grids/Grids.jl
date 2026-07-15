@@ -52,6 +52,7 @@ module Grids
 using .Threads
 using Statistics
 using Adapt
+import ..Tools
 using Partia.Tools: _cylin2cart, _sph2cart
 using Partia.Frames
 

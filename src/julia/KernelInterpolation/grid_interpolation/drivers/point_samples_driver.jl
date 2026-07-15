@@ -8,7 +8,7 @@
 
 ######################################################################################
 """
-    PointSamples_interpolation_prepared!(
+    PointSamples_interpolation!(
         grids :: NTuple{L, PS},
         input :: AbstractInterpolationInput{3, TF, Vector{TF}},
         catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C},
@@ -34,7 +34,7 @@ into the supplied `PointSamples` grids and does not allocate a `GridBundle`.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpGather}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
+function PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpGather}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
     # Exit if nothing to do
     L == 0 && return nothing
 
@@ -58,7 +58,7 @@ function PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: I
 end
 
 """
-    PointSamples_interpolation_prepared!(
+    PointSamples_interpolation!(
         grids :: NTuple{L, PS},
         input :: AbstractInterpolationInput{2, TF, Vector{TF}},
         catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0},
@@ -80,7 +80,7 @@ restricted to zero curl requests.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, Vector{TF}}, :: Type{itpGather}) where {N, G, Div, L, TF <: AbstractFloat, PS <: PointSamples{2, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{2, TF, Vector{TF}}}
+function PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, Vector{TF}}, :: Type{itpGather}) where {N, G, Div, L, TF <: AbstractFloat, PS <: PointSamples{2, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{2, TF, Vector{TF}}}
     # Exit if nothing to do
     L == 0 && return nothing
 
@@ -109,7 +109,7 @@ end
 
 ######################################################################################
 """
-    PointSamples_interpolation_prepared!(
+    PointSamples_interpolation!(
         grids :: NTuple{L, PS},
         input :: AbstractInterpolationInput{3, TF, Vector{TF}},
         catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C},
@@ -135,7 +135,7 @@ into the supplied `PointSamples` grids and does not allocate a `GridBundle`.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
+function PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, Vector{TF}}, :: Type{itpScatter}) where {N, G, Div, C, L, TF <: AbstractFloat, PS <: PointSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
     # Exit if nothing to do
     L == 0 && return nothing
 
@@ -159,7 +159,7 @@ function PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: I
 end
 
 """
-    PointSamples_interpolation_prepared!(
+    PointSamples_interpolation!(
         grids :: NTuple{L, PS},
         input :: AbstractInterpolationInput{2, TF, Vector{TF}},
         catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0},
@@ -181,7 +181,7 @@ restricted to zero curl requests.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, Vector{TF}}, :: Type{itpScatter}) where {N, G, Div, L, TF <: AbstractFloat, PS <: PointSamples{2, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{2, TF, Vector{TF}}}
+function PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, Vector{TF}}, :: Type{itpScatter}) where {N, G, Div, L, TF <: AbstractFloat, PS <: PointSamples{2, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{2, TF, Vector{TF}}}
     # Exit if nothing to do
     L == 0 && return nothing
 

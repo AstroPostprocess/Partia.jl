@@ -40,7 +40,7 @@ function LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, cata
     # Concise catalog
     catalog_consice = to_concise_catalog(catalog)
 
-    LineSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH)
+    LineSamples_interpolation!(grids, input, catalog_consice, LBVH)
 
     return GridBundle(grids, names)
 end

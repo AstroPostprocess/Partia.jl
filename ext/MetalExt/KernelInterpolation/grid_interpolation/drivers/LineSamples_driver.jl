@@ -4,7 +4,7 @@
 
 ######################################################################################
 """
-    LineSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+    LineSamples_interpolation!(grids, input, catalog_consice, LBVH,
                                         ::Val{ThreadsPerGroup}=Val(256))
 
 Launch the prepared Metal line-sample interpolation kernel.
@@ -19,7 +19,7 @@ Launch the prepared Metal line-sample interpolation kernel.
 # Returns
 - `nothing`: The supplied grids are updated in place.
 """
-function Partia.LineSamples_interpolation_prepared!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}, :: Val{ThreadsPerGroup} = Val(256)) where {N, ThreadsPerGroup, TF <: Float32, LS <: LineSamples{3, TF, MtlVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
+function Partia.LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}, :: Val{ThreadsPerGroup} = Val(256)) where {N, ThreadsPerGroup, TF <: Float32, LS <: LineSamples{3, TF, MtlVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
     N == 0 && return nothing
 
     if N > 1
