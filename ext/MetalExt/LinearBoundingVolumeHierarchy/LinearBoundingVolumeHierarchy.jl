@@ -1,3 +1,4 @@
+"""Metal Morton encoding, sorting, and linear-BVH construction methods."""
 module LinearBoundingVolumeHierarchy
 using Partia
 using Metal

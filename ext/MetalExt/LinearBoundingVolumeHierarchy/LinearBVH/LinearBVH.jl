@@ -41,7 +41,7 @@ function Partia.LinearBVH(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float3
     end
 
     n >= 1 || throw(ArgumentError("LinearBVH: enc.codes must be non-empty (got n=0)."))
-    issorted(codes) || throw(ArgumentError("LinearBVH: enc.codes must be sorted in nondecreasing order."))
+    Partia.Tools._issorted(codes) || throw(ArgumentError("LinearBVH: enc.codes must be sorted in nondecreasing order."))
 
     # Int32 node-ID capacity: 2n - 1 must fit in Int32.
     n_max = (typemax(Int32) ÷ 2) + 1

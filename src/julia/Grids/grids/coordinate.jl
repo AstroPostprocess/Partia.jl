@@ -18,11 +18,19 @@ Axis specification tuple `(xmin, xmax, xn)`.
 """
 const AxisParam{TF} = Tuple{TF, TF, Int}
 
+"""Abstract supertype for coordinate-system dispatch tags."""
 abstract type AbstractCoordinateSystem end
 
+"""Cartesian coordinate-system dispatch tag."""
 struct Cartesian <: AbstractCoordinateSystem end
+
+"""Two-dimensional polar coordinate-system dispatch tag `(s, ϕ)`."""
 struct Polar <: AbstractCoordinateSystem end        # (s, ϕ)
+
+"""Three-dimensional cylindrical coordinate-system dispatch tag `(s, ϕ, z)`."""
 struct Cylindrical <: AbstractCoordinateSystem end        # (s, ϕ, z)
+
+"""Three-dimensional spherical coordinate-system dispatch tag `(r, ϕ, θ)`."""
 struct Spherical <: AbstractCoordinateSystem end        # (r, ϕ, θ)
 
 

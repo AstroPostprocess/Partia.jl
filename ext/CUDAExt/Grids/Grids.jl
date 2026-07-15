@@ -1,3 +1,4 @@
+"""CUDA implementations of Partia grid construction and coordinate materialization."""
 module Grids
 using Partia
 using CUDA

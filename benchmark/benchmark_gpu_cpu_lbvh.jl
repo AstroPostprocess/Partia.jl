@@ -164,10 +164,10 @@ function benchmark_size(n, config)
     device_sort_workspace = OnesweepWorkspace(config.device_vector_type{UInt64})
 
     # Compare the allocating public constructors directly. The standard path
-    # owns a coordinate copy, whereas MortonEncoding! sorts caller-owned
+    # owns a coordinate copy, whereas MortonEncoding! encodes caller-owned
     # coordinates in place and therefore omits that copy.
-    cpu_standard_encode() = MortonEncoding(host_coords; SortWorkSpace=cpu_sort_workspace)
-    device_standard_encode() = MortonEncoding(device_coords; SortWorkSpace=device_sort_workspace)
+    cpu_standard_encode() = MortonEncoding(host_coords)
+    device_standard_encode() = MortonEncoding(device_coords)
 
     cpu_no_copy_coords = map(similar, host_coords)
     device_no_copy_coords = map(similar, device_coords)
@@ -180,11 +180,11 @@ function benchmark_size(n, config)
         return nothing
     end
     cpu_no_copy_encode() = DIM == 2 ?
-        MortonEncoding!(cpu_no_copy_coords[1], cpu_no_copy_coords[2]; SortWorkSpace=cpu_sort_workspace) :
-        MortonEncoding!(cpu_no_copy_coords[1], cpu_no_copy_coords[2], cpu_no_copy_coords[3]; SortWorkSpace=cpu_sort_workspace)
+        MortonEncoding!(cpu_no_copy_coords[1], cpu_no_copy_coords[2]) :
+        MortonEncoding!(cpu_no_copy_coords[1], cpu_no_copy_coords[2], cpu_no_copy_coords[3])
     device_no_copy_encode() = DIM == 2 ?
-        MortonEncoding!(device_no_copy_coords[1], device_no_copy_coords[2]; SortWorkSpace=device_sort_workspace) :
-        MortonEncoding!(device_no_copy_coords[1], device_no_copy_coords[2], device_no_copy_coords[3]; SortWorkSpace=device_sort_workspace)
+        MortonEncoding!(device_no_copy_coords[1], device_no_copy_coords[2]) :
+        MortonEncoding!(device_no_copy_coords[1], device_no_copy_coords[2], device_no_copy_coords[3])
 
     cpu_standard_statistics = sample_statistics(cpu_standard_encode, () -> nothing)
     device_standard_statistics = sample_statistics(device_standard_encode, config.synchronize)
@@ -201,17 +201,17 @@ function benchmark_size(n, config)
     cpu_encoding_coords = map(copy, host_coords)
     device_encoding_coords = map(copy, device_coords)
     cpu_enc = DIM == 2 ?
-        MortonEncoding!(cpu_encoding_coords[1], cpu_encoding_coords[2]; SortWorkSpace=cpu_sort_workspace) :
-        MortonEncoding!(cpu_encoding_coords[1], cpu_encoding_coords[2], cpu_encoding_coords[3]; SortWorkSpace=cpu_sort_workspace)
+        MortonEncoding!(cpu_encoding_coords[1], cpu_encoding_coords[2]) :
+        MortonEncoding!(cpu_encoding_coords[1], cpu_encoding_coords[2], cpu_encoding_coords[3])
     device_enc = DIM == 2 ?
-        MortonEncoding!(device_encoding_coords[1], device_encoding_coords[2]; SortWorkSpace=device_sort_workspace) :
-        MortonEncoding!(device_encoding_coords[1], device_encoding_coords[2], device_encoding_coords[3]; SortWorkSpace=device_sort_workspace)
+        MortonEncoding!(device_encoding_coords[1], device_encoding_coords[2]) :
+        MortonEncoding!(device_encoding_coords[1], device_encoding_coords[2], device_encoding_coords[3])
     cpu_encode() = DIM == 2 ?
-        build!(cpu_enc, host_coords[1], host_coords[2], cpu_sort_workspace) :
-        build!(cpu_enc, host_coords[1], host_coords[2], host_coords[3], cpu_sort_workspace)
+        build!(cpu_enc, host_coords[1], host_coords[2]) :
+        build!(cpu_enc, host_coords[1], host_coords[2], host_coords[3])
     device_encode() = DIM == 2 ?
-        build!(device_enc, device_coords[1], device_coords[2], device_sort_workspace) :
-        build!(device_enc, device_coords[1], device_coords[2], device_coords[3], device_sort_workspace)
+        build!(device_enc, device_coords[1], device_coords[2]) :
+        build!(device_enc, device_coords[1], device_coords[2], device_coords[3])
 
     cpu_enc_statistics = sample_statistics(cpu_encode, () -> nothing)
     device_enc_statistics = sample_statistics(device_encode, config.synchronize)
@@ -220,6 +220,8 @@ function benchmark_size(n, config)
     # Reuse the sorted encoding and scale vectors for isolated LBVH timing.
     cpu_encode()
     device_encode()
+    sort_by_morton!(cpu_enc, cpu_sort_workspace)
+    sort_by_morton!(device_enc, device_sort_workspace)
     config.synchronize()
     cpu_scale = copy(host_scale)
     Base.permute!(cpu_scale, cpu_enc.order)
@@ -254,12 +256,14 @@ function benchmark_size(n, config)
     device_total_scale = similar(device_scale_source)
     function cpu_total()
         cpu_encode()
+        sort_by_morton!(cpu_enc, cpu_sort_workspace)
         copyto!(cpu_total_scale, host_scale)
         Base.permute!(cpu_total_scale, cpu_enc.order)
         return build!(cpu_lbvh, cpu_store, cpu_enc, cpu_total_scale)
     end
     function device_total()
         device_encode()
+        sort_by_morton!(device_enc, device_sort_workspace)
         copyto!(device_total_scale, device_scale_source)
         Base.permute!(device_total_scale, device_enc.order)
         return build!(device_lbvh, device_store, device_enc, device_total_scale)

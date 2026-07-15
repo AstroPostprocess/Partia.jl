@@ -6,16 +6,25 @@
 
 ######################################################################################
 """
-    build!(enc, points, workspace, ::Val{TileSize}=Val(8192))
+    build!(enc, points)
+    build!(enc, x, y)
+    build!(enc, x, y, z)
 
 Recompute a preallocated Morton encoding from unsorted structure-of-arrays
-coordinates. Codes, order, coordinate storage, and OneSweep workspace are all
-reused. Input coordinates are copied into `enc.coord` before in-place sorting.
+coordinates. Code and coordinate storage are reused, and input coordinates are
+copied into `enc.coord` before their Morton codes are recomputed. This function
+does not sort the result; call `sort_by_morton!`
+before constructing a `LinearBVH`.
+
+# Parameters
+- `enc`: Preallocated two- or three-dimensional `MortonEncoding` to rebuild.
+- `points`: Unsorted coordinates in structure-of-arrays form.
+- `x`, `y`, `z`: Coordinate-wise convenience arguments for `points`.
 
 # Returns
-- `enc`: The recomputed encoding in Morton order.
+- `nothing`: `enc.codes` and `enc.coord` are updated in place in input order.
 """
-function build!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, points :: NTuple{D, Vector{TF}}, workspace :: OnesweepWorkspace{TI, Vector{TI}, Vector{UInt32}}, :: Val{TileSize} = Val(8192)) where {D, TileSize, TF <: AbstractFloat, TI <: Unsigned}
+function build!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, points :: NTuple{D, Vector{TF}}) where {D, TF <: AbstractFloat, TI <: Unsigned}
     D in (2, 3) || throw(ArgumentError("Morton encoding only supports two or three dimensions"))
     n = length(enc.codes)
     n > 0 || throw(ArgumentError("coordinates must not be empty"))
@@ -40,16 +49,15 @@ function build!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, points
     @inbounds @threads for i in eachindex(enc.codes)
         _morton_encoding_kernel!(enc.codes, i, enc.coord, inv_extent, offset)
     end
-    sort_by_morton!(enc, workspace, Val(TileSize))
     return nothing
 end
 
-function build!(enc :: MortonEncoding{2, TF, TI, Vector{TF}, Vector{TI}}, x :: Vector{TF}, y :: Vector{TF}, workspace :: OnesweepWorkspace{TI, Vector{TI}, Vector{UInt32}}, args...) where {TF <: AbstractFloat, TI <: Unsigned}
-    build!(enc, (x, y), workspace, args...)
+function build!(enc :: MortonEncoding{2, TF, TI, Vector{TF}, Vector{TI}}, x :: Vector{TF}, y :: Vector{TF}) where {TF <: AbstractFloat, TI <: Unsigned}
+    build!(enc, (x, y))
     return nothing
 end
 
-function build!(enc :: MortonEncoding{3, TF, TI, Vector{TF}, Vector{TI}}, x :: Vector{TF}, y :: Vector{TF}, z :: Vector{TF}, workspace :: OnesweepWorkspace{TI, Vector{TI}, Vector{UInt32}}, args...) where {TF <: AbstractFloat, TI <: Unsigned}
-    build!(enc, (x, y, z), workspace, args...)
+function build!(enc :: MortonEncoding{3, TF, TI, Vector{TF}, Vector{TI}}, x :: Vector{TF}, y :: Vector{TF}, z :: Vector{TF}) where {TF <: AbstractFloat, TI <: Unsigned}
+    build!(enc, (x, y, z))
     return nothing
 end

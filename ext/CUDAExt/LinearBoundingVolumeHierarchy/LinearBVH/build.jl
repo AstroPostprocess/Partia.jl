@@ -12,10 +12,22 @@
            ::Val{NBlocks}=Val(256), ::Val{ThreadsPerBlock}=Val(256))
 
 Rebuild a preallocated CUDA `LinearBVH` and reusable rendezvous `store` from
-Morton-sorted leaves. The shorter form uses point AABBs from `enc.coord`.
+Morton-sorted leaves. The explicit form uses the supplied leaf bounds; the
+shorter form uses point AABBs from `enc.coord`. Construction is synchronized
+before this function returns.
+
+# Parameters
+- `lbvh`: Preallocated CUDA hierarchy with `nleaf == length(enc.codes)`.
+- `store`: Reusable `CuVector{Int32}` rendezvous storage of length `nleaf - 1`.
+- `enc`: CUDA Morton encoding already sorted by `sort_by_morton!`.
+- `scale`: Per-leaf scale values in the same Morton order as `enc`.
+- `leaf_min`, `leaf_max`: Per-axis leaf bounds in that same order.
+- `NBlocks`: Number of CUDA blocks used by the construction kernels. Defaults
+  to 256.
+- `ThreadsPerBlock`: Number of threads per CUDA block. Defaults to 256.
 
 # Returns
-- `lbvh`: The rebuilt hierarchy after CUDA construction has completed.
+- `nothing`: `lbvh` and `store` are updated in place.
 """
 function Partia.build!(lbvh :: LinearBVH{D, TF, CuVector{TF}, CuVector{Int32}}, store :: CuVector{Int32}, enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}, scale :: CuVector{TF}, leaf_min :: NTuple{D, CuVector{TF}}, leaf_max :: NTuple{D, CuVector{TF}}, :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256)) where {D, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
     codes = enc.codes
@@ -25,6 +37,7 @@ function Partia.build!(lbvh :: LinearBVH{D, TF, CuVector{TF}, CuVector{Int32}}, 
     length(scale) == n || throw(DimensionMismatch("scale and enc.codes must have identical lengths"))
     all(length(v) == n for v in leaf_min) || throw(DimensionMismatch("leaf_min and enc.codes must have identical lengths"))
     all(length(v) == n for v in leaf_max) || throw(DimensionMismatch("leaf_max and enc.codes must have identical lengths"))
+    Partia.Tools._issorted(codes) || throw(ArgumentError("LinearBVH: enc.codes must be sorted in nondecreasing order."))
 
     n_internal = n - 1
     fill!(store, zero(Int32))

@@ -3,6 +3,12 @@
 # Type calling of function
 
 ######################################################################################
+"""
+    M5_spline <: AbstractSPHKernel
+
+Quartic B-spline SPH kernel dispatch type with compact-support radius `2.5h`.
+Instances are callable with dimensionless radius `q`.
+"""
 struct M5_spline <: AbstractSPHKernel end
 struct _dM5_spline <: AbstractSPHKernel end
 

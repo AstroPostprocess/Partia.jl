@@ -1,3 +1,4 @@
+"""CUDA implementations of Partia interpolation setup, kernels, and drivers."""
 module KernelInterpolation
 using Partia
 using CUDA

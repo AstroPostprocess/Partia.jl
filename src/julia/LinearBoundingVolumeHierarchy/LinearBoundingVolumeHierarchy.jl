@@ -17,6 +17,7 @@ using StaticArrays
 using Adapt
 using Atomix
 using UnsignedRadixSorts
+using ..Tools: _issorted
 
 # Morton encoding
 include(joinpath(@__DIR__, "MortonEncoding", "CoordinateQuantization", "quantization_scale.jl"))

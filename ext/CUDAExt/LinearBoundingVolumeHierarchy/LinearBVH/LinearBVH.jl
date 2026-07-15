@@ -40,6 +40,7 @@ function Partia.LinearBVH(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVecto
     all(length(v) == n for v in leaf_min) || throw(DimensionMismatch("leaf_min and enc.codes must have identical lengths"))
     all(length(v) == n for v in leaf_max) || throw(DimensionMismatch("leaf_max and enc.codes must have identical lengths"))
     n > 0 || throw(ArgumentError("LinearBVH requires at least one leaf"))
+    Partia.Tools._issorted(codes) || throw(ArgumentError("LinearBVH: enc.codes must be sorted in nondecreasing order."))
     n <= (typemax(Int32) ÷ 2) + 1 || throw(ArgumentError("leaf count exceeds Int32 node capacity"))
 
     # Unified IDs 1:(n-1) are internal nodes and n:(2n-1) are leaves.

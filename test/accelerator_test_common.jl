@@ -267,6 +267,12 @@ function run_accelerator_test_suite(config)
         synchronize()
         @test device_bounds == ((-2.0f0, 3.0f0), (-1.0f0, 4.0f0))
 
+        # Device LBVH constructors must reject an encoding before its explicit
+        # Morton sort, using the backend-specific Partia.Tools._issorted method.
+        unsorted_points = map(to_device_vector, (Float32[1, 0], Float32[1, 0]))
+        unsorted_enc = MortonEncoding(unsorted_points)
+        @test_throws ArgumentError LinearBVH(unsorted_enc, to_device_vector(ones(Float32, 2)))
+
         for D in (Val(2), Val(3))
             dim = D isa Val{2} ? 2 : 3
             coords = accelerator_test_morton_coordinates(D, 257, 0xBEEF + dim)
@@ -275,17 +281,20 @@ function run_accelerator_test_suite(config)
             cpu_enc = MortonEncoding(coords)
             gpu_points = ntuple(d -> to_device_vector(coords[d]), dim)
             gpu_enc = MortonEncoding(gpu_points)
+            gpu_workspace = OnesweepWorkspace(typeof(gpu_enc.codes))
+            sort_by_morton!(cpu_enc)
+            sort_by_morton!(gpu_enc, gpu_workspace)
             synchronize()
             host_enc = to_host(gpu_enc)
             accelerator_test_encoding_equal(host_enc, cpu_enc; atol, rtol)
 
             # Rebuild the same encoding and sorting workspace through the
             # coordinate-wise public build! API.
-            gpu_workspace = OnesweepWorkspace(typeof(gpu_enc.codes))
             build_result = dim == 2 ?
-                build!(gpu_enc, gpu_points[1], gpu_points[2], gpu_workspace) :
-                build!(gpu_enc, gpu_points[1], gpu_points[2], gpu_points[3], gpu_workspace)
+                build!(gpu_enc, gpu_points[1], gpu_points[2]) :
+                build!(gpu_enc, gpu_points[1], gpu_points[2], gpu_points[3])
             @test isnothing(build_result)
+            sort_by_morton!(gpu_enc, gpu_workspace)
             synchronize()
             accelerator_test_encoding_equal(to_host(gpu_enc), cpu_enc; atol, rtol)
 
@@ -294,6 +303,7 @@ function run_accelerator_test_suite(config)
                 MortonEncoding!(no_copy_points[1], no_copy_points[2]) :
                 MortonEncoding!(no_copy_points[1], no_copy_points[2], no_copy_points[3])
             @test no_copy_enc.coord === no_copy_points
+            sort_by_morton!(no_copy_enc, gpu_workspace)
             synchronize()
             accelerator_test_encoding_equal(to_host(no_copy_enc), cpu_enc; atol, rtol)
 
@@ -326,6 +336,7 @@ function run_accelerator_test_suite(config)
         for D in (2, 3)
             coords = ntuple(_ -> fill(0.5f0, 17), D)
             gpu_enc = MortonEncoding(ntuple(d -> to_device_vector(coords[d]), D))
+            sort_by_morton!(gpu_enc)
             gpu_lbvh = LinearBVH(gpu_enc, to_device_vector(ones(Float32, 17)))
             synchronize()
             host_lbvh = to_host(gpu_lbvh)
@@ -341,6 +352,7 @@ function run_accelerator_test_suite(config)
         leaf_min = (Float32[0.0], Float32[1.0])
         leaf_max = (Float32[1.0], Float32[2.0])
         gpu_enc = MortonEncoding(map(to_device_vector, coords))
+        sort_by_morton!(gpu_enc)
         gpu_lbvh = LinearBVH(
             gpu_enc,
             to_device_vector(Float32[0.1]),

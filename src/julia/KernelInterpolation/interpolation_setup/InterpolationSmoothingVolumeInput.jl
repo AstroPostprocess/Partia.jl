@@ -222,7 +222,8 @@ function LinearBVH!(input :: InterpolationSmoothingVolumeInput{3}, :: Val{TileSi
     y = get_ycoord(input)
     z = get_zcoord(input)
 
-    enc = MortonEncoding(x, y, z, Val(TileSize); CodeType, SortWorkSpace)
+    enc = MortonEncoding(x, y, z; CodeType)
+    sort_by_morton!(enc, SortWorkSpace, Val(TileSize))
     order = enc.order
 
     Base.permute!(x, order)
@@ -268,7 +269,8 @@ function LinearBVH!(input :: InterpolationSmoothingVolumeInput{2}, :: Val{TileSi
     x = get_xcoord(input)
     y = get_ycoord(input)
 
-    enc = MortonEncoding(x, y, Val(TileSize); CodeType, SortWorkSpace)
+    enc = MortonEncoding(x, y; CodeType)
+    sort_by_morton!(enc, SortWorkSpace, Val(TileSize))
     order = enc.order
 
     Base.permute!(x, order)

@@ -13,12 +13,16 @@ const lbvh_mod = Partia.LinearBoundingVolumeHierarchy
 
 function encoding(::Val{2}, n, seed)
     rng = MersenneTwister(seed)
-    MortonEncoding(rand(rng, n), rand(rng, n))
+    enc = MortonEncoding(rand(rng, n), rand(rng, n))
+    sort_by_morton!(enc)
+    return enc
 end
 
 function encoding(::Val{3}, n, seed)
     rng = MersenneTwister(seed)
-    MortonEncoding(rand(rng, n), rand(rng, n), rand(rng, n))
+    enc = MortonEncoding(rand(rng, n), rand(rng, n), rand(rng, n))
+    sort_by_morton!(enc)
+    return enc
 end
 
 @inline right_child(lbvh, node) = lbvh.escape[Int(lbvh.left[Int(node)])]
@@ -80,6 +84,7 @@ end
         dim = D isa Val{2} ? 2 : 3
         coords = ntuple(_ -> fill(0.5, n), dim)
         enc = MortonEncoding(coords...)
+        sort_by_morton!(enc)
         lbvh = LinearBVH(enc, ones(n))
         @test sort(visit_nodes(lbvh)) == collect(1:2n-1)
         @test all(==(0.5), (lbvh.aabb.min[d][1] for d in 1:dim))
@@ -92,14 +97,17 @@ end
         rng = MersenneTwister(0xC0DE + dim)
         points = ntuple(_ -> rand(rng, 31), dim)
         enc = MortonEncoding(points)
-        workspace = OnesweepWorkspace(Vector{UInt64})
-
         # Rebuild through the coordinate-wise API requested by callers.
-        result = dim == 2 ? build!(enc, points[1], points[2], workspace) :
-            build!(enc, points[1], points[2], points[3], workspace)
+        result = dim == 2 ? build!(enc, points[1], points[2]) :
+            build!(enc, points[1], points[2], points[3])
         reference = MortonEncoding(points)
 
         @test isnothing(result)
+        @test enc.codes == reference.codes
+        @test enc.coord == reference.coord
+
+        sort_by_morton!(enc)
+        sort_by_morton!(reference)
         @test enc.order == reference.order
         @test enc.codes == reference.codes
         @test enc.coord == reference.coord
@@ -109,10 +117,17 @@ end
             MortonEncoding!(no_copy_points[1], no_copy_points[2]) :
             MortonEncoding!(no_copy_points[1], no_copy_points[2], no_copy_points[3])
         @test no_copy.coord === no_copy_points
+        sort_by_morton!(no_copy)
         @test no_copy.order == reference.order
         @test no_copy.codes == reference.codes
         @test no_copy.coord == reference.coord
     end
+end
+
+@testset "LinearBVH -- rejects unsorted Morton codes" begin
+    enc = MortonEncoding([1.0, 0.0], [1.0, 0.0])
+    @test !Partia.Tools._issorted(enc.codes)
+    @test_throws ArgumentError LinearBVH(enc, ones(2))
 end
 
 @testset "LinearBVH -- reusable build!" begin

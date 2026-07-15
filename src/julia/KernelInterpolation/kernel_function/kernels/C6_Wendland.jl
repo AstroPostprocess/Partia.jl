@@ -3,6 +3,12 @@
 # Type calling of function
 
 ######################################################################################
+"""
+    C6_Wendland <: AbstractSPHKernel
+
+Wendland C6 SPH kernel dispatch type with compact-support radius `2h`.
+Instances are callable with dimensionless radius `q`.
+"""
 struct C6_Wendland <: AbstractSPHKernel end
 struct _dC6_Wendland <: AbstractSPHKernel end
 

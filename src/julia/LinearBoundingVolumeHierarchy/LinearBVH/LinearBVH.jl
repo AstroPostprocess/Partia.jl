@@ -5,6 +5,20 @@
 #     May 4, 2026
 
 ######################################################################################
+"""
+    LinearBVH{D, TF, VF, VI}
+
+Store a stackless linear bounding volume hierarchy in unified-node layout.
+Internal nodes occupy indices `1:(nleaf - 1)` and leaves occupy
+`nleaf:(2nleaf - 1)`.
+
+# Fields
+- `nleaf :: Int`: Number of leaf nodes.
+- `left :: VI`: Left-child IDs for internal nodes.
+- `escape :: VI`: Stackless traversal escape IDs for all nodes.
+- `aabb :: AABB{D, TF, VF}`: Axis-aligned bounds for all nodes.
+- `scale :: VF`: Per-node maximum scale, with input scale values at the leaves.
+"""
 struct LinearBVH{D, TF <: AbstractFloat, VF <: AbstractVector{TF}, VI <: AbstractVector{Int32}}
     # Binary Radix Tree
     nleaf  :: Int
@@ -64,7 +78,7 @@ function LinearBVH(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, sca
     end
 
     n >= 1 || throw(ArgumentError("LinearBVH: enc.codes must be non-empty (got n=0)."))
-    issorted(codes) || throw(ArgumentError("LinearBVH: enc.codes must be sorted in nondecreasing order."))
+    _issorted(codes) || throw(ArgumentError("LinearBVH: enc.codes must be sorted in nondecreasing order."))
 
     # Int32 node-ID capacity: 2n - 1 must fit in Int32.
     n_max = (typemax(Int32) ÷ 2) + 1

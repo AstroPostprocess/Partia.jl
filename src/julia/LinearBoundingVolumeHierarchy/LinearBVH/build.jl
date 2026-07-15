@@ -15,14 +15,16 @@ AABBs. Both `lbvh` and the rendezvous `store` are reused without allocating
 hierarchy storage.
 
 # Parameters
-- `lbvh`: Preallocated hierarchy with `nleaf == length(enc.codes)`.
-- `store`: Reusable `Int32` rendezvous vector of length `nleaf - 1`.
-- `enc`: Morton-sorted codes and coordinates.
-- `scale`: Per-leaf scale values in Morton order.
-- `leaf_min`, `leaf_max`: Per-axis leaf bounds in Morton order.
+- `lbvh`: Preallocated `Vector`-backed hierarchy with
+  `nleaf == length(enc.codes)`.
+- `store`: Reusable `Vector{Int32}` rendezvous storage of length `nleaf - 1`.
+- `enc`: Morton encoding whose codes and coordinates have already been sorted
+  by `sort_by_morton!`.
+- `scale`: Per-leaf scale values arranged in the same Morton order as `enc`.
+- `leaf_min`, `leaf_max`: Per-axis leaf bounds arranged in that same order.
 
 # Returns
-- `lbvh`: The rebuilt hierarchy.
+- `nothing`: `lbvh` and `store` are updated in place.
 """
 function build!(lbvh :: LinearBVH{D, TF, Vector{TF}, Vector{Int32}}, store :: Vector{Int32}, enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, scale :: Vector{TF}, leaf_min :: NTuple{D, Vector{TF}}, leaf_max :: NTuple{D, Vector{TF}}) where {D, TF <: AbstractFloat, TI <: Unsigned}
     codes = enc.codes
@@ -34,7 +36,7 @@ function build!(lbvh :: LinearBVH{D, TF, Vector{TF}, Vector{Int32}}, store :: Ve
         length(leaf_min[d]) == n || throw(DimensionMismatch("leaf_min[$d] and enc.codes must have identical lengths"))
         length(leaf_max[d]) == n || throw(DimensionMismatch("leaf_max[$d] and enc.codes must have identical lengths"))
     end
-    issorted(codes) || throw(ArgumentError("LinearBVH: enc.codes must be sorted in nondecreasing order."))
+    _issorted(codes) || throw(ArgumentError("LinearBVH: enc.codes must be sorted in nondecreasing order."))
 
     n_internal = n - 1
     fill!(store, zero(Int32))

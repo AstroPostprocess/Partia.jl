@@ -3,10 +3,28 @@
 # Type calling of function
 
 ######################################################################################
+"""
+    M4_spline <: AbstractSPHKernel
+
+Cubic B-spline SPH kernel dispatch type with compact-support radius `2h`.
+Instances are callable with dimensionless radius `q`.
+"""
 struct M4_spline <: AbstractSPHKernel end
 struct _dM4_spline <: AbstractSPHKernel end
 
 # Defince parent type of deriviative kernel
+"""
+    parenttype(K::Type{<:AbstractSPHKernel})
+
+Return the non-derivative SPH kernel type associated with derivative-kernel
+type `K`.
+
+# Parameters
+- `K`: Derivative SPH kernel type.
+
+# Returns
+- `Type{<:AbstractSPHKernel}`: Corresponding base kernel type.
+"""
 parenttype( :: Type{_dM4_spline}) = M4_spline
 
 # Kernel Functions

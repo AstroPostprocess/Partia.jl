@@ -3,6 +3,12 @@
 # General Grid definition
 
 ######################################################################################
+"""
+    AbstractGrid{TF}
+
+Abstract supertype for Partia grid and sample containers with floating-point
+value type `TF`.
+"""
 abstract type AbstractGrid{TF <: AbstractFloat} end
 
 """

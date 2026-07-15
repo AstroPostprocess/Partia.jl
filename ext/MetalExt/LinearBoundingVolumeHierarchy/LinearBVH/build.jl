@@ -11,10 +11,20 @@
     build!(lbvh, store, enc, scale, ::Val{ThreadsPerGroup}=Val(256))
 
 Rebuild a preallocated Metal `LinearBVH` and reusable rendezvous `store` from
-Morton-sorted leaves. The shorter form uses point AABBs from `enc.coord`.
+Morton-sorted leaves. The explicit form uses the supplied leaf bounds; the
+shorter form uses point AABBs from `enc.coord`. Construction is synchronized
+before this function returns.
+
+# Parameters
+- `lbvh`: Preallocated Metal hierarchy with `nleaf == length(enc.codes)`.
+- `store`: Reusable `MtlVector{Int32}` rendezvous storage of length `nleaf - 1`.
+- `enc`: Metal Morton encoding already sorted by `sort_by_morton!`.
+- `scale`: Per-leaf scale values in the same Morton order as `enc`.
+- `leaf_min`, `leaf_max`: Per-axis leaf bounds in that same order.
+- `ThreadsPerGroup`: Number of threads per Metal threadgroup. Defaults to 256.
 
 # Returns
-- `lbvh`: The rebuilt hierarchy after Metal construction has completed.
+- `nothing`: `lbvh` and `store` are updated in place.
 """
 function Partia.build!(lbvh :: LinearBVH{D, Float32, MtlVector{Float32}, MtlVector{Int32}}, store :: MtlVector{Int32}, enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, scale :: MtlVector{Float32}, leaf_min :: NTuple{D, MtlVector{Float32}}, leaf_max :: NTuple{D, MtlVector{Float32}}, :: Val{ThreadsPerGroup} = Val(256)) where {D, ThreadsPerGroup, TI <: Unsigned}
     codes = enc.codes
@@ -26,6 +36,7 @@ function Partia.build!(lbvh :: LinearBVH{D, Float32, MtlVector{Float32}, MtlVect
         length(leaf_min[d]) == n || throw(DimensionMismatch("leaf_min[$d] and enc.codes must have identical lengths"))
         length(leaf_max[d]) == n || throw(DimensionMismatch("leaf_max[$d] and enc.codes must have identical lengths"))
     end
+    Partia.Tools._issorted(codes) || throw(ArgumentError("LinearBVH: enc.codes must be sorted in nondecreasing order."))
 
     n_internal = n - 1
     fill!(store, zero(Int32))

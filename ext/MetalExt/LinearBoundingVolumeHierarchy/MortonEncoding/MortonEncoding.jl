@@ -6,30 +6,24 @@
 
 ######################################################################################
 """
-    MortonEncoding(x::MtlVector{Float32}, y::MtlVector{Float32}, z::MtlVector{Float32}, ::Val{TileSize}=Val(2048), ::Val{NThreadgroups}=Val(128), ::Val{ThreadsPerGroup}=Val(256);
-                   CodeType=UInt64,
-                   SortWorkSpace=OnesweepWorkspace(MtlVector{CodeType}))
+    MortonEncoding(x::MtlVector{Float32}, y::MtlVector{Float32}, z::MtlVector{Float32}; CodeType=UInt64)
 
-Encode a set of 3D particle coordinates into Morton codes.
+Encode a set of 3D particle coordinates into Morton codes without sorting.
+Call `sort_by_morton!` before constructing a `LinearBVH`.
 
 # Parameters
 - `x, y, z :: MtlVector{Float32}`: Particle positions along each axis (floating-point).
-- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
-- `::Val{NThreadgroups}`: Number of threadgroups used by the radix sorter.
-- `::Val{ThreadsPerGroup}`: Number of threads in each Metal threadgroup.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
 |---|---|---|---|
 | `CodeType` | `Type{TI}` | `UInt64` | Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`). |
-| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(MtlVector{CodeType})` | Reusable workspace for Morton-code sorting. |
 
 # Returns
-- `MortonEncoding{3, Float32, TI, MtlVector{Float32}, MtlVector{TI}}`: Encoding containing Morton codes,
-  original particle indices, and copied coordinates, all ordered by Morton code.
+- `MortonEncoding{3, Float32, TI, MtlVector{Float32}, MtlVector{TI}}`: Unsorted
+  encoding whose codes and copied coordinates remain in input order.
 """
-function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32}, z :: MtlVector{Float32}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256);
-    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(MtlVector{CodeType})) where {TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned}
+function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32}, z :: MtlVector{Float32}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     # Verify length of input arrays
     isempty(x) && throw(ArgumentError("coordinates must not be empty"))
     isempty(y) && throw(ArgumentError("coordinates must not be empty"))
@@ -73,21 +67,17 @@ function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32},
     order = similar(codes)
 
     # Encode all points without allocating normalized or quantized coordinates
-    @metal threads=(ThreadsPerGroup,) groups=(cld(npart, ThreadsPerGroup),) Partia.LinearBoundingVolumeHierarchy._morton_encoding_kernel!(codes, (xcopy, ycopy, zcopy), (invΔx, invΔy, invΔz), (cx, cy, cz))
+    @metal threads=(256,) groups=(cld(npart, 256),) Partia.LinearBoundingVolumeHierarchy._morton_encoding_kernel!(codes, (xcopy, ycopy, zcopy), (invΔx, invΔy, invΔz), (cx, cy, cz))
     Metal.synchronize()
 
     # Construct structure
     enc = Partia.MortonEncoding{3, Float32, TI, MtlVector{Float32}, MtlVector{TI}}(order, codes, (xcopy, ycopy, zcopy))
 
-    # Sort by morton
-    Partia.sort_by_morton!(enc, SortWorkSpace, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
     return enc
 end
 
 """
-    MortonEncoding(points::NTuple{3,MtlVector{Float32}}, ::Val{TileSize}=Val(2048), ::Val{NThreadgroups}=Val(128), ::Val{ThreadsPerGroup}=Val(256);
-                   CodeType=UInt64,
-                   SortWorkSpace=OnesweepWorkspace(MtlVector{CodeType}))
+    MortonEncoding(points::NTuple{3,MtlVector{Float32}}; CodeType=UInt64)
 
 Encode a set of 3D particle coordinates into Morton codes.
 
@@ -97,50 +87,40 @@ where `points = (x, y, z)`. It forwards to
 
 # Parameters
 - `points :: NTuple{3,MtlVector{Float32}}`: Particle coordinates stored as `(x, y, z)`.
-- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
-- `::Val{NThreadgroups}`: Number of threadgroups used by the radix sorter.
-- `::Val{ThreadsPerGroup}`: Number of threads in each Metal threadgroup.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
 |---|---|---|---|
 | `CodeType` | `Type{TI}` | `UInt64` | Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`). |
-| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(MtlVector{CodeType})` | Reusable workspace for Morton-code sorting. |
 
 # Returns
-- A 3D `MortonEncoding` with codes, indices, and coordinates ordered by Morton code.
+- An unsorted 3D `MortonEncoding`; call `sort_by_morton!` to arrange it in
+  Morton order.
 """
-function Partia.MortonEncoding(points :: NTuple{3, MtlVector{Float32}}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256);
-    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(MtlVector{CodeType})) where {TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned}
+function Partia.MortonEncoding(points :: NTuple{3, MtlVector{Float32}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     x = points[1]; y = points[2]; z = points[3]
-    return Partia.MortonEncoding(x, y, z, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup); CodeType, SortWorkSpace)
+    return Partia.MortonEncoding(x, y, z; CodeType)
 end
 
 """
-    MortonEncoding(x::MtlVector{Float32}, y::MtlVector{Float32}, ::Val{TileSize}=Val(2048), ::Val{NThreadgroups}=Val(128), ::Val{ThreadsPerGroup}=Val(256);
-                   CodeType=UInt64,
-                   SortWorkSpace=OnesweepWorkspace(MtlVector{CodeType}))
+    MortonEncoding(x::MtlVector{Float32}, y::MtlVector{Float32}; CodeType=UInt64)
 
-Encode a set of 2D particle coordinates into Morton codes.
+Encode a set of 2D particle coordinates into Morton codes without sorting.
+Call `sort_by_morton!` before constructing a `LinearBVH`.
 
 # Parameters
 - `x, y :: MtlVector{Float32}`: Particle positions along each axis (floating-point).
-- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
-- `::Val{NThreadgroups}`: Number of threadgroups used by the radix sorter.
-- `::Val{ThreadsPerGroup}`: Number of threads in each Metal threadgroup.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
 |---|---|---|---|
 | `CodeType` | `Type{TI}` | `UInt64` | Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`). |
-| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(MtlVector{CodeType})` | Reusable workspace for Morton-code sorting. |
 
 # Returns
-- `MortonEncoding{2, Float32, TI, MtlVector{Float32}, MtlVector{TI}}`: Encoding containing Morton codes,
-  original particle indices, and copied coordinates, all ordered by Morton code.
+- `MortonEncoding{2, Float32, TI, MtlVector{Float32}, MtlVector{TI}}`: Unsorted
+  encoding whose codes and copied coordinates remain in input order.
 """
-function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256);
-    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(MtlVector{CodeType})) where {TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned}
+function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     # Verify length of input arrays
     isempty(x) && throw(ArgumentError("coordinates must not be empty"))
     isempty(y) && throw(ArgumentError("coordinates must not be empty"))
@@ -178,21 +158,17 @@ function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32},
     order = similar(codes)
 
     # Encode all points without allocating normalized or quantized coordinates
-    @metal threads=(ThreadsPerGroup,) groups=(cld(npart, ThreadsPerGroup),) Partia.LinearBoundingVolumeHierarchy._morton_encoding_kernel!(codes, (xcopy, ycopy), (invΔx, invΔy), (cx, cy))
+    @metal threads=(256,) groups=(cld(npart, 256),) Partia.LinearBoundingVolumeHierarchy._morton_encoding_kernel!(codes, (xcopy, ycopy), (invΔx, invΔy), (cx, cy))
     Metal.synchronize()
 
     # Construct structure
     enc = Partia.MortonEncoding{2, Float32, TI, MtlVector{Float32}, MtlVector{TI}}(order, codes, (xcopy, ycopy))
 
-    # Sort by morton
-    Partia.sort_by_morton!(enc, SortWorkSpace, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
     return enc
 end
 
 """
-    MortonEncoding(points::NTuple{2,MtlVector{Float32}}, ::Val{TileSize}=Val(2048), ::Val{NThreadgroups}=Val(128), ::Val{ThreadsPerGroup}=Val(256);
-                   CodeType=UInt64,
-                   SortWorkSpace=OnesweepWorkspace(MtlVector{CodeType}))
+    MortonEncoding(points::NTuple{2,MtlVector{Float32}}; CodeType=UInt64)
 
 Encode a set of 2D particle coordinates into Morton codes.
 
@@ -202,40 +178,53 @@ where `points = (x, y)`. It forwards to
 
 # Parameters
 - `points :: NTuple{2,MtlVector{Float32}}`: Particle coordinates stored as `(x, y)`.
-- `::Val{TileSize}`: Compile-time tile size used by the OneSweep radix sorter.
-- `::Val{NThreadgroups}`: Number of threadgroups used by the radix sorter.
-- `::Val{ThreadsPerGroup}`: Number of threads in each Metal threadgroup.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
 |---|---|---|---|
 | `CodeType` | `Type{TI}` | `UInt64` | Unsigned integer type used for Morton encoding (`UInt32` or `UInt64`). |
-| `SortWorkSpace` | `OnesweepWorkspace{TI}` | `OnesweepWorkspace(MtlVector{CodeType})` | Reusable workspace for Morton-code sorting. |
 
 # Returns
-- A 2D `MortonEncoding` with codes, indices, and coordinates ordered by Morton code.
+- An unsorted 2D `MortonEncoding`; call `sort_by_morton!` to arrange it in
+  Morton order.
 """
-function Partia.MortonEncoding(points :: NTuple{2, MtlVector{Float32}}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256);
-    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(MtlVector{CodeType})) where {TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned}
+function Partia.MortonEncoding(points :: NTuple{2, MtlVector{Float32}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     x = points[1]; y = points[2]
-    return Partia.MortonEncoding(x, y, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup); CodeType, SortWorkSpace)
+    return Partia.MortonEncoding(x, y; CodeType)
 end
 
-"""Metal no-copy Morton encoding; input coordinate vectors are sorted in place."""
-function Partia.MortonEncoding!(x :: MtlVector{Float32}, y :: MtlVector{Float32}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(MtlVector{CodeType})) where {TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned}
+"""
+    MortonEncoding!(x::MtlVector{Float32}, y::MtlVector{Float32}; CodeType=UInt64)
+    MortonEncoding!(x::MtlVector{Float32}, y::MtlVector{Float32}, z::MtlVector{Float32}; CodeType=UInt64)
+
+Construct a Metal Morton encoding without copying coordinate vectors. The
+coordinates remain in input order until `sort_by_morton!` is called.
+
+# Parameters
+- `x`, `y`, `z`: Nonempty Metal coordinate vectors with identical axes.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `CodeType` | `Type{TI}` | `UInt64` | Unsigned Morton-code type. |
+
+# Returns
+- `MortonEncoding`: Unsorted Metal encoding that aliases the supplied vectors.
+"""
+function Partia.MortonEncoding!(x :: MtlVector{Float32}, y :: MtlVector{Float32}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     isempty(x) && throw(ArgumentError("coordinates must not be empty"))
     axes(x) == axes(y) || throw(DimensionMismatch("x and y must have identical axes"))
     codes = MtlVector{TI}(undef, length(x))
     enc = Partia.MortonEncoding{2, Float32, TI, MtlVector{Float32}, MtlVector{TI}}(similar(codes), codes, (x, y))
-    Partia.build!(enc, x, y, SortWorkSpace, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
+    Partia.build!(enc, x, y)
     return enc
 end
 
-function Partia.MortonEncoding!(x :: MtlVector{Float32}, y :: MtlVector{Float32}, z :: MtlVector{Float32}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(MtlVector{CodeType})) where {TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned}
+function Partia.MortonEncoding!(x :: MtlVector{Float32}, y :: MtlVector{Float32}, z :: MtlVector{Float32}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
     isempty(x) && throw(ArgumentError("coordinates must not be empty"))
     axes(x) == axes(y) == axes(z) || throw(DimensionMismatch("x, y, and z must have identical axes"))
     codes = MtlVector{TI}(undef, length(x))
     enc = Partia.MortonEncoding{3, Float32, TI, MtlVector{Float32}, MtlVector{TI}}(similar(codes), codes, (x, y, z))
-    Partia.build!(enc, x, y, z, SortWorkSpace, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
+    Partia.build!(enc, x, y, z)
     return enc
 end

@@ -224,7 +224,8 @@ rotate_forward_to!(frame, (0.0, 0.0, -1.0))
 Frame-based grid constructors take `AxisParam` tuples of the form
 `(min, max, n)`. Cartesian `x`, `y`, and `z` axes include both boundaries.
 Polar and cylindrical angular axes are half-open: `ϕmin` is included and `ϕmax`
-is not duplicated.
+is not duplicated. A plane uses the current right and up directions as its two
+in-plane axes; the frame's forward direction is normal to the plane.
 
 ```julia
 xparams = (-5.0, 5.0, 101)
@@ -238,13 +239,15 @@ cartesian_box = PointSamples(Cartesian, frame, xparams, yparams, zparams)
 polar_plane = PointSamples(Polar, frame, sparams, ϕparams)
 cylindrical_box = PointSamples(Cylindrical, frame, sparams, ϕparams, zparams)
 
-cartesian_rays = LineSamples(Cartesian, ParallelBeam, frame, xparams, yparams)
-polar_rays = LineSamples(Polar, ParallelBeam, frame, sparams, ϕparams)
+cartesian_ray_beam = LineSamples(Cartesian, ParallelBeam, frame, xparams, yparams)
+polar_ray_beam = LineSamples(Polar, ParallelBeam, frame, sparams, ϕparams)
 ```
 
 For `LineSamples(..., ParallelBeam, frame, ...)`, sample origins are placed on
 the same frame plane as the corresponding `PointSamples` constructor, and every
-line direction is set to `frame_forward(frame)`.
+line direction is set to `frame_forward(frame)`. Consequently, the same `Frame`
+and axis parameters can be used to construct a point-sampled image plane and its
+matching parallel ray beam. A complete interpolation example is shown below.
 
 
 
@@ -280,7 +283,7 @@ vy = particles["vy"]
 vz = particles["vz"]
 ```
 
-To interpolate **internal energy**, the **velocity components**, the **density gradient**, the **divergence of velocity**, and the curl of velocity, first construct the interpolation input and catalog:
+To interpolate **internal energy**, the **velocity components**, the **density gradient**, the **divergence of velocity**, and the **curl of velocity**, first construct the interpolation input and catalog:
 
 ```julia
 input, catalog = build_input(
@@ -317,6 +320,19 @@ For this particular catalog, the output order is fixed as:
 
 The returned `GridBundle` follows exactly this catalog order.
 
+Build the LBVH once when the same particle data will be sampled more than once:
+
+```julia
+lbvh = LinearBVH!(input)
+```
+
+`LinearBVH!` reorders all arrays in `input` into Morton leaf order and returns a
+hierarchy consistent with that new ordering. Keep `input` and `lbvh` together
+after this call; do not restore or independently reorder only some of the input
+arrays. The interpolation wrappers can build an LBVH automatically when it is
+omitted, but passing this prebuilt hierarchy avoids rebuilding it for every
+plane, ray beam, or grid.
+
 ### Example 1 - Cartesian 3D grid
 
 To sample the particle data onto a Cartesian structured grid:
@@ -334,6 +350,7 @@ result = StructuredGrid_interpolation(
     grid_template,
     input,
     catalog,
+    lbvh,
     itpScatter,
 )
 
@@ -359,34 +376,49 @@ cyl_result = StructuredGrid_interpolation(
     cyl_template,
     input,
     catalog,
+    lbvh,
     itpScatter,
 )
 ```
 
 In this case the cylindrical sample coordinates are converted to Cartesian positions before the SPH interpolation kernel is evaluated, while the output grids are restored on the original cylindrical axes.
 
-### Example 3 - Points interpolation
+### Example 3 - Frame-oriented sampling plane
 
-To evaluate interpolated quantities at an arbitrary set of sample points, use `PointSamples`:
+The following frame is placed above the origin and initially looks toward it.
+Its right and up directions span a Cartesian image plane, while its forward
+direction is the plane normal:
 
 ```julia
-sample_points = PointSamples(x, y, z)
+frame = Frame(0.0, 0.0, 10.0)
 
-point_result = PointSamples_interpolation(
-    sample_points,
+xparams = (-5.0, 5.0, 101)
+yparams = (-5.0, 5.0, 101)
+
+plane = PointSamples(Cartesian, frame, xparams, yparams)
+
+plane_result = PointSamples_interpolation(
+    plane,
     input,
     catalog,
+    lbvh,
     itpScatter,
 )
 
-u_at_points = point_result.grids[1].grid
+u_on_plane = plane_result.grids[1].grid
 ```
 
-This is useful for particle-wise postprocessing, field probes, or consistency checks against existing particle data.
+`plane.coor` contains the resulting global Cartesian coordinates in
+structure-of-arrays form. To sample arbitrary points instead, construct
+`PointSamples(x_sample, y_sample, z_sample)` and use the same interpolation
+call.
 
-### Example 4 - Column density and line-integrated quantities
+### Example 4 - Parallel ray beam and line-integrated quantities
 
-Line-integrated interpolation currently supports scalar outputs only and uses `itpScatter`:
+Use the same frame and axis parameters to put one parallel ray origin at every
+point of the image plane. Every ray travels along `frame_forward(frame)`.
+Line-integrated interpolation currently supports scalar outputs only and uses
+particle-side smoothing lengths (`itpScatter`):
 
 ```julia
 line_catalog = InterpolationCatalog(
@@ -394,19 +426,19 @@ line_catalog = InterpolationCatalog(
     scalars = (:rho, :u),
 )
 
-lines = LineSamples(
-    x_origin,
-    y_origin,
-    z_origin,
-    x_direction,
-    y_direction,
-    z_direction,
+ray_beam = LineSamples(
+    Cartesian,
+    ParallelBeam,
+    frame,
+    xparams,
+    yparams,
 )
 
 line_result = LineSamples_interpolation(
-    lines,
+    ray_beam,
     input,
     line_catalog,
+    lbvh,
 )
 
 Sigma = line_result.grids[1].grid
@@ -469,7 +501,7 @@ At present, `read_GridDataset` reconstructs `StructuredGrid` and `PointSamples` 
 
 `Partia.jl` provides GPU execution through Julia package extensions for [`CUDA.jl`](https://github.com/JuliaGPU/CUDA.jl) and [`Metal.jl`](https://github.com/JuliaGPU/Metal.jl). These are weak dependencies, so the corresponding extension is activated when the GPU package is loaded.
 
-There are no execution-backend selector objects. The interpolation methods dispatch from the storage type of the input and sampling grids. For example, a CUDA run uses
+The interpolation methods dispatch from the storage type of the input and sampling grids. For example, a CUDA run uses
 
 ```julia
 using Partia

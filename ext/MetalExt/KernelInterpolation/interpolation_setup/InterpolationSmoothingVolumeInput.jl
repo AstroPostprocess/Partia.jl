@@ -34,7 +34,8 @@ function Partia.LinearBVH!(input :: InterpolationSmoothingVolumeInput{3, Float32
     y = get_ycoord(input)
     z = get_zcoord(input)
 
-    enc = Partia.MortonEncoding(x, y, z, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup); CodeType, SortWorkSpace)
+    enc = Partia.MortonEncoding(x, y, z; CodeType)
+    Partia.sort_by_morton!(enc, SortWorkSpace, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
     order = enc.order
 
     Base.permute!(x, order)
@@ -82,7 +83,8 @@ function Partia.LinearBVH!(input :: InterpolationSmoothingVolumeInput{2, Float32
     x = get_xcoord(input)
     y = get_ycoord(input)
 
-    enc = Partia.MortonEncoding(x, y, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup); CodeType, SortWorkSpace)
+    enc = Partia.MortonEncoding(x, y; CodeType)
+    Partia.sort_by_morton!(enc, SortWorkSpace, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
     order = enc.order
 
     Base.permute!(x, order)

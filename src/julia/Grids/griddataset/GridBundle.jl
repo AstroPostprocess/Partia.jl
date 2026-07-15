@@ -1,3 +1,12 @@
+"""
+    GridBundle{L, G}
+
+Bundle `L` result grids with their corresponding symbolic quantity names.
+
+# Fields
+- `grids :: NTuple{L, G}`: Result grids sharing one concrete grid type.
+- `names :: NTuple{L, Symbol}`: Quantity name for each grid.
+"""
 struct GridBundle{L, G <: AbstractGrid}
     grids :: NTuple{L, G}
     names :: NTuple{L, Symbol}

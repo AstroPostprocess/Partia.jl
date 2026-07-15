@@ -6,15 +6,24 @@
 
 ######################################################################################
 """
-    build!(enc, points, workspace,
-           ::Val{TileSize}=Val(2048),
-           ::Val{NThreadgroups}=Val(128),
-           ::Val{ThreadsPerGroup}=Val(256))
+    build!(enc, points, ::Val{ThreadsPerGroup}=Val(256))
+    build!(enc, x, y, [z], ::Val{ThreadsPerGroup}=Val(256))
 
 Recompute a preallocated Metal Morton encoding from unsorted coordinates while
-reusing codes, order, coordinate storage, and the OneSweep workspace.
+reusing its code and coordinate storage. Input coordinates are copied into
+`enc.coord` before the encoding kernel is launched. This function does not sort
+the result; call `sort_by_morton!` before constructing a `LinearBVH`.
+
+# Parameters
+- `enc`: Preallocated Metal `MortonEncoding` to rebuild.
+- `points`: Two- or three-dimensional coordinates in structure-of-arrays form.
+- `x`, `y`, `z`: Coordinate-wise convenience arguments for `points`.
+- `ThreadsPerGroup`: Number of threads per Metal threadgroup. Defaults to 256.
+
+# Returns
+- `nothing`: `enc.codes` and `enc.coord` are updated in place in input order.
 """
-function Partia.build!(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, points :: NTuple{D, MtlVector{Float32}}, workspace :: OnesweepWorkspace{TI, CodeV, OffsetV}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256)) where {D, TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned, CodeV <: MtlVector{TI}, OffsetV <: MtlVector{UInt32}}
+function Partia.build!(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, points :: NTuple{D, MtlVector{Float32}}, :: Val{ThreadsPerGroup} = Val(256)) where {D, ThreadsPerGroup, TI <: Unsigned}
     D in (2, 3) || throw(ArgumentError("Morton encoding only supports two or three dimensions"))
     n = length(enc.codes)
     n > 0 || throw(ArgumentError("coordinates must not be empty"))
@@ -37,16 +46,15 @@ function Partia.build!(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32},
     end
 
     @metal threads=(ThreadsPerGroup,) groups=(cld(n, ThreadsPerGroup),) Partia.LinearBoundingVolumeHierarchy._morton_encoding_kernel!(enc.codes, enc.coord, inv_extent, offset)
-    Partia.sort_by_morton!(enc, workspace, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
     return nothing
 end
 
-function Partia.build!(enc :: MortonEncoding{2, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, x :: MtlVector{Float32}, y :: MtlVector{Float32}, workspace, args...) where {TI <: Unsigned}
-    Partia.build!(enc, (x, y), workspace, args...)
+function Partia.build!(enc :: MortonEncoding{2, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, x :: MtlVector{Float32}, y :: MtlVector{Float32}, args...) where {TI <: Unsigned}
+    Partia.build!(enc, (x, y), args...)
     return nothing
 end
 
-function Partia.build!(enc :: MortonEncoding{3, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, x :: MtlVector{Float32}, y :: MtlVector{Float32}, z :: MtlVector{Float32}, workspace, args...) where {TI <: Unsigned}
-    Partia.build!(enc, (x, y, z), workspace, args...)
+function Partia.build!(enc :: MortonEncoding{3, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, x :: MtlVector{Float32}, y :: MtlVector{Float32}, z :: MtlVector{Float32}, args...) where {TI <: Unsigned}
+    Partia.build!(enc, (x, y, z), args...)
     return nothing
 end
