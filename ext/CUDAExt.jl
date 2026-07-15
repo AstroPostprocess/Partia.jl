@@ -17,7 +17,7 @@ include(joinpath(@__DIR__, "CUDAExt", "AdaptStructure", "AdaptStructure.jl"))
 
 # Grids
 include(joinpath(@__DIR__, "CUDAExt", "Grids", "Grids.jl"))
-@reexport using .AdaptStructure
+@reexport using .Grids
 
 # Kernel interpolation
 include(joinpath(@__DIR__, "CUDAExt", "KernelInterpolation", "KernelInterpolation.jl"))

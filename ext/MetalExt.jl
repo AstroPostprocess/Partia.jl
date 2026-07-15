@@ -17,7 +17,7 @@ include(joinpath(@__DIR__, "MetalExt", "AdaptStructure", "AdaptStructure.jl"))
 
 # Grids
 include(joinpath(@__DIR__, "MetalExt", "Grids", "Grids.jl"))
-@reexport using .AdaptStructure
+@reexport using .Grids
 
 # Kernel interpolation
 include(joinpath(@__DIR__, "MetalExt", "KernelInterpolation", "KernelInterpolation.jl"))
