@@ -22,6 +22,7 @@ using Dates
 
 
 # Tools
+include(joinpath(@__DIR__, "reusable_api.jl"))
 include(joinpath(@__DIR__, "logging.jl"))
 include(joinpath(@__DIR__, "coordinate_transformations.jl"))
 include(joinpath(@__DIR__, "array_operations.jl"))
