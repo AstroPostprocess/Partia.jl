@@ -86,8 +86,8 @@ function LinearBVH(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, sca
     # Temporary rendezvous storage indexed by split position.
     # Zero indicates that no child subtree has reached this slot yet.
     store = zeros(Int32, n_internal)
-
-    return build!(lbvh, store, enc, scale, leaf_min, leaf_max)
+    build!(lbvh, store, enc, scale, leaf_min, leaf_max)
+    return lbvh
 end
 
 function LinearBVH(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, scale :: Vector{TF}) where {D, TF <: AbstractFloat, TI <: Unsigned}

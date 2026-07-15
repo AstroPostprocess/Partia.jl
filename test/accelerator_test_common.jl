@@ -282,12 +282,12 @@ function run_accelerator_test_suite(config)
             # Rebuild the same encoding and sorting workspace through the
             # coordinate-wise public build! API.
             gpu_workspace = OnesweepWorkspace(typeof(gpu_enc.codes))
-            rebuilt_enc = dim == 2 ?
+            build_result = dim == 2 ?
                 build!(gpu_enc, gpu_points[1], gpu_points[2], gpu_workspace) :
                 build!(gpu_enc, gpu_points[1], gpu_points[2], gpu_points[3], gpu_workspace)
-            @test rebuilt_enc === gpu_enc
+            @test isnothing(build_result)
             synchronize()
-            accelerator_test_encoding_equal(to_host(rebuilt_enc), cpu_enc; atol, rtol)
+            accelerator_test_encoding_equal(to_host(gpu_enc), cpu_enc; atol, rtol)
 
             no_copy_points = ntuple(d -> to_device_vector(coords[d]), dim)
             no_copy_enc = dim == 2 ?
@@ -311,10 +311,10 @@ function run_accelerator_test_suite(config)
 
             # Rebuild the same hierarchy and rendezvous storage in place.
             gpu_store = to_device_vector(fill(Int32(7), length(sorted_scale) - 1))
-            rebuilt = build!(gpu_lbvh, gpu_store, gpu_enc, to_device_vector(sorted_scale))
-            @test rebuilt === gpu_lbvh
+            build_result = build!(gpu_lbvh, gpu_store, gpu_enc, to_device_vector(sorted_scale))
+            @test isnothing(build_result)
             synchronize()
-            accelerator_test_lbvh_equal(to_host(rebuilt), cpu_lbvh; atol, rtol)
+            accelerator_test_lbvh_equal(to_host(gpu_lbvh), cpu_lbvh; atol, rtol)
 
             adapted_lbvh = to_device(cpu_lbvh)
             synchronize()

@@ -38,30 +38,15 @@ function Partia.build!(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{T
 
     @cuda threads=ThreadsPerBlock blocks=NBlocks Partia.LinearBoundingVolumeHierarchy._morton_encoding_kernel!(enc.codes, enc.coord, inv_extent, offset)
     Partia.sort_by_morton!(enc, workspace, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock))
-    return enc
+    return nothing
 end
 
 function Partia.build!(enc :: MortonEncoding{2, TF, TI, CuVector{TF}, CuVector{TI}}, x :: CuVector{TF}, y :: CuVector{TF}, workspace, args...) where {TF <: AbstractFloat, TI <: Unsigned}
-    return Partia.build!(enc, (x, y), workspace, args...)
+    Partia.build!(enc, (x, y), workspace, args...)
+    return nothing
 end
 
 function Partia.build!(enc :: MortonEncoding{3, TF, TI, CuVector{TF}, CuVector{TI}}, x :: CuVector{TF}, y :: CuVector{TF}, z :: CuVector{TF}, workspace, args...) where {TF <: AbstractFloat, TI <: Unsigned}
-    return Partia.build!(enc, (x, y, z), workspace, args...)
-end
-
-"""CUDA no-copy Morton encoding; input coordinate vectors are sorted in place."""
-function Partia.MortonEncoding!(x :: CuVector{TF}, y :: CuVector{TF}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {TileSize, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
-    isempty(x) && throw(ArgumentError("coordinates must not be empty"))
-    axes(x) == axes(y) || throw(DimensionMismatch("x and y must have identical axes"))
-    codes = CuVector{TI}(undef, length(x))
-    enc = Partia.MortonEncoding{2, TF, TI, CuVector{TF}, CuVector{TI}}(similar(codes), codes, (x, y))
-    return Partia.build!(enc, x, y, SortWorkSpace, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock))
-end
-
-function Partia.MortonEncoding!(x :: CuVector{TF}, y :: CuVector{TF}, z :: CuVector{TF}, :: Val{TileSize} = Val(4096), :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(CuVector{CodeType})) where {TileSize, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
-    isempty(x) && throw(ArgumentError("coordinates must not be empty"))
-    axes(x) == axes(y) == axes(z) || throw(DimensionMismatch("x, y, and z must have identical axes"))
-    codes = CuVector{TI}(undef, length(x))
-    enc = Partia.MortonEncoding{3, TF, TI, CuVector{TF}, CuVector{TI}}(similar(codes), codes, (x, y, z))
-    return Partia.build!(enc, x, y, z, SortWorkSpace, Val(TileSize), Val(NBlocks), Val(ThreadsPerBlock))
+    Partia.build!(enc, (x, y, z), workspace, args...)
+    return nothing
 end

@@ -36,9 +36,10 @@ function Partia.build!(lbvh :: LinearBVH{D, TF, CuVector{TF}, CuVector{Int32}}, 
         @cuda threads=ThreadsPerBlock blocks=NBlocks Partia.LinearBoundingVolumeHierarchy._ascend_from_leaf!(lbvh, store, codes)
     end
     CUDA.synchronize()
-    return lbvh
+    return nothing
 end
 
 function Partia.build!(lbvh :: LinearBVH{D, TF, CuVector{TF}, CuVector{Int32}}, store :: CuVector{Int32}, enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}, scale :: CuVector{TF}, :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256)) where {D, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
-    return Partia.build!(lbvh, store, enc, scale, enc.coord, enc.coord, Val(NBlocks), Val(ThreadsPerBlock))
+    Partia.build!(lbvh, store, enc, scale, enc.coord, enc.coord, Val(NBlocks), Val(ThreadsPerBlock))
+    return nothing
 end

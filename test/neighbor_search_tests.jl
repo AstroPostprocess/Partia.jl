@@ -95,14 +95,14 @@ end
         workspace = OnesweepWorkspace(Vector{UInt64})
 
         # Rebuild through the coordinate-wise API requested by callers.
-        rebuilt = dim == 2 ? build!(enc, points[1], points[2], workspace) :
+        result = dim == 2 ? build!(enc, points[1], points[2], workspace) :
             build!(enc, points[1], points[2], points[3], workspace)
         reference = MortonEncoding(points)
 
-        @test rebuilt === enc
-        @test rebuilt.order == reference.order
-        @test rebuilt.codes == reference.codes
-        @test rebuilt.coord == reference.coord
+        @test isnothing(result)
+        @test enc.order == reference.order
+        @test enc.codes == reference.codes
+        @test enc.coord == reference.coord
 
         no_copy_points = map(copy, points)
         no_copy = dim == 2 ?
@@ -125,15 +125,15 @@ end
         # Corrupt reusable storage and hierarchy leaves before rebuilding to
         # verify that build! resets the rendezvous state and overwrites data.
         fill!(lbvh.scale, -1.0)
-        rebuilt = build!(lbvh, store, enc, scale)
+        result = build!(lbvh, store, enc, scale)
         reference = LinearBVH(enc, scale)
 
-        @test rebuilt === lbvh
-        @test rebuilt.left == reference.left
-        @test rebuilt.escape == reference.escape
-        @test rebuilt.aabb.min == reference.aabb.min
-        @test rebuilt.aabb.max == reference.aabb.max
-        @test rebuilt.scale == reference.scale
+        @test isnothing(result)
+        @test lbvh.left == reference.left
+        @test lbvh.escape == reference.escape
+        @test lbvh.aabb.min == reference.aabb.min
+        @test lbvh.aabb.max == reference.aabb.max
+        @test lbvh.scale == reference.scale
     end
 end
 

@@ -220,3 +220,22 @@ function Partia.MortonEncoding(points :: NTuple{2, MtlVector{Float32}}, :: Val{T
     x = points[1]; y = points[2]
     return Partia.MortonEncoding(x, y, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup); CodeType, SortWorkSpace)
 end
+
+"""Metal no-copy Morton encoding; input coordinate vectors are sorted in place."""
+function Partia.MortonEncoding!(x :: MtlVector{Float32}, y :: MtlVector{Float32}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(MtlVector{CodeType})) where {TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned}
+    isempty(x) && throw(ArgumentError("coordinates must not be empty"))
+    axes(x) == axes(y) || throw(DimensionMismatch("x and y must have identical axes"))
+    codes = MtlVector{TI}(undef, length(x))
+    enc = Partia.MortonEncoding{2, Float32, TI, MtlVector{Float32}, MtlVector{TI}}(similar(codes), codes, (x, y))
+    Partia.build!(enc, x, y, SortWorkSpace, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
+    return enc
+end
+
+function Partia.MortonEncoding!(x :: MtlVector{Float32}, y :: MtlVector{Float32}, z :: MtlVector{Float32}, :: Val{TileSize} = Val(2048), :: Val{NThreadgroups} = Val(128), :: Val{ThreadsPerGroup} = Val(256); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(MtlVector{CodeType})) where {TileSize, NThreadgroups, ThreadsPerGroup, TI <: Unsigned}
+    isempty(x) && throw(ArgumentError("coordinates must not be empty"))
+    axes(x) == axes(y) == axes(z) || throw(DimensionMismatch("x, y, and z must have identical axes"))
+    codes = MtlVector{TI}(undef, length(x))
+    enc = Partia.MortonEncoding{3, Float32, TI, MtlVector{Float32}, MtlVector{TI}}(similar(codes), codes, (x, y, z))
+    Partia.build!(enc, x, y, z, SortWorkSpace, Val(TileSize), Val(NThreadgroups), Val(ThreadsPerGroup))
+    return enc
+end

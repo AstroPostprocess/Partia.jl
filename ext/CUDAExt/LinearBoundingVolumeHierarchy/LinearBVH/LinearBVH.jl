@@ -53,7 +53,8 @@ function Partia.LinearBVH(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVecto
 
     lbvh = Partia.LinearBVH{D, TF, CuVector{TF}, CuVector{Int32}}(n, left, escape, aabb, unified_scale)
     store = CuVector{Int32}(undef, n_internal)
-    return Partia.build!(lbvh, store, enc, scale, leaf_min, leaf_max, Val(NBlocks), Val(ThreadsPerBlock))
+    Partia.build!(lbvh, store, enc, scale, leaf_min, leaf_max, Val(NBlocks), Val(ThreadsPerBlock))
+    return lbvh
 end
 
 function Partia.LinearBVH(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}, scale :: CuVector{TF}, :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256)) where {D, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}

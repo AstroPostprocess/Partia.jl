@@ -52,9 +52,10 @@ function build!(lbvh :: LinearBVH{D, TF, Vector{TF}, Vector{Int32}}, store :: Ve
             _ascend_from_leaf!(lbvh, store, codes, i)
         end
     end
-    return lbvh
+    return nothing
 end
 
 function build!(lbvh :: LinearBVH{D, TF, Vector{TF}, Vector{Int32}}, store :: Vector{Int32}, enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, scale :: Vector{TF}) where {D, TF <: AbstractFloat, TI <: Unsigned}
-    return build!(lbvh, store, enc, scale, enc.coord, enc.coord)
+    build!(lbvh, store, enc, scale, enc.coord, enc.coord)
+    return nothing
 end

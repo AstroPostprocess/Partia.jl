@@ -37,9 +37,10 @@ function Partia.build!(lbvh :: LinearBVH{D, Float32, MtlVector{Float32}, MtlVect
         @metal threads=(ThreadsPerGroup,) groups=(cld(n, ThreadsPerGroup),) Partia.LinearBoundingVolumeHierarchy._ascend_from_leaf!(lbvh, store, codes)
     end
     Metal.synchronize()
-    return lbvh
+    return nothing
 end
 
 function Partia.build!(lbvh :: LinearBVH{D, Float32, MtlVector{Float32}, MtlVector{Int32}}, store :: MtlVector{Int32}, enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, scale :: MtlVector{Float32}, :: Val{ThreadsPerGroup} = Val(256)) where {D, ThreadsPerGroup, TI <: Unsigned}
-    return Partia.build!(lbvh, store, enc, scale, enc.coord, enc.coord, Val(ThreadsPerGroup))
+    Partia.build!(lbvh, store, enc, scale, enc.coord, enc.coord, Val(ThreadsPerGroup))
+    return nothing
 end

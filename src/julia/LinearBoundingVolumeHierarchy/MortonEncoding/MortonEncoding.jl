@@ -231,3 +231,29 @@ function MortonEncoding(points :: NTuple{2, Vector{T}}, :: Val{TileSize} = Val(8
     x = points[1]; y = points[2]
     return MortonEncoding(x, y, Val(TileSize); CodeType, SortWorkSpace)
 end
+
+"""
+    MortonEncoding!(x, y, [z], ::Val{TileSize}=Val(8192);
+                    CodeType=UInt64, SortWorkSpace=...)
+
+Construct a Morton encoding without copying coordinate vectors. The supplied
+`x`, `y`, and optional `z` vectors become `enc.coord` and are permuted in place
+into Morton order. Use `MortonEncoding` instead when inputs must be preserved.
+"""
+function MortonEncoding!(x :: Vector{TF}, y :: Vector{TF}, :: Val{TileSize} = Val(8192); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TF <: AbstractFloat, TI <: Unsigned}
+    isempty(x) && throw(ArgumentError("coordinates must not be empty"))
+    axes(x) == axes(y) || throw(DimensionMismatch("x and y must have identical axes"))
+    codes = Vector{TI}(undef, length(x))
+    enc = MortonEncoding{2, TF, TI, Vector{TF}, Vector{TI}}(similar(codes), codes, (x, y))
+    build!(enc, x, y, SortWorkSpace, Val(TileSize))
+    return enc
+end
+
+function MortonEncoding!(x :: Vector{TF}, y :: Vector{TF}, z :: Vector{TF}, :: Val{TileSize} = Val(8192); CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TF <: AbstractFloat, TI <: Unsigned}
+    isempty(x) && throw(ArgumentError("coordinates must not be empty"))
+    axes(x) == axes(y) == axes(z) || throw(DimensionMismatch("x, y, and z must have identical axes"))
+    codes = Vector{TI}(undef, length(x))
+    enc = MortonEncoding{3, TF, TI, Vector{TF}, Vector{TI}}(similar(codes), codes, (x, y, z))
+    build!(enc, x, y, z, SortWorkSpace, Val(TileSize))
+    return enc
+end
