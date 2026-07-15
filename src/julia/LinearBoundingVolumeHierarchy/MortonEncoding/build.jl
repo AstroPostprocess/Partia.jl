@@ -6,7 +6,7 @@
 
 ######################################################################################
 """
-    build!(enc, points)
+    build!(enc, coords)
     build!(enc, x, y)
     build!(enc, x, y, z)
 
@@ -18,26 +18,26 @@ before constructing a `LinearBVH`.
 
 # Parameters
 - `enc`: Preallocated two- or three-dimensional `MortonEncoding` to rebuild.
-- `points`: Unsorted coordinates in structure-of-arrays form.
-- `x`, `y`, `z`: Coordinate-wise convenience arguments for `points`.
+- `coords`: Unsorted coordinates in structure-of-arrays form.
+- `x`, `y`, `z`: Coordinate-wise convenience arguments for `coords`.
 
 # Returns
 - `nothing`: `enc.codes` and `enc.coord` are updated in place in input order.
 """
-function build!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, points :: NTuple{D, Vector{TF}}) where {D, TF <: AbstractFloat, TI <: Unsigned}
+function build!(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, coords :: NTuple{D, Vector{TF}}) where {D, TF <: AbstractFloat, TI <: Unsigned}
     D in (2, 3) || throw(ArgumentError("Morton encoding only supports two or three dimensions"))
     n = length(enc.codes)
     n > 0 || throw(ArgumentError("coordinates must not be empty"))
     length(enc.order) == n || throw(DimensionMismatch("enc.order and enc.codes must have identical lengths"))
-    all(length(p) == n for p in points) || throw(DimensionMismatch("points and enc.codes must have identical lengths"))
-    all(axes(p) == axes(points[1]) for p in points) || throw(DimensionMismatch("coordinates must have identical axes"))
+    all(length(coord) == n for coord in coords) || throw(DimensionMismatch("coords and enc.codes must have identical lengths"))
+    all(axes(coord) == axes(coords[1]) for coord in coords) || throw(DimensionMismatch("coordinates must have identical axes"))
 
     # Restore unsorted coordinates into reusable encoding storage.
     for d in 1:D
-        copyto!(enc.coord[d], points[d])
+        copyto!(enc.coord[d], coords[d])
     end
 
-    bounds = _coordinate_bounds(points)
+    bounds = _coordinate_bounds(coords)
     inv_extent = ntuple(D) do d
         extent = bounds[d][2] - bounds[d][1]
         iszero(extent) ? zero(TF) : inv(extent)

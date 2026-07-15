@@ -41,7 +41,6 @@ end
 
 function Partia.to_MtlVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: AbstractFloat, VF <: AbstractVector{TF}, VB <: AbstractVector{Int32}}
     return LinearBVH{D, Float32, MtlVector{Float32}, MtlVector{Int32}}(
-        LBVH.nleaf,
         MtlVector{Int32}(LBVH.left),
         MtlVector{Int32}(LBVH.escape),
         to_MtlVector(LBVH.aabb),

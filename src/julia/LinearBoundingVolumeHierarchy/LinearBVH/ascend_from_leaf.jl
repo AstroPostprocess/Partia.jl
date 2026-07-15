@@ -1,6 +1,6 @@
 @inline function _ascend_from_leaf!(lbvh :: LinearBVH{D, TF, Vector{TF}, Vector{Int32}}, store :: Vector{Int32}, codes :: Vector{TI}, i :: Int) where {D, TF <: AbstractFloat, TI <: Unsigned}
     # Basic properties of LBVH
-    n = lbvh.nleaf
+    n = nleaf(lbvh)
     leaf_offset = n - 1
 
     # Get arrays

@@ -29,8 +29,8 @@ before this function returns.
 function Partia.build!(lbvh :: LinearBVH{D, Float32, MtlVector{Float32}, MtlVector{Int32}}, store :: MtlVector{Int32}, enc :: MortonEncoding{D, Float32, TI, MtlVector{Float32}, MtlVector{TI}}, scale :: MtlVector{Float32}, leaf_min :: NTuple{D, MtlVector{Float32}}, leaf_max :: NTuple{D, MtlVector{Float32}}, :: Val{ThreadsPerGroup} = Val(256)) where {D, ThreadsPerGroup, TI <: Unsigned}
     codes = enc.codes
     n = length(codes)
-    n == lbvh.nleaf || throw(DimensionMismatch("lbvh.nleaf and enc.codes must have identical lengths"))
-    length(store) == n - 1 || throw(DimensionMismatch("store must have length lbvh.nleaf - 1"))
+    n == nleaf(lbvh) || throw(DimensionMismatch("nleaf(lbvh) and enc.codes must have identical lengths"))
+    length(store) == n - 1 || throw(DimensionMismatch("store must have length nleaf(lbvh) - 1"))
     length(scale) == n || throw(DimensionMismatch("scale and enc.codes must have identical lengths"))
     @inbounds for d in 1:D
         length(leaf_min[d]) == n || throw(DimensionMismatch("leaf_min[$d] and enc.codes must have identical lengths"))

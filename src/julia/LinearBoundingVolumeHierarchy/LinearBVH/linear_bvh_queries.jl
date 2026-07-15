@@ -129,7 +129,7 @@ result is read from `LBVH.scale[nleaf - 1 + i]`.
     end
 
     best_idx == 0 && return T(NaN)   # 或 return (0, typemax(T))
-    best_h = unified_scale[(LBVH.nleaf - 1) + best_idx]
+    best_h = unified_scale[(nleaf(LBVH) - 1) + best_idx]
     return best_h
 end
 

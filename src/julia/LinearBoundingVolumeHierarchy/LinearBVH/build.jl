@@ -29,8 +29,8 @@ hierarchy storage.
 function build!(lbvh :: LinearBVH{D, TF, Vector{TF}, Vector{Int32}}, store :: Vector{Int32}, enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, scale :: Vector{TF}, leaf_min :: NTuple{D, Vector{TF}}, leaf_max :: NTuple{D, Vector{TF}}) where {D, TF <: AbstractFloat, TI <: Unsigned}
     codes = enc.codes
     n = length(codes)
-    n == lbvh.nleaf || throw(DimensionMismatch("lbvh.nleaf and enc.codes must have identical lengths"))
-    length(store) == n - 1 || throw(DimensionMismatch("store must have length lbvh.nleaf - 1"))
+    n == nleaf(lbvh) || throw(DimensionMismatch("nleaf(lbvh) and enc.codes must have identical lengths"))
+    length(store) == n - 1 || throw(DimensionMismatch("store must have length nleaf(lbvh) - 1"))
     length(scale) == n || throw(DimensionMismatch("scale and enc.codes must have identical lengths"))
     @inbounds for d in 1:D
         length(leaf_min[d]) == n || throw(DimensionMismatch("leaf_min[$d] and enc.codes must have identical lengths"))

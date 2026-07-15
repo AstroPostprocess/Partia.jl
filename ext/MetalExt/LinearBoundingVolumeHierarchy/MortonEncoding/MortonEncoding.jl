@@ -77,16 +77,16 @@ function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32},
 end
 
 """
-    MortonEncoding(points::NTuple{3,MtlVector{Float32}}; CodeType=UInt64)
+    MortonEncoding(coords::NTuple{3,MtlVector{Float32}}; CodeType=UInt64)
 
 Encode a set of 3D particle coordinates into Morton codes.
 
 This overload accepts particle positions in a structure-of-arrays (SoA) layout,
-where `points = (x, y, z)`. It forwards to
+where `coords = (x, y, z)`. It forwards to
 `MortonEncoding(x, y, z; CodeType=CodeType)`.
 
 # Parameters
-- `points :: NTuple{3,MtlVector{Float32}}`: Particle coordinates stored as `(x, y, z)`.
+- `coords :: NTuple{3,MtlVector{Float32}}`: Particle coordinates stored as `(x, y, z)`.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
@@ -97,8 +97,8 @@ where `points = (x, y, z)`. It forwards to
 - An unsorted 3D `MortonEncoding`; call `sort_by_morton!` to arrange it in
   Morton order.
 """
-function Partia.MortonEncoding(points :: NTuple{3, MtlVector{Float32}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
-    x = points[1]; y = points[2]; z = points[3]
+function Partia.MortonEncoding(coords :: NTuple{3, MtlVector{Float32}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+    x = coords[1]; y = coords[2]; z = coords[3]
     return Partia.MortonEncoding(x, y, z; CodeType)
 end
 
@@ -168,16 +168,16 @@ function Partia.MortonEncoding(x :: MtlVector{Float32}, y :: MtlVector{Float32};
 end
 
 """
-    MortonEncoding(points::NTuple{2,MtlVector{Float32}}; CodeType=UInt64)
+    MortonEncoding(coords::NTuple{2,MtlVector{Float32}}; CodeType=UInt64)
 
 Encode a set of 2D particle coordinates into Morton codes.
 
 This overload accepts particle positions in a structure-of-arrays (SoA) layout,
-where `points = (x, y)`. It forwards to
+where `coords = (x, y)`. It forwards to
 `MortonEncoding(x, y; CodeType=CodeType)`.
 
 # Parameters
-- `points :: NTuple{2,MtlVector{Float32}}`: Particle coordinates stored as `(x, y)`.
+- `coords :: NTuple{2,MtlVector{Float32}}`: Particle coordinates stored as `(x, y)`.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
@@ -188,8 +188,8 @@ where `points = (x, y)`. It forwards to
 - An unsorted 2D `MortonEncoding`; call `sort_by_morton!` to arrange it in
   Morton order.
 """
-function Partia.MortonEncoding(points :: NTuple{2, MtlVector{Float32}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
-    x = points[1]; y = points[2]
+function Partia.MortonEncoding(coords :: NTuple{2, MtlVector{Float32}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+    x = coords[1]; y = coords[2]
     return Partia.MortonEncoding(x, y; CodeType)
 end
 

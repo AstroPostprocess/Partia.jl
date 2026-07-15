@@ -13,16 +13,12 @@ Internal nodes occupy indices `1:(nleaf - 1)` and leaves occupy
 `nleaf:(2nleaf - 1)`.
 
 # Fields
-- `nleaf :: Int`: Number of leaf nodes.
 - `left :: VI`: Left-child IDs for internal nodes.
 - `escape :: VI`: Stackless traversal escape IDs for all nodes.
 - `aabb :: AABB{D, TF, VF}`: Axis-aligned bounds for all nodes.
 - `scale :: VF`: Per-node maximum scale, with input scale values at the leaves.
 """
 struct LinearBVH{D, TF <: AbstractFloat, VF <: AbstractVector{TF}, VI <: AbstractVector{Int32}}
-    # Binary Radix Tree
-    nleaf  :: Int
-
     # Topology
     left   :: VI                     # length = nleaf-1, for internal node only
     escape :: VI                     # length = 2*nleaf-1
@@ -32,9 +28,10 @@ struct LinearBVH{D, TF <: AbstractFloat, VF <: AbstractVector{TF}, VI <: Abstrac
     scale :: VF                      # length = 2*nleaf-1
 end
 
+@inline nleaf(lbvh :: LinearBVH) = length(lbvh.left) + 1
+
 function Adapt.adapt_structure(to, x :: LBVH) where {D, LBVH <: LinearBVH{D}}
     LinearBVH(
-        x.nleaf,
         Adapt.adapt(to, x.left),
         Adapt.adapt(to, x.escape),
         Adapt.adapt(to, x.aabb),
@@ -95,11 +92,11 @@ function LinearBVH(enc :: MortonEncoding{D, TF, TI, Vector{TF}, Vector{TI}}, sca
     unified_scale = Vector{TF}(undef, total_length)
 
     # Construct the LBVH storage.
-    lbvh = LinearBVH{D, TF, Vector{TF}, Vector{Int32}}(n, left, escape, aabb, unified_scale)
-
     # Temporary rendezvous storage indexed by split position.
     # Zero indicates that no child subtree has reached this slot yet.
     store = zeros(Int32, n_internal)
+    lbvh = LinearBVH{D, TF, Vector{TF}, Vector{Int32}}(left, escape, aabb, unified_scale)
+
     build!(lbvh, store, enc, scale, leaf_min, leaf_max)
     return lbvh
 end

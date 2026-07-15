@@ -55,7 +55,7 @@ macro LBVH_gather_point_traversal(LBVH, reference_point, radius2, leafsym, d2sym
         $escape_      = $LBVH_.escape
 
         ## Other information
-        $nleaf_       = $LBVH_.nleaf
+        $nleaf_       = nleaf($LBVH_)
 
         $node_ = one(Int32)
         while !iszero($node_)
@@ -149,7 +149,7 @@ macro LBVH_scatter_point_traversal(LBVH, reference_point, Kvalid, leafsym, d2sym
         $escape_      = $LBVH_.escape
 
         ## Other information
-        $nleaf_       = $LBVH_.nleaf
+        $nleaf_       = nleaf($LBVH_)
         $scale_       = $LBVH_.scale
 
         $node_ = one(Int32)
@@ -254,7 +254,7 @@ macro LBVH_gather_line_traversal(LBVH, line_origin, line_direction, radius2, lea
         $escape_      = $LBVH_.escape
 
         ## Other information
-        $nleaf_       = $LBVH_.nleaf
+        $nleaf_       = nleaf($LBVH_)
 
         $node_ = one(Int32)
         while !iszero($node_)
@@ -365,7 +365,7 @@ macro LBVH_scatter_line_traversal(LBVH, line_origin, line_direction, Kvalid, lea
         $escape_      = $LBVH_.escape
 
         ## Other information
-        $nleaf_       = $LBVH_.nleaf
+        $nleaf_       = nleaf($LBVH_)
         $scale_       = $LBVH_.scale
 
         $node_ = one(Int32)

@@ -6,7 +6,7 @@
 
 ######################################################################################
 """
-    build!(enc, points,
+    build!(enc, coords,
            ::Val{NBlocks}=Val(256),
            ::Val{ThreadsPerBlock}=Val(256))
     build!(enc, x, y, [z],
@@ -20,28 +20,28 @@ the result; call `sort_by_morton!` before constructing a `LinearBVH`.
 
 # Parameters
 - `enc`: Preallocated CUDA `MortonEncoding` to rebuild.
-- `points`: Two- or three-dimensional coordinates in structure-of-arrays form.
-- `x`, `y`, `z`: Coordinate-wise convenience arguments for `points`.
+- `coords`: Two- or three-dimensional coordinates in structure-of-arrays form.
+- `x`, `y`, `z`: Coordinate-wise convenience arguments for `coords`.
 - `NBlocks`: Number of CUDA blocks used by the encoding kernel. Defaults to 256.
 - `ThreadsPerBlock`: Number of threads per CUDA block. Defaults to 256.
 
 # Returns
 - `nothing`: `enc.codes` and `enc.coord` are updated in place in input order.
 """
-function Partia.build!(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}, points :: NTuple{D, CuVector{TF}}, :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256)) where {D, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
+function Partia.build!(enc :: MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}, coords :: NTuple{D, CuVector{TF}}, :: Val{NBlocks} = Val(256), :: Val{ThreadsPerBlock} = Val(256)) where {D, NBlocks, ThreadsPerBlock, TF <: AbstractFloat, TI <: Unsigned}
     D in (2, 3) || throw(ArgumentError("Morton encoding only supports two or three dimensions"))
     n = length(enc.codes)
     n > 0 || throw(ArgumentError("coordinates must not be empty"))
     length(enc.order) == n || throw(DimensionMismatch("enc.order and enc.codes must have identical lengths"))
-    all(length(p) == n for p in points) || throw(DimensionMismatch("points and enc.codes must have identical lengths"))
-    all(axes(p) == axes(points[1]) for p in points) || throw(DimensionMismatch("coordinates must have identical axes"))
+    all(length(coord) == n for coord in coords) || throw(DimensionMismatch("coords and enc.codes must have identical lengths"))
+    all(axes(coord) == axes(coords[1]) for coord in coords) || throw(DimensionMismatch("coordinates must have identical axes"))
 
     # Restore unsorted inputs into the reusable coordinate storage.
     for d in 1:D
-        copyto!(enc.coord[d], points[d])
+        copyto!(enc.coord[d], coords[d])
     end
 
-    bounds = Partia.LinearBoundingVolumeHierarchy._coordinate_bounds(points)
+    bounds = Partia.LinearBoundingVolumeHierarchy._coordinate_bounds(coords)
     inv_extent = ntuple(D) do d
         extent = bounds[d][2] - bounds[d][1]
         iszero(extent) ? zero(TF) : inv(extent)

@@ -6,7 +6,7 @@
     i = tid
 
     # Basic properties of LBVH
-    n = lbvh.nleaf
+    n = nleaf(lbvh)
     leaf_offset = n - 1
 
     # Get arrays

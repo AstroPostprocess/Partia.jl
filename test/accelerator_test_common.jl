@@ -147,7 +147,7 @@ function accelerator_test_encoding_equal(actual :: MortonEncoding, expected :: M
 end
 
 function accelerator_test_lbvh_equal(actual :: LinearBVH, expected :: LinearBVH; atol, rtol)
-    @test actual.nleaf == expected.nleaf
+    @test nleaf(actual) == nleaf(expected)
     @test actual.left == expected.left
     @test actual.escape == expected.escape
     @test approx_with_nan(actual.aabb.min, expected.aabb.min; atol, rtol)
@@ -163,7 +163,7 @@ function accelerator_test_visit_nodes(lbvh)
     node = Int32(1)
     while !iszero(node)
         push!(visited, Int(node))
-        node = Partia.LinearBoundingVolumeHierarchy.is_leaf_id(node, lbvh.nleaf) ?
+        node = Partia.LinearBoundingVolumeHierarchy.is_leaf_id(node, nleaf(lbvh)) ?
             lbvh.escape[Int(node)] : lbvh.left[Int(node)]
     end
     return visited
@@ -317,7 +317,7 @@ function run_accelerator_test_suite(config)
             synchronize()
             host_lbvh = to_host(gpu_lbvh)
             accelerator_test_lbvh_equal(host_lbvh, cpu_lbvh; atol, rtol)
-            @test sort(accelerator_test_visit_nodes(host_lbvh)) == collect(1:(2 * host_lbvh.nleaf - 1))
+            @test sort(accelerator_test_visit_nodes(host_lbvh)) == collect(1:(2 * nleaf(host_lbvh) - 1))
 
             # Rebuild the same hierarchy and rendezvous storage in place.
             gpu_store = to_device_vector(fill(Int32(7), length(sorted_scale) - 1))
@@ -325,6 +325,35 @@ function run_accelerator_test_suite(config)
             @test isnothing(build_result)
             synchronize()
             accelerator_test_lbvh_equal(to_host(gpu_lbvh), cpu_lbvh; atol, rtol)
+
+            # Resize both reusable structures down and up. Exercise the tuple
+            # coordinate API for the smaller input and the coordinate-wise API
+            # for the larger input.
+            for n in (31, 389)
+                updated_coords = accelerator_test_morton_coordinates(D, n, 0xDA7A + dim + n)
+                device_coords = ntuple(d -> to_device_vector(updated_coords[d]), dim)
+                update_result = n == 31 ? update!(gpu_enc, device_coords) :
+                    dim == 2 ? update!(gpu_enc, device_coords[1], device_coords[2]) :
+                    update!(gpu_enc, device_coords[1], device_coords[2], device_coords[3])
+                @test update_result === gpu_enc
+
+                updated_cpu_enc = MortonEncoding(updated_coords)
+                sort_by_morton!(updated_cpu_enc)
+                sort_by_morton!(gpu_enc)
+                synchronize()
+                accelerator_test_encoding_equal(to_host(gpu_enc), updated_cpu_enc; atol, rtol)
+
+                updated_scale = collect(range(0.02f0, 0.25f0; length = n))
+                sorted_updated_scale = updated_scale[Int.(updated_cpu_enc.order)]
+                update_result = update!(gpu_lbvh, gpu_enc, to_device_vector(sorted_updated_scale))
+                @test update_result === gpu_lbvh
+                synchronize()
+
+                updated_cpu_lbvh = LinearBVH(updated_cpu_enc, sorted_updated_scale)
+                updated_host_lbvh = to_host(gpu_lbvh)
+                @test nleaf(updated_host_lbvh) == n
+                accelerator_test_lbvh_equal(updated_host_lbvh, updated_cpu_lbvh; atol, rtol)
+            end
 
             adapted_lbvh = to_device(cpu_lbvh)
             synchronize()

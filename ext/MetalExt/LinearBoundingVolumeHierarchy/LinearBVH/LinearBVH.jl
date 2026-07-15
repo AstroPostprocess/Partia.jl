@@ -57,11 +57,11 @@ function Partia.LinearBVH(enc :: MortonEncoding{D, Float32, TI, MtlVector{Float3
     unified_scale = MtlVector{Float32}(undef, total_length)
 
     # Construct the LBVH storage.
-    lbvh = Partia.LinearBVH{D, Float32, MtlVector{Float32}, MtlVector{Int32}}(n, left, escape, aabb, unified_scale)
-
     # Temporary rendezvous storage indexed by split position.
     # Zero indicates that no child subtree has reached this slot yet.
     store = MtlVector{Int32}(undef, n_internal)
+    lbvh = Partia.LinearBVH{D, Float32, MtlVector{Float32}, MtlVector{Int32}}(left, escape, aabb, unified_scale)
+
     Partia.build!(lbvh, store, enc, scale, leaf_min, leaf_max, Val(ThreadsPerGroup))
     return lbvh
 end

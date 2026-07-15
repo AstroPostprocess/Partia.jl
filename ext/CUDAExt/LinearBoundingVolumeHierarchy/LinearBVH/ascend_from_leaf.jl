@@ -7,7 +7,7 @@
     # Global one-based thread index and grid stride.
     i = Int((blockIdx().x - 1) * blockDim().x + threadIdx().x)
     stride = Int(gridDim().x * blockDim().x)
-    n = lbvh.nleaf
+    n = nleaf(lbvh)
     leaf_offset = n - 1
 
     # A single leaf is also the root and escapes directly out of the tree.

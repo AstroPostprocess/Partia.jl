@@ -32,7 +32,7 @@ function visit_nodes(lbvh)
     node = Int32(1)
     while !iszero(node)
         push!(visited, Int(node))
-        node = lbvh_mod.is_leaf_id(node, lbvh.nleaf) ? lbvh.escape[Int(node)] : lbvh.left[Int(node)]
+        node = lbvh_mod.is_leaf_id(node, nleaf(lbvh)) ? lbvh.escape[Int(node)] : lbvh.left[Int(node)]
     end
     visited
 end
@@ -50,7 +50,7 @@ end
         lbvh = LinearBVH(enc, h)
         total = 2n - 1
 
-        @test lbvh.nleaf == n
+        @test nleaf(lbvh) == n
         @test length(lbvh.left) == n - 1
         @test length(lbvh.escape) == total
         @test length(lbvh.scale) == total
@@ -124,6 +124,27 @@ end
     end
 end
 
+@testset "MortonEncoding -- resize and update!" begin
+    for D in (Val(2), Val(3)), n in (7, 43)
+        dim = D isa Val{2} ? 2 : 3
+        rng = MersenneTwister(0xDA7A + dim + n)
+        enc = MortonEncoding(ntuple(_ -> rand(rng, 19), dim))
+        coords = ntuple(_ -> rand(rng, n), dim)
+
+        result = n == 7 ? update!(enc, coords) :
+            dim == 2 ? update!(enc, coords[1], coords[2]) :
+            update!(enc, coords[1], coords[2], coords[3])
+        reference = MortonEncoding(coords)
+
+        @test result === enc
+        @test length(enc.codes) == n
+        @test length(enc.order) == n
+        @test all(length(c) == n for c in enc.coord)
+        @test enc.codes == reference.codes
+        @test enc.coord == reference.coord
+    end
+end
+
 @testset "LinearBVH -- rejects unsorted Morton codes" begin
     enc = MortonEncoding([1.0, 0.0], [1.0, 0.0])
     @test !Partia.Tools._issorted(enc.codes)
@@ -144,6 +165,26 @@ end
         reference = LinearBVH(enc, scale)
 
         @test isnothing(result)
+        @test lbvh.left == reference.left
+        @test lbvh.escape == reference.escape
+        @test lbvh.aabb.min == reference.aabb.min
+        @test lbvh.aabb.max == reference.aabb.max
+        @test lbvh.scale == reference.scale
+    end
+end
+
+@testset "LinearBVH -- resize and update!" begin
+    for D in (Val(2), Val(3)), n in (5, 29)
+        dim = D isa Val{2} ? 2 : 3
+        lbvh = LinearBVH(encoding(D, 13, 0xBEEF + dim), ones(13))
+        enc = encoding(D, n, 0xCAFE + dim + n)
+        scale = collect(range(0.01, 0.2; length=n))
+
+        result = update!(lbvh, enc, scale)
+        reference = LinearBVH(enc, scale)
+
+        @test result === lbvh
+        @test nleaf(lbvh) == n
         @test lbvh.left == reference.left
         @test lbvh.escape == reference.escape
         @test lbvh.aabb.min == reference.aabb.min

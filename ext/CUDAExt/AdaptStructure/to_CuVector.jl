@@ -39,7 +39,6 @@ end
 
 function Partia.to_CuVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: AbstractFloat, VF <: AbstractVector{TF}, VB <: AbstractVector{Int32}}
     return LinearBVH{D, TF, CuVector{TF}, CuVector{Int32}}(
-        LBVH.nleaf,
         CuVector{Int32}(LBVH.left),
         CuVector{Int32}(LBVH.escape),
         to_CuVector(LBVH.aabb),

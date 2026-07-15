@@ -6,7 +6,7 @@
 
 ######################################################################################
 """
-    MortonEncoding(points::NTuple{D,CuVector{TF}}; CodeType=UInt64)
+    MortonEncoding(coords::NTuple{D,CuVector{TF}}; CodeType=UInt64)
     MortonEncoding(x::CuVector{TF}, y::CuVector{TF}; CodeType=UInt64)
     MortonEncoding(x::CuVector{TF}, y::CuVector{TF}, z::CuVector{TF}; CodeType=UInt64)
 
@@ -15,8 +15,8 @@ sorting. `TF` may be any CUDA-supported subtype of `AbstractFloat`, and `D`
 must be either 2 or 3. Call `sort_by_morton!` before constructing a `LinearBVH`.
 
 # Parameters
-- `points`: Structure-of-arrays coordinates `(x, y)` or `(x, y, z)`.
-- `x`, `y`, `z`: Coordinate-wise convenience arguments for `points`.
+- `coords`: Structure-of-arrays coordinates `(x, y)` or `(x, y, z)`.
+- `x`, `y`, `z`: Coordinate-wise convenience arguments for `coords`.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
@@ -27,18 +27,18 @@ must be either 2 or 3. Call `sort_by_morton!` before constructing a `LinearBVH`.
 - `MortonEncoding`: Unsorted CUDA encoding whose codes and copied coordinates
   remain in input order. `sort_by_morton!` populates `order`.
 """
-function Partia.MortonEncoding(points :: NTuple{D, CuVector{TF}}; CodeType :: Type{TI} = UInt64) where {D, TF <: AbstractFloat, TI <: Unsigned}
+function Partia.MortonEncoding(coords :: NTuple{D, CuVector{TF}}; CodeType :: Type{TI} = UInt64) where {D, TF <: AbstractFloat, TI <: Unsigned}
     # Validate the structure-of-arrays input before launching a GPU kernel.
     D in (2, 3) || throw(ArgumentError("Morton encoding only supports two or three dimensions"))
-    all(!isempty, points) || throw(ArgumentError("coordinates must not be empty"))
-    all(axes(p) == axes(points[1]) for p in points) || throw(DimensionMismatch("coordinates must have identical axes"))
+    all(!isempty, coords) || throw(ArgumentError("coordinates must not be empty"))
+    all(axes(coord) == axes(coords[1]) for coord in coords) || throw(DimensionMismatch("coordinates must have identical axes"))
 
     # Allocate reusable encoding storage, then populate it through the in-place path.
-    coord = map(similar, points)
-    codes = CuVector{TI}(undef, length(points[1]))
+    coord = map(similar, coords)
+    codes = CuVector{TI}(undef, length(coords[1]))
     order = similar(codes)
     enc = Partia.MortonEncoding{D, TF, TI, CuVector{TF}, CuVector{TI}}(order, codes, coord)
-    Partia.build!(enc, points)
+    Partia.build!(enc, coords)
     return enc
 end
 

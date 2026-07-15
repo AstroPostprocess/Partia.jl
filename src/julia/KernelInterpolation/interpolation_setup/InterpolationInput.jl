@@ -247,7 +247,7 @@ stored in `lbvh`.
 
 """
 @inline function matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) :: Bool where {D}
-    leaf_nodes = lbvh.nleaf:(2 * lbvh.nleaf - 1)
+    leaf_nodes = nleaf(lbvh):(2 * nleaf(lbvh) - 1)
     all(input.coord[d] == @view(lbvh.aabb.min[d][leaf_nodes]) for d in 1:D) &&
         input.h == @view(lbvh.scale[leaf_nodes])
 end

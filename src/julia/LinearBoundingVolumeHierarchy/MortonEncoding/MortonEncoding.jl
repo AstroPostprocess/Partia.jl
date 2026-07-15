@@ -27,8 +27,8 @@ struct MortonEncoding{D, TF <: AbstractFloat, TI <: Unsigned, VF <: AbstractVect
 end
 
 """Return per-axis coordinate bounds using scalar reductions."""
-@inline function _coordinate_bounds(points :: NTuple{D, V}) where {D, V <: AbstractVector}
-    return map(point -> (minimum(point), maximum(point)), points)
+@inline function _coordinate_bounds(coords :: NTuple{D, V}) where {D, V <: AbstractVector}
+    return map(coord -> (minimum(coord), maximum(coord)), coords)
 end
 
 function Adapt.adapt_structure(to, x :: ME) where {D, ME <: MortonEncoding{D}}
@@ -114,16 +114,16 @@ function MortonEncoding(x :: Vector{T}, y :: Vector{T}, z :: Vector{T}; CodeType
 end
 
 """
-    MortonEncoding(points::NTuple{3,Vector{T}}; CodeType=UInt64)
+    MortonEncoding(coords::NTuple{3,Vector{T}}; CodeType=UInt64)
 
 Encode a set of 3D particle coordinates into Morton codes.
 
 This overload accepts particle positions in a structure-of-arrays (SoA) layout,
-where `points = (x, y, z)`. It forwards to
+where `coords = (x, y, z)`. It forwards to
 `MortonEncoding(x, y, z; CodeType=CodeType)`.
 
 # Parameters
-- `points :: NTuple{3,Vector{T}}`: Particle coordinates stored as `(x, y, z)`.
+- `coords :: NTuple{3,Vector{T}}`: Particle coordinates stored as `(x, y, z)`.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
@@ -134,8 +134,8 @@ where `points = (x, y, z)`. It forwards to
 - An unsorted 3D `MortonEncoding`; call `sort_by_morton!` to populate its
   permutation and arrange its codes and coordinates in Morton order.
 """
-function MortonEncoding(points :: NTuple{3, Vector{T}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat}
-    x = points[1]; y = points[2]; z = points[3]
+function MortonEncoding(coords :: NTuple{3, Vector{T}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat}
+    x = coords[1]; y = coords[2]; z = coords[3]
     return MortonEncoding(x, y, z; CodeType)
 end
 
@@ -207,16 +207,16 @@ function MortonEncoding(x :: Vector{T}, y :: Vector{T}; CodeType :: Type{TI} = U
 end
 
 """
-    MortonEncoding(points::NTuple{2,Vector{T}}; CodeType=UInt64)
+    MortonEncoding(coords::NTuple{2,Vector{T}}; CodeType=UInt64)
 
 Encode a set of 2D particle coordinates into Morton codes.
 
 This overload accepts particle positions in a structure-of-arrays (SoA) layout,
-where `points = (x, y)`. It forwards to
+where `coords = (x, y)`. It forwards to
 `MortonEncoding(x, y; CodeType=CodeType)`.
 
 # Parameters
-- `points :: NTuple{2,Vector{T}}`: Particle coordinates stored as `(x, y)`.
+- `coords :: NTuple{2,Vector{T}}`: Particle coordinates stored as `(x, y)`.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
@@ -227,8 +227,8 @@ where `points = (x, y)`. It forwards to
 - An unsorted 2D `MortonEncoding`; call `sort_by_morton!` to populate its
   permutation and arrange its codes and coordinates in Morton order.
 """
-function MortonEncoding(points :: NTuple{2, Vector{T}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat}
-    x = points[1]; y = points[2]
+function MortonEncoding(coords :: NTuple{2, Vector{T}}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned, T <: AbstractFloat}
+    x = coords[1]; y = coords[2]
     return MortonEncoding(x, y; CodeType)
 end
 

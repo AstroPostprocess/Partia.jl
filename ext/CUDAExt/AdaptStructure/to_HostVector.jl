@@ -41,7 +41,6 @@ end
 
 function Partia.to_HostVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: AbstractFloat, VF <: CuVector{TF}, VB <: CuVector{Int32}}
     return LinearBVH{D, TF, Vector{TF}, Vector{Int32}}(
-        LBVH.nleaf,
         Vector{Int32}(LBVH.left),
         Vector{Int32}(LBVH.escape),
         to_HostVector(LBVH.aabb),

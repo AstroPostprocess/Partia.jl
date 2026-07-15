@@ -1,5 +1,5 @@
 function Partia.KernelInterpolation._validate_interpolation_lbvh_leaf_order(input :: AbstractInterpolationInput{D, TF, CuVector{TF}}, LBVH :: LinearBVH{D, TF, CuVector{TF}}) where {D, TF <: AbstractFloat}
-    input.Npart == LBVH.nleaf || throw(ArgumentError(
+    input.Npart == nleaf(LBVH) || throw(ArgumentError(
         "Provided LBVH leaf count does not match the interpolation input."
     ))
 
@@ -20,7 +20,7 @@ end
 @inline function _validate_interpolation_lbvh_leaf_order_kernel!(flag :: CuDeviceVector{Int32}, input :: AbstractInterpolationInput{D, TF, VF}, LBVH :: LinearBVH) where {D, TF <: AbstractFloat, VF <: CuDeviceVector{TF}}
     i = Int((blockIdx().x - 1) * blockDim().x + threadIdx().x)
     stride = Int(gridDim().x * blockDim().x)
-    leaf_offset = LBVH.nleaf - 1
+    leaf_offset = nleaf(LBVH) - 1
     ptr = pointer(flag)
 
     while i <= input.Npart
