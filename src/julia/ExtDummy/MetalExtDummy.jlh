@@ -1,15 +1,40 @@
+"""
+MetalExtDummy
+
+Declare Metal extension entry points so the public API is available before
+`Metal.jl` is loaded.
+"""
 module MetalExtDummy
 
 using Partia
 
 # Base
 
+"""
+    Greeting_Metal()
+
+Print Metal extension and runtime diagnostic information. This method becomes
+available after loading `Metal.jl`.
+
+# Returns
+- `nothing`.
+"""
 function Greeting_Metal end
+
+"""
+    to_MtlVector(x)
+
+Adapt a supported Partia container or array to Metal-backed vector storage.
+This function becomes callable after loading `Metal.jl`.
+
+# Parameters
+- `x`: Supported host-side Partia object or array.
+
+# Returns
+- Metal-backed counterpart of `x`.
+"""
 function to_MtlVector end
 # function to_HostVector end            # Already defined in CUDAExtDummy
-
-struct MetalComputeBackend <: AbstractExecutionBackend end
-
 
 # Export function, marco, const...
 for name in filter(s -> !startswith(string(s), "#"), names(@__MODULE__, all = true))

@@ -1,16 +1,13 @@
-
-function Partia.LineSamples(xo :: V, yo :: V, zo :: V, xd :: V, yd :: V, zd :: V, :: CUDAComputeBackend) where {T <: AbstractFloat, V <: AbstractVector{T}}
-    origin = (CuVector(xo), CuVector(yo), CuVector(zo))
-    direction = (CuVector(xd), CuVector(yd), CuVector(zd))
-    N = length(xo)
-    vals = CUDA.zeros(T, N)
+function Partia.LineSamples(xo :: CuVector{T}, yo :: CuVector{T}, zo :: CuVector{T}, xd :: CuVector{T}, yd :: CuVector{T}, zd :: CuVector{T}) where {T <: AbstractFloat}
+    origin = (xo, yo, zo)
+    direction = (xd, yd, zd)
+    vals = CUDA.zeros(T, length(xo))
     return LineSamples(vals, origin, direction)
 end
 
-function Partia.LineSamples(xo :: V, yo :: V, xd :: V, yd :: V, :: CUDAComputeBackend) where {T <: AbstractFloat, V <: AbstractVector{T}}
-    origin = (CuVector(xo), CuVector(yo))
-    direction = (CuVector(xd), CuVector(yd))
-    N = length(xo)
-    vals = CUDA.zeros(T, N)
+function Partia.LineSamples(xo :: CuVector{T}, yo :: CuVector{T}, xd :: CuVector{T}, yd :: CuVector{T}) where {T <: AbstractFloat}
+    origin = (xo, yo)
+    direction = (xd, yd)
+    vals = CUDA.zeros(T, length(xo))
     return LineSamples(vals, origin, direction)
 end

@@ -11,6 +11,9 @@ This method modifies only `frame.x`; it does not modify `frame.Q`.
 - `Δx`: Displacement component along the fixed global x axis.
 - `Δy`: Displacement component along the fixed global y axis.
 - `Δz`: Displacement component along the fixed global z axis.
+
+# Returns
+- `nothing`: `frame` is updated in place.
 """
 @inline function translate!( :: Type{GlobalCoordinates}, frame :: Frame{TF}, Δx :: TF, Δy :: TF, Δz :: TF) where {TF <: AbstractFloat}
     frame.x[1] += Δx
@@ -33,6 +36,9 @@ This method modifies only `frame.x`; it does not modify `frame.Q`.
 - `Δr`: Displacement component along the frame's current right direction.
 - `Δf`: Displacement component along the frame's current forward direction.
 - `Δu`: Displacement component along the frame's current up direction.
+
+# Returns
+- `nothing`: `frame` is updated in place.
 """
 @inline function translate!( :: Type{LocalCoordinates}, frame :: Frame{TF}, Δr :: TF, Δf :: TF, Δu :: TF,) where {TF <: AbstractFloat}
     Q = frame.Q

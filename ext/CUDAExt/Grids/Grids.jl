@@ -1,3 +1,4 @@
+"""CUDA implementations of Partia grid construction and coordinate materialization."""
 module Grids
 using Partia
 using CUDA
@@ -5,6 +6,8 @@ using CUDA
 # Grid construction
 include(joinpath(@__DIR__, "grids", "PointSamples.jl"))
 include(joinpath(@__DIR__, "grids", "LineSamples.jl"))
+include(joinpath(@__DIR__, "grids", "coordinate_grid_kernel.jl"))
+include(joinpath(@__DIR__, "grids", "StructuredGrid.jl"))
 
 
 # Export function, marco, const...

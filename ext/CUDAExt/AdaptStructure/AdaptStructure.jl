@@ -1,3 +1,4 @@
+"""CUDA storage-adaptation methods for supported Partia containers."""
 module AdaptStructure
 using Partia
 using CUDA

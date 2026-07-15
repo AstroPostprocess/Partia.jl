@@ -98,6 +98,30 @@ end
 @_def_nanfunc maximum
 @_def_nanfunc minimum
 
+for (fname, operation) in (
+    (:nanmean, "mean"),
+    (:nanmedian, "median"),
+    (:nanstd, "standard deviation"),
+    (:nanmaximum, "maximum"),
+    (:nanminimum, "minimum"),
+)
+    doc = """
+        $(fname)(A::AbstractArray)
+        $(fname)(A::AbstractArray, dims::Integer)
+
+        Compute the $(operation) while ignoring `NaN` values. With `dims`, reduce
+        along the selected dimension.
+
+        # Parameters
+        - `A`: Numerical input array.
+        - `dims`: Optional reduction dimension.
+
+        # Returns
+        - Scalar or reduced array. An all-`NaN` input or slice produces `NaN`.
+    """
+    @eval @doc $doc $fname
+end
+
 
 """
     Euclidean_distance(x :: V, y :: V, z :: V, ref :: NTuple{3, TF}) where {TF <: AbstractFloat, V <: AbstractVector}

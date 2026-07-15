@@ -1,3 +1,9 @@
+"""
+CUDAExtDummy
+
+Declare CUDA extension entry points so the public API is available before
+`CUDA.jl` is loaded.
+"""
 module CUDAExtDummy
 
 
@@ -5,12 +11,44 @@ using Partia
 
 # Base
 
+"""
+    Greeting_CUDA()
+
+Print CUDA extension and runtime diagnostic information. This method becomes
+available after loading `CUDA.jl`.
+
+# Returns
+- `nothing`.
+"""
 function Greeting_CUDA end
+
+"""
+    to_CuVector(x)
+
+Adapt a supported Partia container or array to CUDA-backed vector storage.
+This function becomes callable after loading `CUDA.jl`.
+
+# Parameters
+- `x`: Supported host-side Partia object or array.
+
+# Returns
+- CUDA-backed counterpart of `x`.
+"""
 function to_CuVector end
+
+"""
+    to_HostVector(x)
+
+Adapt a supported CUDA- or Metal-backed Partia object to host `Vector` storage.
+The applicable methods are provided by the loaded accelerator extension.
+
+# Parameters
+- `x`: Supported accelerator-backed Partia object or array.
+
+# Returns
+- Host-backed counterpart of `x`.
+"""
 function to_HostVector end
-
-struct CUDAComputeBackend <: AbstractExecutionBackend end
-
 
 # Export function, marco, const...
 for name in filter(s -> !startswith(string(s), "#"), names(@__MODULE__, all = true))

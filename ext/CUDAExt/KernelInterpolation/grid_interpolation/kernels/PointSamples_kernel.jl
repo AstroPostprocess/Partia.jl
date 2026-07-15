@@ -1,3 +1,115 @@
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{2, TF}}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH, :: Type{itpGather}) where {N, G, Div, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{2, TF}}
+    tid    = Int(CUDA.threadIdx().x)
+    bid    = Int(CUDA.blockIdx().x)
+    bdim   = Int(CUDA.blockDim().x)
+    gdim   = Int(CUDA.gridDim().x)
+
+    gid    = (bid - 1) * bdim + tid
+    stride = bdim * gdim
+
+    npoints = length(grids[1])
+    i = gid
+    while i <= npoints
+        @inbounds begin
+            xa = grids[1].coor[1][i]
+            ya = grids[1].coor[2][i]
+            point :: NTuple{2, TF} = (xa, ya)
+        end
+
+        ha = LBVH_find_nearest_h(LBVH, point)
+
+        itpresult :: Tuple{NTuple{N, TF}, NTuple{G, NTuple{2, TF}}, NTuple{Div, TF}, Tuple{}} = Partia.KernelInterpolation._general_quantity_interpolate_kernel(input, point, ha, LBVH, catalog_consice)
+
+        scalars :: NTuple{N, TF} = itpresult[1]
+        gradients :: NTuple{G, NTuple{2, TF}} = itpresult[2]
+        divergences :: NTuple{Div, TF} = itpresult[3]
+
+        out_idx = 1
+
+        if N > 0
+            @inbounds for j in 1:N
+                grids[out_idx].grid[i] = scalars[j]
+                out_idx += 1
+            end
+        end
+
+        if G > 0
+            @inbounds for j in 1:G
+                grad_quant = gradients[j]
+                @inbounds for d in 1:2
+                    grids[out_idx].grid[i] = grad_quant[d]
+                    out_idx += 1
+                end
+            end
+        end
+
+        if Div > 0
+            @inbounds for j in 1:Div
+                div_quant = divergences[j]
+                grids[out_idx].grid[i] = div_quant
+                out_idx += 1
+            end
+        end
+        i += stride
+    end
+    return nothing
+end
+
+@inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{2, TF}}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH, :: Type{itpScatter}) where {N, G, Div, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{2, TF}}
+    tid    = Int(CUDA.threadIdx().x)
+    bid    = Int(CUDA.blockIdx().x)
+    bdim   = Int(CUDA.blockDim().x)
+    gdim   = Int(CUDA.gridDim().x)
+
+    gid    = (bid - 1) * bdim + tid
+    stride = bdim * gdim
+
+    npoints = length(grids[1])
+    i = gid
+    while i <= npoints
+        @inbounds begin
+            xa = grids[1].coor[1][i]
+            ya = grids[1].coor[2][i]
+            point :: NTuple{2, TF} = (xa, ya)
+        end
+
+        itpresult :: Tuple{NTuple{N, TF}, NTuple{G, NTuple{2, TF}}, NTuple{Div, TF}, Tuple{}} = Partia.KernelInterpolation._general_quantity_interpolate_kernel(input, point, LBVH, catalog_consice)
+
+        scalars :: NTuple{N, TF} = itpresult[1]
+        gradients :: NTuple{G, NTuple{2, TF}} = itpresult[2]
+        divergences :: NTuple{Div, TF} = itpresult[3]
+
+        out_idx = 1
+
+        if N > 0
+            @inbounds for j in 1:N
+                grids[out_idx].grid[i] = scalars[j]
+                out_idx += 1
+            end
+        end
+
+        if G > 0
+            @inbounds for j in 1:G
+                grad_quant = gradients[j]
+                @inbounds for d in 1:2
+                    grids[out_idx].grid[i] = grad_quant[d]
+                    out_idx += 1
+                end
+            end
+        end
+
+        if Div > 0
+            @inbounds for j in 1:Div
+                div_quant = divergences[j]
+                grids[out_idx].grid[i] = div_quant
+                out_idx += 1
+            end
+        end
+        i += stride
+    end
+    return nothing
+end
+
 @inline function _point_samples_interpolation_kernel!(grids :: NTuple{L, PointSamples{3, TF}}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH, itp_strategy :: Type{ITPSTRATEGY}) where {N, G, Div, C, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
     tid    = Int(CUDA.threadIdx().x)
     bid    = Int(CUDA.blockIdx().x)

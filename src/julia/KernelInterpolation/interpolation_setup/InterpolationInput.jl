@@ -180,12 +180,14 @@ end
 
 # Input helper for LBVH
 ## 3D path
-function LinearBVH!(input :: InterpolationInput{3}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+function LinearBVH!(input :: InterpolationInput{3}, :: Val{TileSize} = Val(8192);
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
     z = get_zcoord(input)
 
-    enc = MortonEncoding(x, y, z, CodeType = CodeType)
+    enc = MortonEncoding(x, y, z; CodeType)
+    sort_by_morton!(enc, SortWorkSpace, Val(TileSize))
     order = enc.order
 
     Base.permute!(x, order)
@@ -198,16 +200,17 @@ function LinearBVH!(input :: InterpolationInput{3}; CodeType :: Type{TI} = UInt6
         Base.permute!(column, order)
     end
 
-    brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt, BoxScale(input.h, true))
+    return LinearBVH(enc, input.h)
 end
 
 ## 2D path
-function LinearBVH!(input :: InterpolationInput{2}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+function LinearBVH!(input :: InterpolationInput{2}, :: Val{TileSize} = Val(8192);
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
 
-    enc = MortonEncoding(x, y, CodeType = CodeType)
+    enc = MortonEncoding(x, y; CodeType)
+    sort_by_morton!(enc, SortWorkSpace, Val(TileSize))
     order = enc.order
 
     Base.permute!(x, order)
@@ -219,8 +222,7 @@ function LinearBVH!(input :: InterpolationInput{2}; CodeType :: Type{TI} = UInt6
         Base.permute!(column, order)
     end
 
-    brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt, BoxScale(input.h, true))
+    return LinearBVH(enc, input.h)
 end
 """
     matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) where {D}
@@ -240,10 +242,12 @@ stored in `lbvh`.
   treated as the reference ordering.
 
 # Returns
-- `Bool`: `true` if `input.coord[d] == lbvh.leaf_coor[d]` for every spatial
-  dimension `d` and `input.h == lbvh.leaf_scale`; otherwise `false`.
+- `Bool`: `true` when `input.coord` matches the leaf section of
+  `lbvh.aabb.min` and `input.h` matches the leaf section of `lbvh.scale`.
 
 """
 @inline function matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) :: Bool where {D}
-    all(input.coord[d] == lbvh.leaf_coor[d] for d in 1:D) && (input.h == lbvh.leaf_scale)
+    leaf_nodes = lbvh.nleaf:(2 * lbvh.nleaf - 1)
+    all(input.coord[d] == @view(lbvh.aabb.min[d][leaf_nodes]) for d in 1:D) &&
+        input.h == @view(lbvh.scale[leaf_nodes])
 end

@@ -112,7 +112,7 @@ end
 
 # ── 1. Kernel evaluation ────────────────────────────────────────────── #
 
-@testset "Type stability — kernel evaluation" begin
+@testset "Type stability -- kernel evaluation" begin
     kern = M4_spline()
     @inferred Smoothed_kernel_function(typeof(kern), 0.12, 0.20, Val(3))
     @inferred Smoothed_kernel_function(typeof(kern), (0.1, 0.2, 0.3), (0.2, 0.0, 0.4), 0.20)
@@ -124,7 +124,7 @@ end
 
 # ── 2. Neighbor-search query helpers ────────────────────────────────── #
 
-@testset "Type stability — LBVH query helpers" begin
+@testset "Type stability -- LBVH query helpers" begin
     input, lbvh = make_type_stability_input_3d()
     point = (0.33, 0.27, 0.31)
     radius = 0.22
@@ -138,7 +138,7 @@ end
 
 # ── 3. Single-point interpolation kernels ───────────────────────────── #
 
-@testset "Type stability — single-point interpolation kernels" begin
+@testset "Type stability -- single-point interpolation kernels" begin
     input, lbvh = make_type_stability_input_3d()
     point = (0.33, 0.27, 0.31)
     ha = 0.19
@@ -154,7 +154,7 @@ end
 
 # ── 4. Line-integrated interpolation kernels ────────────────────────── #
 
-@testset "Type stability — line-integrated interpolation kernels" begin
+@testset "Type stability -- line-integrated interpolation kernels" begin
     input, lbvh = make_type_stability_input_line_integrated()
     origin = (0.30, 0.35, 0.00)
     direction = (0.0, 0.0, 1.0)

@@ -32,17 +32,6 @@ function Partia.to_HostVector(enc :: MortonEncoding{D, TF, TI, VF, VI}) where {D
     )
 end
 
-function Partia.to_HostVector(brt :: BinaryRadixTree{V}) where {V <: MtlVector{Int32}}
-    return BinaryRadixTree{Vector{Int32}}(
-        brt.root,
-        brt.nleaf,
-        Vector{Int32}(brt.left),
-        Vector{Int32}(brt.right),
-        Vector{Int32}(brt.escape),
-        Vector{Int32}(brt.parent)
-    )
-end
-
 function Partia.to_HostVector(AB :: AABB{D, TF, VF}) where {D, TF <: Float32, VF <: MtlVector{TF}}
     return AABB{D, Float32, Vector{Float32}}(
         ntuple(i -> Vector{Float32}(AB.min[i]), D),
@@ -52,11 +41,11 @@ end
 
 function Partia.to_HostVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: Float32, VF <: MtlVector{TF}, VB <: MtlVector{Int32}}
     return LinearBVH{D, Float32, Vector{Float32}, Vector{Int32}}(
-        to_HostVector(LBVH.brt),
-        ntuple(i -> Vector{Float32}(LBVH.leaf_coor[i]), D),
-        Vector{Float32}(LBVH.leaf_scale),
-        to_HostVector(LBVH.node_aabb),
-        Vector{Float32}(LBVH.node_scale)
+        LBVH.nleaf,
+        Vector{Int32}(LBVH.left),
+        Vector{Int32}(LBVH.escape),
+        to_HostVector(LBVH.aabb),
+        Vector{Float32}(LBVH.scale)
     )
 end
 

@@ -1,12 +1,21 @@
+"""CUDA implementations of Partia interpolation setup, kernels, and drivers."""
 module KernelInterpolation
 using Partia
 using CUDA
+using UnsignedRadixSorts
+
+# Interpolation setup
+include(joinpath(@__DIR__, "interpolation_setup", "InterpolationInput.jl"))
+include(joinpath(@__DIR__, "interpolation_setup", "InterpolationSmoothingVolumeInput.jl"))
 
 # Grid interpolation
 include(joinpath(@__DIR__, "grid_interpolation", "kernels", "PointSamples_kernel.jl"))
 include(joinpath(@__DIR__, "grid_interpolation", "kernels", "LineSamples_kernel.jl"))
 include(joinpath(@__DIR__, "grid_interpolation", "drivers", "PointSamples_driver.jl"))
 include(joinpath(@__DIR__, "grid_interpolation", "drivers", "LineSamples_driver.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "point_samples_wrapper.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "line_samples_wrapper.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "structured_grid_wrapper.jl"))
 
 # Export function, marco, const...
 for name in filter(s -> !startswith(string(s), "#"), names(@__MODULE__, all = true))

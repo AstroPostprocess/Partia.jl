@@ -11,6 +11,9 @@ This method modifies only `frame.Q`; it does not modify `frame.x`.
 - `yaw`: Rotation angle applied about the frame's initial up direction.
 - `pitch`: Rotation angle applied about the frame's initial right direction.
 - `roll`: Rotation angle applied about the frame's initial forward direction.
+
+# Returns
+- `nothing`: `frame` is updated in place.
 """
 @inline function rotate!(frame :: Frame{TF}, yaw :: TF, pitch :: TF, roll :: TF) where {TF <: AbstractFloat}
     # Get the operator(quaternion) of rotation
@@ -41,6 +44,9 @@ alignment.
 # Parameters
 - `frame`: Frame whose orientation is updated.
 - `target_f`: Target forward direction in global coordinates.
+
+# Returns
+- `nothing`: `frame` is updated in place.
 """
 @inline function rotate_forward_to!(frame :: Frame{TF}, target_f :: NTuple{3, TF}) where {TF <: AbstractFloat}
     return rotate_forward_to!(frame, SVector{3, TF}(target_f))

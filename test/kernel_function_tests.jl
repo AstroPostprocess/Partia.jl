@@ -118,7 +118,7 @@ end
 
 # ── 3. Kernel values at specific q ───────────────────────────────────── #
 
-@testset "Kernel values — analytic comparison" begin
+@testset "Kernel values -- analytic comparison" begin
     test_q_values = [0.0, 0.3, 0.7, 1.0, 1.3, 1.8]
 
     for K in all_kernels
@@ -149,7 +149,7 @@ end
 
 # ── 5. Gradient kernel — finite-difference check ─────────────────────── #
 
-@testset "Kernel gradient — finite difference" begin
+@testset "Kernel gradient -- finite difference" begin
     kern = M4_spline()
     h = 0.1
     ra = (0.5, 0.5, 0.5)
@@ -190,7 +190,7 @@ end
 
 # ── 7. Line-integrated kernel consistency ───────────────────────────── #
 
-@testset "Line-integrated kernel — two-point interface" begin
+@testset "Line-integrated kernel -- two-point interface" begin
     kern = M4_spline()
     h = 0.1
     ra = (0.5, 0.5)

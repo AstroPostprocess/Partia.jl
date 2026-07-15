@@ -46,6 +46,20 @@ for (K, Q64sym, I64sym, Q32sym, I32sym) in (
     _lin_lut(q_perp, $Q64sym, $I64sym)
 end
 
+"""
+    lookup_line_integrated_kernel(K::Type{<:AbstractSPHKernel}, q_perp)
+
+Look up the dimensionless full line-integrated kernel at transverse normalized
+distance `q_perp` using the table associated with kernel type `K`.
+
+# Parameters
+- `K`: Supported SPH kernel type.
+- `q_perp`: Transverse distance divided by smoothing length.
+
+# Returns
+- `AbstractFloat`: Tabulated line-integrated kernel value in the requested
+  floating-point precision.
+"""
 @inline function lookup_line_integrated_kernel( :: Type{K}, q_perp :: T) where {K <: AbstractSPHKernel, T <: AbstractFloat}
     return T(lookup_line_integrated_kernel(K, Float64(q_perp)))
 end

@@ -117,7 +117,6 @@ end
     Bz = Float32[1.4, 1.5, 1.6]
 
     input, catalog = build_input(
-        CPUComputeBackend(),
         x, y, z, m, h, rho, (P, vx, vy, vz, Bx, By, Bz);
         column_names = (:P, :vx, :vy, :vz, :Bx, :By, :Bz),
         scalars = (:P,),
@@ -143,7 +142,6 @@ end
     @test all(input.quant[7] .== Float64.(Bz))
 
     @test_throws KeyError build_input(
-        CPUComputeBackend(),
         x, y, z, m, h, rho, (P, vx, vy, vz, Bx, By);
         column_names = (:P, :vx, :vy, :vz, :Bx, :By),
         scalars = (),
@@ -151,6 +149,30 @@ end
         divergences = (),
         curls = (:B,),
     )
+
+    input_2d, catalog_2d = build_input(
+        x, y, m, h, rho, (P, vx, vy);
+        column_names = (:P, :vx, :vy),
+        scalars = (:P,),
+        gradients = (:P,),
+        divergences = (:v,),
+    )
+
+    @test input_2d isa InterpolationInput{2, Float64}
+    @test catalog_2d isa InterpolationCatalog{2, 1, 1, 1, 0, 4}
+    @test ki_mod.div_slots(catalog_2d, :v) == (2, 3)
+    @test ki_mod.ordered_quantity_names(catalog_2d) == (:P, :∇Pˣ, :∇Pʸ, Symbol("∇⋅v"))
+
+    smoothing_input_2d, smoothing_catalog_2d = build_input(
+        1.2f0, x, y, m, h, (P, vx, vy);
+        column_names = (:P, :vx, :vy),
+        scalars = (:P,),
+        gradients = (:P,),
+        divergences = (:v,),
+    )
+
+    @test smoothing_input_2d isa InterpolationSmoothingVolumeInput{2, Float32}
+    @test smoothing_catalog_2d isa InterpolationCatalog{2, 1, 1, 1, 0, 4}
 end
 
 
@@ -172,7 +194,6 @@ end
     Bz = Float32[1.4, 1.5, 1.6]
 
     input, catalog = build_input(
-        CPUComputeBackend(),
         x, y, z, m, h, rho, (P, vx, vy, vz, Bx, By, Bz);
         column_names = (:P, :vx, :vy, :vz, :Bx, :By, :Bz),
         scalars = (:P,),
@@ -192,7 +213,6 @@ end
     @test ki_mod.curl_slots(catalog, :B) == (5, 6, 7)
 
     @test_throws KeyError build_input(
-        CPUComputeBackend(),
         x, y, z, m, h, rho, (vx, vy, vz, Bx, By, Bz);
         column_names = (:vx, :vy, :vz, :Bx, :By, :Bz),
         scalars = (:P,),

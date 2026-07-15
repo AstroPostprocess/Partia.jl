@@ -1,124 +1,161 @@
-"""
-    PointSamples_interpolation(backend :: CUDAComputeBackend, grid_template :: PointSamples{3, TF},
-                               input :: AbstractInterpolationInput{3, TF}, catalog :: InterpolationCatalog{3, N, G, Div, C, L},
-                               itp_strategy :: Type{ITPSTRATEGY} = itpScatter)
+######################################################################################
 
-Perform SPH interpolation over an arbitrary point-sample grid using CUDA execution.
-This routine prepares the interpolation structures on the CPU, copies particle
-input, output grids, and the LBVH to CUDA device memory, evaluates each grid
-point on the GPU, and copies the interpolated grids back to host memory.
+#     CUDA PointSamples interpolation drivers
+
+######################################################################################
+
+#     Gather interpolation
+
+######################################################################################
+"""
+    PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+                                         itpGather,
+                                         ::Val{ThreadsPerBlock}=Val(256))
+
+Launch the prepared 2D CUDA gather-interpolation kernel.
 
 # Parameters
-- `backend :: CUDAComputeBackend`
-  Execution backend specifying CUDA-based interpolation.
-
-- `grid_template :: PointSamples{3, TF}`
-  Template grid defining dimensionality, coordinate arrays, and memory layout of
-  all output grids.
-
-- `input :: AbstractInterpolationInput{3, TF}`
-  The interpolation input holding particle positions, smoothing lengths, field
-  data, and the SPH kernel.
-
-- `catalog :: InterpolationCatalog{3, N, G, Div, C, L}`
-  Full interpolation catalog describing which scalar, gradient, divergence, and
-  curl quantities are to be produced.
-
-- `itp_strategy :: Type{ITPSTRATEGY}`
-  Interpolation strategy type controlling gather/scatter modes.
+- `grids`: Preallocated CUDA point-sample output grids.
+- `input`: Prepared 2D CUDA interpolation input.
+- `catalog_consice`: Concise execution catalog with no curl requests.
+- `LBVH`: Prebuilt 2D hierarchy matching `input`.
+- `itpGather`: Gather-strategy dispatch tag.
+- `::Val{ThreadsPerBlock}`: CUDA threads per block.
 
 # Returns
-`GridBundle{L, typeof(grids[1])}` containing:
-- `grids` : NTuple of output grids storing interpolated results.
-- `names` : Ordered list of all output quantity names, matching the grid tuple order.
+- `nothing`: The supplied grids are updated in place.
 """
-function Partia.PointSamples_interpolation( :: CUDAComputeBackend, grid_template :: PointSamples{3, TF}, input :: INPUT, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, G, Div, C, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    grids, LBVH, names, catalog_consice = Partia.initialize_interpolation(Partia.CPUComputeBackend(), grid_template, input, catalog)
-    @info "     SPH Interpolation: Copying interpolated grids to device memory..."
-    input_Cu = to_CuVector(input)
-    grids_Cu = ntuple(i -> to_CuVector(grids[i]), Val(L))
-    LBVH_Cu = to_CuVector(LBVH)
-    @info "     SPH Interpolation: End copying interpolated grids to device memory."
+function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, CuVector{TF}}, :: Type{itpGather}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{2, VF}, PS <: PointSamples{2, TF, VF, VC}, INPUT <: AbstractInterpolationInput{2, TF, CuVector{TF}}}
+    L == 0 && return nothing
 
-    npoints = length(grid_template)
-    @info "     SPH Interpolation: Start interpolation..."
-    @cuda threads=(256,) blocks=(cld(npoints, 256)) _point_samples_interpolation_kernel!(grids_Cu, input_Cu, catalog_consice, LBVH_Cu, itp_strategy)
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
+    end
+
+    npoints = length(grids[1])
+    npoints == 0 && return nothing
+
+    @cuda threads=(ThreadsPerBlock,) blocks=(cld(npoints, ThreadsPerBlock)) _point_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpGather)
     CUDA.synchronize()
-    @info "     SPH Interpolation: End interpolation."
-    @info "     SPH Interpolation: Copying interpolated grids back to host memory..."
-    grids_result = ntuple(i -> Partia.to_HostVector(grids_Cu[i]), Val(L))
-    @info "     SPH Interpolation: End copying interpolated grids back to host memory."
-    return GridBundle(grids_result, names)
+
+    return nothing
 end
 
 """
-    PointSamples_interpolation(backend :: CUDAComputeBackend, grid_template :: PointSamples{3, TF},
-                               input :: AbstractInterpolationInput{3, TF}, LBVH :: LinearBVH{3, TF},
-                               catalog :: InterpolationCatalog{3, N, G, Div, C, L},
-                               itp_strategy :: Type{ITPSTRATEGY} = itpScatter)
+    PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+                                         itpGather,
+                                         ::Val{ThreadsPerBlock}=Val(256))
 
-Perform SPH interpolation over an arbitrary point-sample grid using CUDA
-execution with an externally supplied `LinearBVH`.
-
-This routine assumes that `input` has already been reordered into the same
-Morton leaf order used to build `LBVH`. Before interpolation begins, it checks
-that the reordered spatial layout of `input` matches the leaf ordering stored in
-`LBVH`. It then allocates output grids, builds the concise interpolation
-catalog, copies the required data to CUDA device memory, evaluates each grid
-point on the GPU, and copies the interpolated grids back to host memory.
+Launch the prepared 3D CUDA gather-interpolation kernel.
 
 # Parameters
-- `backend :: CUDAComputeBackend`
-  Execution backend specifying CUDA-based interpolation.
-
-- `grid_template :: PointSamples{3, TF}`
-  Template grid defining dimensionality, coordinate arrays, and memory layout of
-  all output grids.
-
-- `input :: AbstractInterpolationInput{3, TF}`
-  The interpolation input holding particle positions, smoothing lengths, field
-  data, and the SPH kernel. Its current ordering must already match the LBVH
-  leaf ordering.
-
-- `LBVH :: LinearBVH{3, TF}`
-  A prebuilt `LinearBVH` used for neighbour traversal during interpolation.
-
-- `catalog :: InterpolationCatalog{3, N, G, Div, C, L}`
-  Full interpolation catalog describing which scalar, gradient, divergence, and
-  curl quantities are to be produced.
-
-- `itp_strategy :: Type{ITPSTRATEGY}`
-  Interpolation strategy type controlling gather/scatter modes.
+- `grids`: Preallocated CUDA point-sample output grids.
+- `input`: Prepared 3D CUDA interpolation input.
+- `catalog_consice`: Concise execution catalog.
+- `LBVH`: Prebuilt 3D hierarchy matching `input`.
+- `itpGather`: Gather-strategy dispatch tag.
+- `::Val{ThreadsPerBlock}`: CUDA threads per block.
 
 # Returns
-`GridBundle{L, typeof(grids[1])}` containing:
-- `grids` : NTuple of output grids storing interpolated results.
-- `names` : Ordered list of all output quantity names, matching the grid tuple order.
-
-# Throws
-- `ArgumentError`: If the leaf order stored in `LBVH` does not match the
-  current spatial ordering of `input`.
+- `nothing`: The supplied grids are updated in place.
 """
-function Partia.PointSamples_interpolation( :: CUDAComputeBackend, grid_template :: PointSamples{3, TF}, input :: INPUT, LBVH :: LinearBVH{3, TF}, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, G, Div, C, L, TF <: AbstractFloat, INPUT <: AbstractInterpolationInput{3, TF}, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    Partia.matches_lbvh_leaf_order(input, LBVH) || throw(ArgumentError(
-        "Provided LBVH leaf order does not match the current input ordering. " *
-        "Ensure the LBVH was built from the same Morton-reordered input."
-    ))
+function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, :: Type{itpGather}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, C, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{3, VF}, PS <: PointSamples{3, TF, VF, VC}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
+    L == 0 && return nothing
 
-    grids, names, catalog_consice = Partia.initialize_interpolation(Partia.CPUComputeBackend(), grid_template, catalog)
-    @info "     SPH Interpolation: Copying interpolated grids to device memory..."
-    input_Cu = to_CuVector(input)
-    grids_Cu = ntuple(i -> to_CuVector(grids[i]), Val(L))
-    LBVH_Cu = to_CuVector(LBVH)
-    @info "     SPH Interpolation: End copying interpolated grids to device memory."
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
+    end
 
-    npoints = length(grid_template)
-    @info "     SPH Interpolation: Start interpolation..."
-    @cuda threads=(256,) blocks=(cld(npoints, 256)) _point_samples_interpolation_kernel!(grids_Cu, input_Cu, catalog_consice, LBVH_Cu, itp_strategy)
+    npoints = length(grids[1])
+    npoints == 0 && return nothing
+
+    @cuda threads=(ThreadsPerBlock,) blocks=(cld(npoints, ThreadsPerBlock)) _point_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpGather)
     CUDA.synchronize()
-    @info "     SPH Interpolation: End interpolation."
-    @info "     SPH Interpolation: Copying interpolated grids back to host memory..."
-    grids_result = ntuple(i -> Partia.to_HostVector(grids_Cu[i]), Val(L))
-    @info "     SPH Interpolation: End copying interpolated grids back to host memory."
-    return GridBundle(grids_result, names)
+
+    return nothing
+end
+
+######################################################################################
+
+#     Scatter interpolation
+
+######################################################################################
+"""
+    PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+                                         itpScatter,
+                                         ::Val{ThreadsPerBlock}=Val(256))
+
+Launch the prepared 2D CUDA scatter-interpolation kernel.
+
+# Parameters
+- `grids`: Preallocated CUDA point-sample output grids.
+- `input`: Prepared 2D CUDA interpolation input.
+- `catalog_consice`: Concise execution catalog with no curl requests.
+- `LBVH`: Prebuilt 2D hierarchy matching `input`.
+- `itpScatter`: Scatter-strategy dispatch tag.
+- `::Val{ThreadsPerBlock}`: CUDA threads per block.
+
+# Returns
+- `nothing`: The supplied grids are updated in place.
+"""
+function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, CuVector{TF}}, :: Type{itpScatter}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{2, VF}, PS <: PointSamples{2, TF, VF, VC}, INPUT <: AbstractInterpolationInput{2, TF, CuVector{TF}}}
+    L == 0 && return nothing
+
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
+    end
+
+    npoints = length(grids[1])
+    npoints == 0 && return nothing
+
+    @cuda threads=(ThreadsPerBlock,) blocks=(cld(npoints, ThreadsPerBlock)) _point_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpScatter)
+    CUDA.synchronize()
+
+    return nothing
+end
+
+"""
+    PointSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+                                         itpScatter,
+                                         ::Val{ThreadsPerBlock}=Val(256))
+
+Launch the prepared 3D CUDA scatter-interpolation kernel.
+
+# Parameters
+- `grids`: Preallocated CUDA point-sample output grids.
+- `input`: Prepared 3D CUDA interpolation input.
+- `catalog_consice`: Concise execution catalog.
+- `LBVH`: Prebuilt 3D hierarchy matching `input`.
+- `itpScatter`: Scatter-strategy dispatch tag.
+- `::Val{ThreadsPerBlock}`: CUDA threads per block.
+
+# Returns
+- `nothing`: The supplied grids are updated in place.
+"""
+function Partia.PointSamples_interpolation_prepared!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, :: Type{itpScatter}, :: Val{ThreadsPerBlock} = Val(256)) where {N, G, Div, C, L, ThreadsPerBlock, TF <: AbstractFloat, VF <: CuVector{TF}, VC <: NTuple{3, VF}, PS <: PointSamples{3, TF, VF, VC}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
+    L == 0 && return nothing
+
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
+    end
+
+    npoints = length(grids[1])
+    npoints == 0 && return nothing
+
+    @cuda threads=(ThreadsPerBlock,) blocks=(cld(npoints, ThreadsPerBlock)) _point_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpScatter)
+    CUDA.synchronize()
+
+    return nothing
 end

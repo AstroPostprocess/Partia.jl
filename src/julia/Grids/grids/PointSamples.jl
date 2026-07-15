@@ -26,16 +26,20 @@ struct PointSamples{D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTup
     grid :: VG
     coor :: VC
 
-    # Inner constructor
-    function PointSamples(grid :: VG, coor :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
+    # Explicit inner constructor used when preserving a selected vector storage type.
+    function PointSamples{D, TF, VG, VC}(grid :: VG, coor :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
         N = length(grid)
-
         @inbounds for d in 1:D
             length(coor[d]) == N || throw(ArgumentError("coor[$d] length mismatch"))
         end
-
         return new{D, TF, VG, VC}(grid, coor)
     end
+end
+
+# Infer all structure parameters for ordinary construction, then reuse the
+# validating explicit inner constructor above.
+function PointSamples(grid :: VG, coor :: VC) where {D, TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D, VG}}
+    return PointSamples{D, TF, VG, VC}(grid, coor)
 end
 
 function Adapt.adapt_structure(to, x :: PointSamples{D}) where {D}
@@ -43,6 +47,32 @@ function Adapt.adapt_structure(to, x :: PointSamples{D}) where {D}
         Adapt.adapt(to, x.grid),
         ntuple(i -> Adapt.adapt(to, x.coor[i]), D)
     )
+end
+
+"""
+    same_coordinates(grids :: Vararg{PointSamples{D}}) where {D}
+
+Check whether all supplied point-sample grids share the same coordinate vectors.
+
+This compares the coordinate containers by object identity (`===`) for each
+dimension. It does not compare coordinate values, so independently allocated
+coordinate arrays with equal contents are treated as different coordinates.
+
+# Parameters
+- `grids :: Vararg{PointSamples{D}}` :
+  Point-sample grids with the same dimensionality.
+
+# Returns
+- `Bool` :
+  `true` if every grid reuses the same coordinate vector for each dimension;
+  otherwise `false`.
+"""
+@inline function same_coordinates(grids :: Vararg{PointSamples{D}}) where {D}
+    ref = grids[1].coor
+    @inbounds for i in 2:length(grids), d in 1:D
+        grids[i].coor[d] === ref[d] || return false
+    end
+    return true
 end
 
 """
@@ -58,10 +88,10 @@ the same coordinate container as the input grid.
 - `PointSamples` : A grid with independent value storage (`grid.grid`)
   and shared coordinates (`grid.coor`).
 """
-function Base.similar(grid :: PointSamples)
+function Base.similar(grid :: PointSamples{D, TF, VG, VC}) where {D, TF, VG, VC}
     # Geometry is taken from grids[1] under the contract that `similar( :: PointSamples)`
     # shares `coor` across all output grids.
-    return PointSamples(similar(grid.grid), grid.coor)
+    return PointSamples{D, TF, VG, VC}(similar(grid.grid), grid.coor)
 end
 
 """

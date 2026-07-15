@@ -57,6 +57,7 @@ module KernelInterpolation
 using .Threads
 using StaticArrays
 using Adapt
+using UnsignedRadixSorts
 
 using Partia.Grids
 using Partia.LinearBoundingVolumeHierarchy
@@ -72,9 +73,6 @@ include(joinpath(@__DIR__, "kernel_function", "kernels", "C2_Wendland.jl"))
 include(joinpath(@__DIR__, "kernel_function", "kernels", "C4_Wendland.jl"))
 include(joinpath(@__DIR__, "kernel_function", "kernels", "C6_Wendland.jl"))
 include(joinpath(@__DIR__, "kernel_function", "line_integrated_kernel.jl"))
-
-## Execution backends
-include(joinpath(@__DIR__, "ExecutionBackend", "AbstractExecutionBackend.jl"))
 
 ## Single point interpolation
 include(joinpath(@__DIR__, "interpolation_setup", "InterpolationStrategy.jl"))
@@ -93,17 +91,19 @@ include(joinpath(@__DIR__, "single_point_interpolation", "scatter_interpolation.
 include(joinpath(@__DIR__, "line_integrated_interpolation", "line_integrated_scalar_interpolation.jl"))
 
 ## Grid interpolation
-### Setup
-include(joinpath(@__DIR__, "grid_interpolation", "setup", "initialize_interpolation.jl"))
-
 ### Kernels
-include(joinpath(@__DIR__, "grid_interpolation", "kernels", "PointSamples_kernel.jl"))
-include(joinpath(@__DIR__, "grid_interpolation", "kernels", "LineSamples_kernel.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "kernels", "point_samples_kernel.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "kernels", "line_samples_kernel.jl"))
 
 ### Drivers
-include(joinpath(@__DIR__, "grid_interpolation", "drivers", "PointSamples_driver.jl"))
-include(joinpath(@__DIR__, "grid_interpolation", "drivers", "LineSamples_driver.jl"))
-include(joinpath(@__DIR__, "grid_interpolation", "drivers", "StructuredGrid_driver.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "drivers", "point_samples_driver.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "drivers", "line_samples_driver.jl"))
+
+### Wrappers
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "wrapper_utils.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "point_samples_wrapper.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "line_samples_wrapper.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "structured_grid_wrapper.jl"))
 
 
 # Export function, marco, const...

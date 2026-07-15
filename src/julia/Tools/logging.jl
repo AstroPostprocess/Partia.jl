@@ -76,6 +76,9 @@ end
 
 Get the version of the current project from the `Project.toml` file.
 
+# Parameters
+- None.
+
 # Returns
 `String`: The version of the current project.
 """
@@ -110,6 +113,12 @@ end
     First_logging()
 
 Log the initial message including the version of the project.
+
+# Parameters
+- None.
+
+# Returns
+- `nothing`: The message is emitted through the active logger.
 """
 function First_logging()
     version = get_Partia_version()
@@ -122,6 +131,11 @@ end
 
 Log initial analysis information.
 
+# Parameters
+- None.
+
+# Returns
+- `nothing`: The message is emitted through the active logger.
 """
 function initial_logging()
     @info "----------------Information of analysis----------------\n" log_message
@@ -133,6 +147,12 @@ end
     last_logging()
 
 Log the final message indicating the end of analysis.
+
+# Parameters
+- None.
+
+# Returns
+- `nothing`: The message is emitted through the active logger.
 """
 function last_logging()
     @info "End analysis."
