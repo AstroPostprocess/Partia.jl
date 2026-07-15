@@ -11,7 +11,7 @@
 #       equivalent Float32 CPU results for 2D and 3D inputs.
 #     • Identical Morton codes and finite leaf AABBs are covered explicitly.
 #  3. Interpolation
-#     • PointSamples Gather and Scatter interpolation.
+#     • 2D and 3D PointSamples Gather and Scatter interpolation.
 #     • InterpolationInput and InterpolationSmoothingVolumeInput paths.
 #     • LineSamples scatter interpolation.
 #     • StructuredGrid interpolation for Cartesian, cylindrical, and spherical
@@ -379,7 +379,7 @@ function run_accelerator_test_suite(config)
 
             gpu_input = to_device(source_input)
             gpu_template = to_device(point_template)
-            gpu_result = PointSamples_interpolation(gpu_template, gpu_input, catalog, strategy)
+            gpu_result = PointSamples_interpolation(gpu_template, gpu_input, catalog, strategy, Val(64))
             @test same_coordinates(gpu_result.grids...)
             synchronize()
 
@@ -403,6 +403,7 @@ function run_accelerator_test_suite(config)
             catalog,
             manual_lbvh,
             itpScatter,
+            Val(64),
         )
         @test same_coordinates(auto_result.grids...)
         @test same_coordinates(manual_result.grids...)
@@ -466,6 +467,34 @@ function run_accelerator_test_suite(config)
         end
     end
 
+    @testset "$name -- PointSamples interpolation -- two-dimensional kernels" begin
+        standard_input, smoothing_input, catalog = make_2d_grid_interpolation_fixture()
+        standard_input32 = accelerator_test_float32(standard_input)
+        smoothing_input32 = accelerator_test_float32(smoothing_input)
+        point_template = accelerator_test_float32(make_2d_point_samples_template())
+
+        for strategy in (itpGather, itpScatter)
+            for source_input in (standard_input32, smoothing_input32)
+                cpu_result = PointSamples_interpolation(
+                    point_template,
+                    deepcopy(source_input),
+                    catalog,
+                    strategy,
+                )
+                gpu_result = PointSamples_interpolation(
+                    to_device(point_template),
+                    to_device(source_input),
+                    catalog,
+                    strategy,
+                )
+                synchronize()
+
+                host_result = accelerator_test_host_bundle(gpu_result, to_host)
+                accelerator_test_bundle_equal(host_result, cpu_result; atol, rtol)
+            end
+        end
+    end
+
     # ── 4. LineSamples interpolation ───────────────────────────────────── #
 
     @testset "$name -- LineSamples interpolation -- CPU consistency" begin
@@ -477,6 +506,7 @@ function run_accelerator_test_suite(config)
             to_device(line_template),
             to_device(source_input),
             catalog,
+            Val(64),
         )
         @test same_coordinates(gpu_result.grids...)
         synchronize()
@@ -499,6 +529,7 @@ function run_accelerator_test_suite(config)
             manual_input,
             catalog,
             manual_lbvh,
+            Val(64),
         )
         @test same_coordinates(auto_result.grids...)
         @test same_coordinates(manual_result.grids...)
@@ -564,6 +595,7 @@ function run_accelerator_test_suite(config)
                     to_device(source_input),
                     catalog,
                     strategy,
+                    Val(64),
                 )
                 @test same_coordinates(gpu_result.grids...)
                 synchronize()

@@ -25,6 +25,8 @@ The resulting HDF5 file has the following structure:
 - `filename :: String="PartiaGridDataset.h5"`
   Output HDF5 filename
 
+# Returns
+- `nothing`: The dataset is written to `filename`.
 """
 function write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PartiaGridDataset.h5") where {L,D,TF <: AbstractFloat, VG <: AbstractVector{TF}, VC <: NTuple{D,VG}, G <: PointSamples{D,TF,VG,VC}}
     # Check whether all the grid share the same coor
@@ -94,6 +96,9 @@ The resulting HDF5 file has the following structure:
   A dataset containing multiple `StructuredGrid` objects that must share identical axes
 - `filename :: String="PartiaGridDataset.h5"`
   Output HDF5 filename
+
+# Returns
+- `nothing`: The dataset is written to `filename`.
 """
 function write_GridDataset(gd :: GridDataset{L,TF,G}, filename :: String="PartiaGridDataset.h5") where {L,D,TF <: AbstractFloat, V <: AbstractVector{TF}, A <: AbstractArray{TF, D}, G <: StructuredGrid{D,TF,V, A}}
     # Check whether all the grid share the same coor
@@ -177,6 +182,8 @@ an `ArgumentError` is thrown.
 | `operation_name` | `String`                                                     | `""`    | Operation name used to generate a unique file identifier |
 | `params`         | `Union{Nothing,Dict{Symbol,Union{String,Int,Bool,TF}}}`      | `nothing` | Optional additional metadata stored in the dataset |
 
+# Returns
+- `nothing`: The bundle and metadata are written to `filename`.
 """
 function write_GridBundle(gb :: GridBundle{L, G}, filename :: String = "PartiaGridDataset.h5"; code_units :: Dict{Symbol, TF}, operation_name :: String = "", params :: Union{Nothing, Dict{Symbol, Union{String, Int, Bool, TF}}} = nothing) where {L, TF <: AbstractFloat, G <: AbstractGrid{TF}}
     p = isnothing(params) ? GridDataset_params_TYPE(TF)() : copy(params)

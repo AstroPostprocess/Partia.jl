@@ -68,6 +68,12 @@ Return `true` for the empty and single-grid cases.
 Concrete grid types provide multi-grid methods that check whether all supplied
 grids share the same coordinate storage. For zero or one grid, the condition is
 vacuously true.
+
+# Parameters
+- `grid`: Optional single grid.
+
+# Returns
+- `Bool`: Always `true` for zero or one grid.
 """
 @inline same_coordinates() = true
 @inline same_coordinates( :: AbstractGrid) = true

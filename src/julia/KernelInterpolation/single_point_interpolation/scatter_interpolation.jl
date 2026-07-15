@@ -1,5 +1,336 @@
 
 @inline function _general_quantity_interpolate_kernel(
+    input :: InterpolationInput{2, T, V, Ktyp, NCOLUMN},
+    reference_point :: NTuple{2,T},
+    LBVH :: LinearBVH,
+    catalog :: InterpolationCatalogConcise{2,N,G,Div,0}) :: Tuple{NTuple{N,T}, NTuple{G,NTuple{2,T}}, NTuple{Div,T}, Tuple{}} where {N, G, Div, T <: AbstractFloat, V <: AbstractVector{T}, Ktyp <: AbstractSPHKernel, NCOLUMN}
+    # Prepare for interpolation
+    K = input.smoothed_kernel
+    Kvalid = KernelFunctionValid(Ktyp, T)
+    Cnorm = KernelFunctionnorm(Ktyp, Val(2), T)
+    x = get_xcoord(input)
+    y = get_ycoord(input)
+    ShepardNormalization = catalog.scalar_snormalization
+    @inbounds begin
+        xa = reference_point[1]
+        ya = reference_point[2]
+    end
+
+    # Initialize counter
+    ## Shepard Normalization
+    S1 :: T = zero(T)
+
+    ## Scalars
+    scalars :: MVector{N, T} = zero(MVector{N, T})
+
+    ## Gradients
+    gradients_c :: MVector{G, SVector{2,T}} = MVector{G, SVector{2,T}}(ntuple(_ -> zero(SVector{2,T}), Val(G)))
+    gradients_scalars :: MVector{G, T} = zero(MVector{G, T})
+
+    ## Divergences
+    divergences_c :: MVector{Div, T} = zero(MVector{Div, T})
+    divergences_scalars :: MVector{Div, SVector{2,T}} = MVector{Div, SVector{2,T}}(ntuple(_ -> zero(SVector{2,T}), Val(Div)))
+
+    ## Correction reduction
+    correction_x :: T = zero(T)
+    correction_y :: T = zero(T)
+
+    # Traversal
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T           = zero(T)
+
+    LinearBoundingVolumeHierarchy.@LBVH_scatter_point_traversal LBVH reference_point Kvalid leaf_idx p2leaf_d2 hb begin
+        ########### Found a neighbor, do accumulation ###########
+        @inbounds begin
+            Δx = xa - x[leaf_idx]
+            Δy = ya - y[leaf_idx]
+            Δr = sqrt(p2leaf_d2)
+            if iszero(Δr)
+                Δx̂ = zero(T)
+                Δŷ = zero(T)
+            else
+                invΔr = inv(Δr)
+                Δx̂ = Δx * invΔr
+                Δŷ = Δy * invΔr
+            end
+
+            invhb = inv(hb)
+            q = Δr * invhb
+
+            mb = input.m[leaf_idx]
+            ρb = input.ρ[leaf_idx]
+            # General volume element for standard SPH interpolation.
+            mblρb = mb / ρb
+
+            wb = K(q)
+            ∂wb = KernelFunctionDiff(Ktyp, q)
+            ∂xwb = ∂wb * Δx̂
+            ∂ywb = ∂wb * Δŷ
+
+            # Full 2D kernel weights.
+            invhb2 = invhb * invhb
+            invhb3 = invhb2 * invhb
+            mlρCnormlhb2 = mblρb * Cnorm * invhb2
+            mlρCnormlhb3 = mblρb * Cnorm * invhb3
+
+            mbWlρb = mlρCnormlhb2 * wb
+            mb∂xWlρb = mlρCnormlhb3 * ∂xwb
+            mb∂yWlρb = mlρCnormlhb3 * ∂ywb
+
+            correction_x += mb∂xWlρb
+            correction_y += mb∂yWlρb
+
+            # Shepard Normalization
+            S1 += mbWlρb
+
+            # Scalar interpolations
+            @inbounds for j in 1:N
+                Ab = input.quant[catalog.scalar_slots[j]][leaf_idx]
+                scalars[j] += Ab * mbWlρb
+            end
+
+            # Gradient interpolations
+            @inbounds for j in 1:G
+                Ab = input.quant[catalog.grad_slots[j]][leaf_idx]
+
+                Abmb∂xWlρb = Ab * mb∂xWlρb
+                Abmb∂yWlρb = Ab * mb∂yWlρb
+
+                gradients_c[j] += SVector{2,T}(Abmb∂xWlρb, Abmb∂yWlρb)
+                gradients_scalars[j] += Ab * mbWlρb
+            end
+
+            # Divergence interpolations
+            @inbounds for j in 1:Div
+                Ax_slot, Ay_slot = catalog.div_slots[j]
+                Axb = input.quant[Ax_slot][leaf_idx]
+                Ayb = input.quant[Ay_slot][leaf_idx]
+
+                divergences_c[j] += Axb * mb∂xWlρb + Ayb * mb∂yWlρb
+
+                Axa = Axb * mbWlρb
+                Aya = Ayb * mbWlρb
+                divergences_scalars[j] += SVector{2,T}(Axa, Aya)
+            end
+        end
+        #########################################################
+    end
+
+    # Preparing output
+    if iszero(S1)
+        scalars_out = ntuple(_ -> T(NaN), Val(N))
+        gradients_out = ntuple(_ -> (T(NaN), T(NaN)), Val(G))
+        divergences_out = ntuple(_ -> T(NaN), Val(Div))
+        curls_out = ()
+        output = (scalars_out, gradients_out, divergences_out, curls_out)
+        return output
+    end
+
+    # Shepard normalization
+    invS1 = inv(S1)
+    @inbounds for j in 1:N
+        if ShepardNormalization[j]
+            scalars[j] *= invS1
+        end
+    end
+
+    # Initialize output containers
+    gradients :: MVector{G, NTuple{2, T}} = MVector{G, NTuple{2, T}}(ntuple(_ -> (zero(T), zero(T)), Val(G)))
+    divergences :: MVector{Div, T} = zero(MVector{Div, T})
+
+    # Construct gradients
+    @inbounds for j in 1:G
+        A    = gradients_scalars[j] * invS1
+
+        # Final result
+        ∇Ax = gradients_c[j][1] - A * correction_x
+        ∇Ay = gradients_c[j][2] - A * correction_y
+
+        gradients[j] = (∇Ax, ∇Ay)
+    end
+
+    # Construct divergences
+    @inbounds for j in 1:Div
+        Ax   = divergences_scalars[j][1] * invS1
+        Ay   = divergences_scalars[j][2] * invS1
+
+        # Final result
+        ∇A = divergences_c[j] - Ax * correction_x - Ay * correction_y
+        divergences[j] = ∇A
+    end
+
+    scalars_out = ntuple(i -> scalars[i], Val(N))
+    gradients_out = ntuple(i -> gradients[i], Val(G))
+    divergences_out = ntuple(i -> divergences[i], Val(Div))
+    curls_out = ()
+    output = (scalars_out, gradients_out, divergences_out, curls_out)
+    return output
+end
+
+@inline function _general_quantity_interpolate_kernel(
+    input :: InterpolationSmoothingVolumeInput{2, T, V, Ktyp, NCOLUMN},
+    reference_point :: NTuple{2,T},
+    LBVH :: LinearBVH,
+    catalog :: InterpolationCatalogConcise{2,N,G,Div,0}) :: Tuple{NTuple{N,T}, NTuple{G,NTuple{2,T}}, NTuple{Div,T}, Tuple{}} where {N, G, Div, T <: AbstractFloat, V <: AbstractVector{T}, Ktyp <: AbstractSPHKernel, NCOLUMN}
+    # Prepare for interpolation
+    hfact = input.hfact
+    η = hfact * hfact
+    K = input.smoothed_kernel
+    Kvalid = KernelFunctionValid(Ktyp, T)
+    ShepardNormalization = catalog.scalar_snormalization
+    invη = inv(η)
+    prefactor = KernelFunctionnorm(Ktyp, Val(2), T) * invη
+    x = get_xcoord(input)
+    y = get_ycoord(input)
+    @inbounds begin
+        xa = reference_point[1]
+        ya = reference_point[2]
+    end
+
+    # Initialize counter
+    ## Shepard Normalization
+    S1 :: T = zero(T)
+
+    ## Scalars
+    scalars :: MVector{N, T} = zero(MVector{N, T})
+
+    ## Gradients
+    gradients_c :: MVector{G, SVector{2,T}} = MVector{G, SVector{2,T}}(ntuple(_ -> zero(SVector{2,T}), Val(G)))
+    gradients_scalars :: MVector{G, T} = zero(MVector{G, T})
+
+    ## Divergences
+    divergences_c :: MVector{Div, T} = zero(MVector{Div, T})
+    divergences_scalars :: MVector{Div, SVector{2,T}} = MVector{Div, SVector{2,T}}(ntuple(_ -> zero(SVector{2,T}), Val(Div)))
+
+    ## Correction reduction
+    correction_x :: T = zero(T)
+    correction_y :: T = zero(T)
+
+    # Traversal
+    leaf_idx :: Int = zero(Int)
+    p2leaf_d2 :: T   = zero(T)
+    hb :: T           = zero(T)
+
+    LinearBoundingVolumeHierarchy.@LBVH_scatter_point_traversal LBVH reference_point Kvalid leaf_idx p2leaf_d2 hb begin
+        ########### Found a neighbor, do accumulation ###########
+        @inbounds begin
+            Δx = xa - x[leaf_idx]
+            Δy = ya - y[leaf_idx]
+            Δr = sqrt(p2leaf_d2)
+            if iszero(Δr)
+                Δx̂ = zero(T)
+                Δŷ = zero(T)
+            else
+                invΔr = inv(Δr)
+                Δx̂ = Δx * invΔr
+                Δŷ = Δy * invΔr
+            end
+
+            invhb = inv(hb)
+            q = Δr * invhb
+
+            wb = K(q)
+            ∂wb = KernelFunctionDiff(Ktyp, q)
+            ∂xwb = ∂wb * Δx̂
+            ∂ywb = ∂wb * Δŷ
+
+            ∂xwblhb = invhb * ∂xwb
+            ∂ywblhb = invhb * ∂ywb
+
+            correction_x += ∂xwblhb
+            correction_y += ∂ywblhb
+
+            # Shepard Normalization
+            S1 += wb
+
+            # Scalar interpolations
+            @inbounds for j in 1:N
+                Ab = input.quant[catalog.scalar_slots[j]][leaf_idx]
+                scalars[j] += Ab * wb
+            end
+
+            # Gradient interpolations
+            @inbounds for j in 1:G
+                Ab = input.quant[catalog.grad_slots[j]][leaf_idx]
+
+                Ab∂xwblhb = Ab * ∂xwblhb
+                Ab∂ywblhb = Ab * ∂ywblhb
+
+                gradients_c[j] += SVector{2,T}(Ab∂xwblhb, Ab∂ywblhb)
+                gradients_scalars[j] += Ab * wb
+            end
+
+            # Divergence interpolations
+            @inbounds for j in 1:Div
+                Ax_slot, Ay_slot = catalog.div_slots[j]
+                Axb = input.quant[Ax_slot][leaf_idx]
+                Ayb = input.quant[Ay_slot][leaf_idx]
+
+                divergences_c[j] += Axb * ∂xwblhb + Ayb * ∂ywblhb
+
+                Axa = Axb * wb
+                Aya = Ayb * wb
+                divergences_scalars[j] += SVector{2,T}(Axa, Aya)
+            end
+        end
+        #########################################################
+    end
+
+    # Preparing output
+    if iszero(S1)
+        scalars_out = ntuple(_ -> T(NaN), Val(N))
+        gradients_out = ntuple(_ -> (T(NaN), T(NaN)), Val(G))
+        divergences_out = ntuple(_ -> T(NaN), Val(Div))
+        curls_out = ()
+        output = (scalars_out, gradients_out, divergences_out, curls_out)
+        return output
+    end
+
+    # Shepard normalization
+    invS1 = inv(S1)
+    @inbounds for j in 1:N
+        if ShepardNormalization[j]
+            scalars[j] *= invS1
+        else
+            scalars[j] *= prefactor
+        end
+    end
+
+    # Initialize output containers
+    gradients :: MVector{G, NTuple{2, T}} = MVector{G, NTuple{2, T}}(ntuple(_ -> (zero(T), zero(T)), Val(G)))
+    divergences :: MVector{Div, T} = zero(MVector{Div, T})
+
+    # Construct gradients
+    @inbounds for j in 1:G
+        A    = gradients_scalars[j] * invS1
+
+        # Final result
+        ∇Ax = prefactor * (gradients_c[j][1] - A * correction_x)
+        ∇Ay = prefactor * (gradients_c[j][2] - A * correction_y)
+
+        gradients[j] = (∇Ax, ∇Ay)
+    end
+
+    # Construct divergences
+    @inbounds for j in 1:Div
+        Ax   = divergences_scalars[j][1] * invS1
+        Ay   = divergences_scalars[j][2] * invS1
+
+        # Final result
+        ∇A = prefactor * (divergences_c[j] - Ax * correction_x - Ay * correction_y)
+        divergences[j] = ∇A
+    end
+
+    scalars_out = ntuple(i -> scalars[i], Val(N))
+    gradients_out = ntuple(i -> gradients[i], Val(G))
+    divergences_out = ntuple(i -> divergences[i], Val(Div))
+    curls_out = ()
+    output = (scalars_out, gradients_out, divergences_out, curls_out)
+    return output
+end
+
+@inline function _general_quantity_interpolate_kernel(
                         input :: InterpolationInput{3, T, V, Ktyp, NCOLUMN},
                         reference_point :: NTuple{3,T},
                         LBVH :: LinearBVH,

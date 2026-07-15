@@ -63,6 +63,9 @@ curl targets into a single statically-typed catalog. It also computes the
 ordered expanded output quantity names and the Shepard-normalization flags for
 all scalar quantities.
 
+# Parameters
+- `::Val{D}`: Spatial dimension of the interpolation catalog.
+
 # Keyword Arguments
 | Keyword | Type | Default | Description |
 |---|---|---|---|

@@ -3,7 +3,23 @@
 #     CUDA LineSamples interpolation drivers
 
 ######################################################################################
-function Partia.LineSamples_interpolation_prepared!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, CuVector{TF}}) where {N, TF <: AbstractFloat, LS <: LineSamples{3, TF, CuVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
+"""
+    LineSamples_interpolation_prepared!(grids, input, catalog_consice, LBVH,
+                                        ::Val{ThreadsPerBlock}=Val(256))
+
+Launch the prepared CUDA line-sample interpolation kernel.
+
+# Parameters
+- `grids`: Preallocated CUDA line-sample output grids.
+- `input`: Prepared CUDA interpolation input.
+- `catalog_consice`: Concise scalar execution catalog.
+- `LBVH`: Prebuilt hierarchy matching `input`.
+- `::Val{ThreadsPerBlock}`: CUDA threads per block.
+
+# Returns
+- `nothing`: The supplied grids are updated in place.
+"""
+function Partia.LineSamples_interpolation_prepared!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, CuVector{TF}}, :: Val{ThreadsPerBlock} = Val(256)) where {N, ThreadsPerBlock, TF <: AbstractFloat, LS <: LineSamples{3, TF, CuVector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, CuVector{TF}}}
     N == 0 && return nothing
 
     if N > 1
@@ -16,7 +32,7 @@ function Partia.LineSamples_interpolation_prepared!(grids :: NTuple{N, LS}, inpu
     npoints = length(grids[1])
     npoints == 0 && return nothing
 
-    @cuda threads=(256,) blocks=(cld(npoints, 256)) _line_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpScatter)
+    @cuda threads=(ThreadsPerBlock,) blocks=(cld(npoints, ThreadsPerBlock)) _line_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpScatter)
     CUDA.synchronize()
 
     return nothing

@@ -10,7 +10,10 @@
 #  2. LineSamples interpolation
 #     • Scatter-only line-integrated interpolation against direct references.
 #     • Externally supplied LBVH dispatch and unsupported-mode errors.
-#  3. Analytic regression
+#  3. Two-dimensional interpolation
+#     • Scalar, gradient, and divergence outputs across Gather and Scatter.
+#     • Standard and smoothing-volume input consistency without curl.
+#  4. Analytic regression
 #     • Linear manufactured field checked across Gather and Scatter
 #       strategies for scalar, gradient, divergence, and curl outputs.
 
@@ -260,7 +263,57 @@ end
     @test_throws MethodError LineSamples_interpolation(line_template, point_input, point_catalog)
 end
 
-# ── 3. PointSamples — analytic linear-field regression ───────────────── #
+# ── 3. PointSamples — two-dimensional kernels ────────────────────────── #
+
+@testset "PointSamples interpolation -- two-dimensional kernels" begin
+    standard_input, smoothing_input, catalog = make_2d_grid_interpolation_fixture()
+    grid_template = make_2d_point_samples_template()
+
+    @test catalog isa InterpolationCatalog{2, 1, 1, 1, 0, 4}
+    @test catalog.ordered_names == (:scalar, :∇scalarˣ, :∇scalarʸ, Symbol("∇⋅v"))
+
+    for strategy in (itpGather, itpScatter)
+        standard_result = PointSamples_interpolation(
+            grid_template,
+            deepcopy(standard_input),
+            catalog,
+            strategy,
+        )
+        smoothing_result = PointSamples_interpolation(
+            grid_template,
+            deepcopy(smoothing_input),
+            catalog,
+            strategy,
+        )
+
+        @test standard_result.names == catalog.ordered_names
+        @test smoothing_result.names == catalog.ordered_names
+        @test all(all(isfinite, grid.grid) for grid in standard_result.grids)
+        @test all(all(isfinite, grid.grid) for grid in smoothing_result.grids)
+
+        for i in eachindex(standard_result.grids)
+            @test isapprox(
+                standard_result.grids[i].grid,
+                smoothing_result.grids[i].grid;
+                atol = 1.0e-12,
+                rtol = 1.0e-10,
+            )
+        end
+    end
+
+    curl_catalog = InterpolationCatalog(
+        (:scalar, :vx, :vy), Val(2);
+        curls = (:v,),
+    )
+    @test_throws MethodError PointSamples_interpolation(
+        grid_template,
+        deepcopy(standard_input),
+        curl_catalog,
+        itpScatter,
+    )
+end
+
+# ── 4. PointSamples — analytic linear-field regression ───────────────── #
 
 @testset "PointSamples interpolation -- analytic linear-field regression" begin
     input, catalog, h = make_uniform_cloud_3d(12; eta = 1.2, variable_h = true)

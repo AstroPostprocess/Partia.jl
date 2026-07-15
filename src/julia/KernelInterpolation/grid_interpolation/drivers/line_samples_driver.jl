@@ -18,6 +18,15 @@ This is the core CPU implementation for reusable output grids. It assumes the
 output `grids`, particle `input`, concise catalog, and Morton-reordered `LBVH`
 have already been prepared by an outer wrapper. The function writes directly
 into the supplied `LineSamples` grids and does not allocate a `GridBundle`.
+
+# Parameters
+- `grids`: Preallocated line-sample output grids.
+- `input`: Prepared particle-side interpolation input.
+- `catalog_consice`: Concise execution catalog.
+- `LBVH`: Prebuilt hierarchy matching the current input order.
+
+# Returns
+- `nothing`: The supplied grids are updated in place.
 """
 function LineSamples_interpolation_prepared!(grids :: NTuple{N, LS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0}, LBVH :: LinearBVH{3, TF, Vector{TF}}) where {N, TF <: AbstractFloat, LS <: LineSamples{3, TF, Vector{TF}}, INPUT <: AbstractInterpolationInput{3, TF, Vector{TF}}}
     # Exit if nothing to do

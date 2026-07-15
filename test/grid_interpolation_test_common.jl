@@ -63,6 +63,52 @@ function make_grid_interpolation_fixture()
     return input, catalog, LBVH
 end
 
+function make_2d_grid_interpolation_fixture()
+    hfact = 1.2
+    axis = collect(range(0.0, 1.0; length = 9))
+    x = repeat(axis, inner = length(axis))
+    y = repeat(axis, outer = length(axis))
+    h = fill(0.24, length(x))
+    m = fill(1.0, length(x))
+    rho = m .* hfact^2 ./ h.^2
+    scalar = @. 1.0 + 2.0 * x - 0.5 * y
+    vx = @. 0.25 + x
+    vy = @. -0.5 + 2.0 * y
+    quant = (scalar, vx, vy)
+
+    standard_input = InterpolationInput(
+        copy(x), copy(y), copy(m), copy(h), copy(rho), map(copy, quant);
+        smoothed_kernel = M4_spline,
+    )
+    smoothing_input = InterpolationSmoothingVolumeInput(
+        hfact,
+        copy(x), copy(y), copy(m), copy(h), map(copy, quant);
+        smoothed_kernel = M4_spline,
+    )
+    catalog = InterpolationCatalog(
+        (:scalar, :vx, :vy), Val(2);
+        scalars = (:scalar,),
+        gradients = (:scalar,),
+        divergences = (:v,),
+    )
+
+    return standard_input, smoothing_input, catalog
+end
+
+function make_2d_point_samples_template()
+    x = Float64[0.35, 0.50, 0.65]
+    y = Float64[0.40, 0.50, 0.60]
+    return PointSamples(zeros(Float64, length(x)), (x, y))
+end
+
+function make_2d_structured_grid_template()
+    return StructuredGrid(
+        Cartesian,
+        (0.35, 0.65, 3),
+        (0.40, 0.60, 3),
+    )
+end
+
 function make_smoothing_volume_grid_interpolation_fixture()
     hfact = 1.2
     x = Float64[0.15, 0.35, 0.55, 0.75]

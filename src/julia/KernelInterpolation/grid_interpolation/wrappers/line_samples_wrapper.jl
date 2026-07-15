@@ -17,6 +17,15 @@ Evaluate line-sample interpolation in place using a full catalog and a prebuilt
 This wrapper is storage-agnostic. It prepares the concise catalog and dispatches
 to the storage-specific core driver, such as the CPU `Vector` method in the main
 package or GPU launch methods provided by extensions.
+
+# Parameters
+- `grids`: Preallocated line-sample output grids.
+- `input`: Particle-side interpolation input.
+- `catalog`: Scalar line-integrated quantities and output order.
+- `LBVH`: Prebuilt hierarchy matching the current input order.
+
+# Returns
+- `GridBundle`: The supplied grids paired with the catalog output names.
 """
 function LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, LBVH :: LinearBVH{3, TF, VF}) where {N, TF <: AbstractFloat, VF <: AbstractVector{TF}, LS <: LineSamples{3, TF, VF}, INPUT <: AbstractInterpolationInput{3, TF, VF}}
     # Get the name of columns
@@ -46,6 +55,15 @@ end
 
 Allocate output line-sample grids and evaluate interpolation using a prebuilt
 `LBVH`.
+
+# Parameters
+- `grid_template`: Geometry and storage template for every output grid.
+- `input`: Particle-side interpolation input.
+- `catalog`: Scalar line-integrated quantities and output order.
+- `LBVH`: Prebuilt hierarchy matching the current input order.
+
+# Returns
+- `GridBundle`: Newly allocated line-sample grids in catalog order.
 """
 function LineSamples_interpolation(grid_template :: LineSamples{3, TF, VF}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}, LBVH :: LinearBVH{3, TF, VF}) where {N, TF <: AbstractFloat, VF <: AbstractVector{TF}, INPUT <: AbstractInterpolationInput{3, TF, VF}}
     # Allocate output grids
@@ -67,6 +85,14 @@ end
     )
 
 Build an `LBVH` from `input`, then evaluate line-sample interpolation in place.
+
+# Parameters
+- `grids`: Preallocated line-sample output grids.
+- `input`: Particle-side interpolation input.
+- `catalog`: Scalar line-integrated quantities and output order.
+
+# Returns
+- `GridBundle`: The supplied grids paired with the catalog output names.
 """
 function LineSamples_interpolation!(grids :: NTuple{N, LS}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}) where {N, TF <: AbstractFloat, VF <: AbstractVector{TF}, LS <: LineSamples{3, TF, VF}, INPUT <: AbstractInterpolationInput{3, TF, VF}}
     # Exit if nothing to do
@@ -87,6 +113,14 @@ end
 
 Allocate output line-sample grids, build an `LBVH` from `input`, and evaluate
 interpolation.
+
+# Parameters
+- `grid_template`: Geometry and storage template for every output grid.
+- `input`: Particle-side interpolation input.
+- `catalog`: Scalar line-integrated quantities and output order.
+
+# Returns
+- `GridBundle`: Newly allocated line-sample grids in catalog order.
 """
 function LineSamples_interpolation(grid_template :: LineSamples{3, TF, VF}, input :: INPUT, catalog :: InterpolationCatalog{3, N, 0, 0, 0, N}) where {N, TF <: AbstractFloat, VF <: AbstractVector{TF}, INPUT <: AbstractInterpolationInput{3, TF, VF}}
     # Allocate output grids

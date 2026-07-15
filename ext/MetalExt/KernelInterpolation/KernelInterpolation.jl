@@ -14,6 +14,9 @@ include(joinpath(@__DIR__, "grid_interpolation", "kernels", "PointSamples_kernel
 include(joinpath(@__DIR__, "grid_interpolation", "kernels", "LineSamples_kernel.jl"))
 include(joinpath(@__DIR__, "grid_interpolation", "drivers", "PointSamples_driver.jl"))
 include(joinpath(@__DIR__, "grid_interpolation", "drivers", "LineSamples_driver.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "point_samples_wrapper.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "line_samples_wrapper.jl"))
+include(joinpath(@__DIR__, "grid_interpolation", "wrappers", "structured_grid_wrapper.jl"))
 
 # Export functions, macros, constants, and types.
 for name in filter(s -> !startswith(string(s), "#"), names(@__MODULE__, all = true))

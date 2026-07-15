@@ -107,6 +107,13 @@ c64 = KernelFunctionnorm(M4_spline, Val(3), Float64)
 
 Return the value of the derivative of the kernel function at dimensionless radius `q`.
 
+# Parameters
+- `kernel`: SPH kernel type.
+- `q`: Dimensionless radius.
+
+# Returns
+- `T`: Derivative of the dimensionless kernel profile.
+
 # Examples
 ```julia
 dw32 = KernelFunctionDiff(M4_spline, 0.7f0)  # Float32
@@ -119,6 +126,12 @@ dw64 = KernelFunctionDiff(M4_spline, 0.7)    # Float64
     KernelFunctionNneigh( :: Type{ <: AbstractSPHKernel}) -> Int
 
 Return the typical number of neighbors associated with the kernel function.
+
+# Parameters
+- `kernel`: SPH kernel type.
+
+# Returns
+- `Int`: Typical neighbor count.
 
 # Examples
 ```julia

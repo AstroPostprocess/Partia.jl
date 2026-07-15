@@ -342,7 +342,41 @@ end
     end
 end
 
-# ── 3c. StructuredGrid interpolation — analytic regression ───────────── #
+# ── 3c. StructuredGrid interpolation — two-dimensional kernels ───────── #
+
+@testset "StructuredGrid interpolation -- two-dimensional kernels" begin
+    input, _, catalog = make_2d_grid_interpolation_fixture()
+    structured_template = make_2d_structured_grid_template()
+    point_template = Partia.Grids.flatten(Cartesian, structured_template)
+
+    for strategy in (itpGather, itpScatter)
+        point_result = PointSamples_interpolation(
+            point_template,
+            deepcopy(input),
+            catalog,
+            strategy,
+        )
+        structured_result = StructuredGrid_interpolation(
+            Cartesian,
+            structured_template,
+            deepcopy(input),
+            catalog,
+            strategy,
+        )
+
+        @test structured_result.names == catalog.ordered_names
+        for i in eachindex(structured_result.grids)
+            @test isapprox(
+                vec(structured_result.grids[i].grid),
+                point_result.grids[i].grid;
+                atol = 1.0e-12,
+                rtol = 1.0e-10,
+            )
+        end
+    end
+end
+
+# ── 3d. StructuredGrid interpolation — analytic regression ───────────── #
 
 @testset "StructuredGrid interpolation -- analytic linear-field regression" begin
     input, catalog, _ = make_uniform_cloud_3d(12; eta = 1.2, variable_h = true)
