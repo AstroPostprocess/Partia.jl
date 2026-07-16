@@ -6,7 +6,7 @@
 #  and their associated operations against hand-verified reference values:
 #  1. Support radius — `KernelFunctionValid` returns correct q_max.
 #  2. Normalisation  — `KernelFunctionnorm` returns correct σ_D.
-#  3. Kernel values  — `Smoothed_kernel_function_dimensionless` at specific
+#  3. Kernel values  — `Smoothed_kernel_function` with h = 1 at specific
 #     q values matches analytic formulas.
 #  4. Compact support — kernel ≡ 0 beyond q_max, NaN for q < 0.
 #  5. Gradient kernel — `Smoothed_gradient_kernel_function` matches finite-
@@ -118,16 +118,16 @@ end
 
 # ── 3. Kernel values at specific q ───────────────────────────────────── #
 
-@testset "Kernel values — analytic comparison" begin
+@testset "Kernel values -- analytic comparison" begin
     test_q_values = [0.0, 0.3, 0.7, 1.0, 1.3, 1.8]
 
     for K in all_kernels
         @testset "$(nameof(K))" begin
             for q in test_q_values
                 expected = analytic_kernel(K, q)
-                got = Smoothed_kernel_function_dimensionless(K, q, Val(3))
+                got = Smoothed_kernel_function(K, q, 1.0, Val(3))
                 σ = KernelFunctionnorm(K, Val(3), Float64)
-                # Dimensionless kernel = σ * f(q)
+                # With h = 1, W(q, 1) = σ * f(q).
                 @test got ≈ σ * expected  atol = 1e-14
             end
         end
@@ -140,16 +140,16 @@ end
     for K in all_kernels
         qmax = KernelFunctionValid(K, Float64)
         # Beyond support → zero
-        @test Smoothed_kernel_function_dimensionless(K, qmax + 0.1, Val(3)) == 0.0
-        @test Smoothed_kernel_function_dimensionless(K, qmax + 10.0, Val(3)) == 0.0
+        @test Smoothed_kernel_function(K, qmax + 0.1, 1.0, Val(3)) == 0.0
+        @test Smoothed_kernel_function(K, qmax + 10.0, 1.0, Val(3)) == 0.0
         # Negative q → NaN
-        @test isnan(Smoothed_kernel_function_dimensionless(K, -0.1, Val(3)))
+        @test isnan(Smoothed_kernel_function(K, -0.1, 1.0, Val(3)))
     end
 end
 
 # ── 5. Gradient kernel — finite-difference check ─────────────────────── #
 
-@testset "Kernel gradient — finite difference" begin
+@testset "Kernel gradient -- finite difference" begin
     kern = M4_spline()
     h = 0.1
     ra = (0.5, 0.5, 0.5)
@@ -190,7 +190,7 @@ end
 
 # ── 7. Line-integrated kernel consistency ───────────────────────────── #
 
-@testset "Line-integrated kernel — two-point interface" begin
+@testset "Line-integrated kernel -- two-point interface" begin
     kern = M4_spline()
     h = 0.1
     ra = (0.5, 0.5)

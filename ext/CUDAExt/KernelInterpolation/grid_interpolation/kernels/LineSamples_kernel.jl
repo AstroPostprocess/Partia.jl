@@ -1,10 +1,10 @@
 @inline function _line_samples_interpolation_kernel!(
-    grids :: NTuple{N, LineSamples{3, TF}},
-    input :: InterpolationInput{3, TF},
+    grids :: NTuple{N, LS},
+    input :: INPUT,
     catalog_consice :: InterpolationCatalogConcise{3, N, 0, 0, 0},
     LBVH :: LinearBVH,
  :: Type{itpScatter},
-) where {N, TF <: AbstractFloat}
+) where {N, TF <: AbstractFloat, VF <: CuDeviceVector{TF}, VC <: NTuple{3, VF}, LS <: LineSamples{3, TF, VF, VC}, INPUT <: AbstractInterpolationInput{3, TF}}
     tid = Int(CUDA.threadIdx().x)
     bid = Int(CUDA.blockIdx().x)
     bdim = Int(CUDA.blockDim().x)
@@ -39,7 +39,6 @@
                     LBVH,
                     scalar_slots,
                     scalar_snormalization,
-                    itpScatter,
                 )
 
             if N > 0

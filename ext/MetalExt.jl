@@ -4,13 +4,20 @@ using Metal
 using Reexport
 using Partia
 
+# Internal Metal utilities
+include(joinpath(@__DIR__, "MetalExt", "Tools", "Tools.jl"))
+
+# Linear bounding volume hierarchy
+include(joinpath(@__DIR__, "MetalExt", "LinearBoundingVolumeHierarchy", "LinearBoundingVolumeHierarchy.jl"))
+@reexport using .LinearBoundingVolumeHierarchy
+
 # Adapt structure
 include(joinpath(@__DIR__, "MetalExt", "AdaptStructure", "AdaptStructure.jl"))
 @reexport using .AdaptStructure
 
 # Grids
 include(joinpath(@__DIR__, "MetalExt", "Grids", "Grids.jl"))
-@reexport using .AdaptStructure
+@reexport using .Grids
 
 # Kernel interpolation
 include(joinpath(@__DIR__, "MetalExt", "KernelInterpolation", "KernelInterpolation.jl"))

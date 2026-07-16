@@ -1,1 +1,0 @@
-abstract type AbstractSamples{D, TF <: AbstractFloat} <: AbstractGrid{TF} end

@@ -6,6 +6,15 @@
 
 ######################################################################################
 
+"""
+    AABB{D, TF, VF}
+
+Structure-of-arrays storage for axis-aligned bounding-box minima and maxima.
+
+# Fields
+- `min :: NTuple{D, VF}`: Per-axis lower bounds.
+- `max :: NTuple{D, VF}`: Per-axis upper bounds.
+"""
 struct AABB{D, TF <: AbstractFloat, VF <: AbstractVector{TF}}
     min :: NTuple{D, VF}
     max :: NTuple{D, VF}

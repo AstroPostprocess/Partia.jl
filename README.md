@@ -4,6 +4,23 @@
 
 
 
+## Contents
+
+- [Installation](#installation)
+- [Functionality](#functionality)
+- [Frames](#frames)
+- [Examples](#examples)
+  - [Cartesian 3D grid](#example-1-cartesian-3d-grid)
+  - [Cylindrical structured grid](#example-2-cylindrical-structured-grid)
+  - [Frame-oriented sampling plane](#example-3-frame-oriented-sampling-plane)
+  - [Parallel ray beam and line-integrated quantities](#example-4-parallel-ray-beam-and-line-integrated-quantities)
+  - [Smoothing-volume interpolation input](#example-5-smoothing-volume-interpolation-input)
+- [Grid IO](#grid-io)
+- [GPU capability](#gpu-capability)
+- [References](#references)
+
+
+
 ## Installation
 
 `Partia.jl` is not registered in the General registry. If you want to install it directly from this repository, use
@@ -134,11 +151,11 @@ Currently the package provides:
 - Line-sampled / line-integrated interpolation
 - Oriented sampling frames for local planes and boxes
 
-The current interpolation pipeline uses a **Linear Bounding Volume Hierarchy (LBVH)** acceleration structure, inspired by *SHAMROCK* ([David-Cleris et al. 2025](https://academic.oup.com/mnras/article/539/1/1/8085154)) (see [Lauterbach et al. (2009)](https://doi.org/10.1111/j.1467-8659.2009.01377.x) and [Karras (2012)](https://doi.org/10.2312/EGGH/HPG12/033-037) for more information). In particular, traversal of this LBVH follows the **stackless DFS traversal** presented by [Prokopenko & Lebrun-Grandié (2024)](https://doi.org/10.2172/2301619).
+The current interpolation pipeline uses a **Linear Bounding Volume Hierarchy (LBVH)** acceleration structure, inspired by *SHAMROCK* ([David-Cléris et al. 2025](https://academic.oup.com/mnras/article/539/1/1/8085154)). Its hierarchy construction follows the modified **Apetrei algorithm** described by [Prokopenko & Lebrun-Grandié (2024)](https://doi.org/10.2172/2301619), which is based on [Apetrei et al. (2014)](https://doi.org/10.2312/cgvc.20141206); see also [Lauterbach et al. (2009)](https://doi.org/10.1111/j.1467-8659.2009.01377.x) and [Karras (2012)](https://doi.org/10.2312/EGGH/HPG12/033-037). Traversal also follows the **stackless DFS traversal** presented by [Prokopenko & Lebrun-Grandié (2024)](https://doi.org/10.2172/2301619).
 
 
 
-At present, the interpolation routines in `Partia.jl` are implemented for **3D data**. The structured-grid interpolation path therefore currently accepts `StructuredGrid{3}` templates only.
+Point-sampled and structured-grid interpolation support both **2D and 3D data**. The 2D path supports scalar, gradient, and divergence outputs; curl remains available only for 3D point interpolation. Line-integrated interpolation currently remains a 3D-only path.
 
 
 
@@ -166,7 +183,7 @@ The computation proceeds through the following stages:
 
 6. Evaluating the single-sample interpolation kernel.
 
-   Each sample is evaluated independently. Point samples dispatch to `_general_quantity_interpolate_kernel`, which accumulates the requested scalar, gradient, divergence, and curl quantities according to the concise catalog and its Shepard-normalization flags. Line samples dispatch to `_line_integrated_quantities_interpolate_kernel`, which evaluates line-integrated scalar quantities using particle-side smoothing lengths. The enclosing sample loop is then executed by the selected backend (`CPUComputeBackend`, `CUDAComputeBackend`, `MetalComputeBackend`).
+   Each sample is evaluated independently. Point samples dispatch to `_general_quantity_interpolate_kernel`, which accumulates the requested scalar, gradient, and divergence quantities according to the concise catalog and its Shepard-normalization flags; 3D point interpolation additionally supports curl. Line samples dispatch to `_line_integrated_quantities_interpolate_kernel`, which evaluates line-integrated scalar quantities using particle-side smoothing lengths. The array storage used by the samples and interpolation input (`Vector`, `CuVector`, or `MtlVector`) selects the execution path.
 
 7. Writing results back into the output grids.
 
@@ -224,7 +241,8 @@ rotate_forward_to!(frame, (0.0, 0.0, -1.0))
 Frame-based grid constructors take `AxisParam` tuples of the form
 `(min, max, n)`. Cartesian `x`, `y`, and `z` axes include both boundaries.
 Polar and cylindrical angular axes are half-open: `ϕmin` is included and `ϕmax`
-is not duplicated.
+is not duplicated. A plane uses the current right and up directions as its two
+in-plane axes; the frame's forward direction is normal to the plane.
 
 ```julia
 xparams = (-5.0, 5.0, 101)
@@ -238,17 +256,19 @@ cartesian_box = PointSamples(Cartesian, frame, xparams, yparams, zparams)
 polar_plane = PointSamples(Polar, frame, sparams, ϕparams)
 cylindrical_box = PointSamples(Cylindrical, frame, sparams, ϕparams, zparams)
 
-cartesian_rays = LineSamples(Cartesian, ParallelBeam, frame, xparams, yparams)
-polar_rays = LineSamples(Polar, ParallelBeam, frame, sparams, ϕparams)
+cartesian_ray_beam = LineSamples(Cartesian, ParallelBeam, frame, xparams, yparams)
+polar_ray_beam = LineSamples(Polar, ParallelBeam, frame, sparams, ϕparams)
 ```
 
 For `LineSamples(..., ParallelBeam, frame, ...)`, sample origins are placed on
 the same frame plane as the corresponding `PointSamples` constructor, and every
-line direction is set to `frame_forward(frame)`.
+line direction is set to `frame_forward(frame)`. Consequently, the same `Frame`
+and axis parameters can be used to construct a point-sampled image plane and its
+matching parallel ray beam. A complete interpolation example is shown below.
 
 
 
-## Example
+## Examples
 
 Assume the particle data are already available as arrays or in a dictionary-like container:
 
@@ -268,8 +288,6 @@ particles = Dict(
     "vz" => vz,
 )
 
-backend = CPUComputeBackend()
-
 x = particles["x"]
 y = particles["y"]
 z = particles["z"]
@@ -282,11 +300,10 @@ vy = particles["vy"]
 vz = particles["vz"]
 ```
 
-To interpolate **internal energy**, the **velocity components**, the **density gradient**, the **divergence of velocity**, and the curl of velocity, first construct the interpolation input and catalog:
+To interpolate **internal energy**, the **velocity components**, the **density gradient**, the **divergence of velocity**, and the **curl of velocity**, first construct the interpolation input and catalog:
 
 ```julia
 input, catalog = build_input(
-    backend,
     x,
     y,
     z,
@@ -320,7 +337,20 @@ For this particular catalog, the output order is fixed as:
 
 The returned `GridBundle` follows exactly this catalog order.
 
-### Example 1 - Cartesian 3D grid
+Build the LBVH once when the same particle data will be sampled more than once:
+
+```julia
+lbvh = LinearBVH!(input)
+```
+
+`LinearBVH!` reorders all arrays in `input` into Morton leaf order and returns a
+hierarchy consistent with that new ordering. Keep `input` and `lbvh` together
+after this call; do not restore or independently reorder only some of the input
+arrays. The interpolation wrappers can build an LBVH automatically when it is
+omitted, but passing this prebuilt hierarchy avoids rebuilding it for every
+plane, ray beam, or grid.
+
+### Example 1: Cartesian 3D grid
 
 To sample the particle data onto a Cartesian structured grid:
 
@@ -333,11 +363,11 @@ grid_template = StructuredGrid(
 )
 
 result = StructuredGrid_interpolation(
-    backend,
     Cartesian,
     grid_template,
     input,
     catalog,
+    lbvh,
     itpScatter,
 )
 
@@ -346,7 +376,7 @@ u_grid = result.grids[1]
 
 Here `result` is a `GridBundle`, and each entry of `result.grids` is a `StructuredGrid` with the same axes as `grid_template`.
 
-### Example 2 - Cylindrical structured grid
+### Example 2: Cylindrical structured grid
 
 For non-Cartesian 3D structured grids, pass the coordinate-system tag explicitly:
 
@@ -359,40 +389,53 @@ cyl_template = StructuredGrid(
 )
 
 cyl_result = StructuredGrid_interpolation(
-    backend,
     Cylindrical,
     cyl_template,
     input,
     catalog,
+    lbvh,
     itpScatter,
 )
 ```
 
 In this case the cylindrical sample coordinates are converted to Cartesian positions before the SPH interpolation kernel is evaluated, while the output grids are restored on the original cylindrical axes.
 
-### Example 3 - Points interpolation
+### Example 3: Frame-oriented sampling plane
 
-To evaluate interpolated quantities at an arbitrary set of sample points, use `PointSamples`:
+The following frame is placed above the origin and initially looks toward it.
+Its right and up directions span a Cartesian image plane, while its forward
+direction is the plane normal:
 
 ```julia
-sample_points = PointSamples(x, y, z)
+frame = Frame(0.0, 0.0, 10.0)
 
-point_result = PointSamples_interpolation(
-    backend,
-    sample_points,
+xparams = (-5.0, 5.0, 101)
+yparams = (-5.0, 5.0, 101)
+
+plane = PointSamples(Cartesian, frame, xparams, yparams)
+
+plane_result = PointSamples_interpolation(
+    plane,
     input,
     catalog,
+    lbvh,
     itpScatter,
 )
 
-u_at_points = point_result.grids[1].grid
+u_on_plane = plane_result.grids[1].grid
 ```
 
-This is useful for particle-wise postprocessing, field probes, or consistency checks against existing particle data.
+`plane.coor` contains the resulting global Cartesian coordinates in
+structure-of-arrays form. To sample arbitrary points instead, construct
+`PointSamples(x_sample, y_sample, z_sample)` and use the same interpolation
+call.
 
-### Example 4 - Column density and line-integrated quantities
+### Example 4: Parallel ray beam and line-integrated quantities
 
-Line-integrated interpolation currently supports scalar outputs only and uses `itpScatter`:
+Use the same frame and axis parameters to put one parallel ray origin at every
+point of the image plane. Every ray travels along `frame_forward(frame)`.
+Line-integrated interpolation currently supports scalar outputs only and uses
+particle-side smoothing lengths (`itpScatter`):
 
 ```julia
 line_catalog = InterpolationCatalog(
@@ -400,21 +443,19 @@ line_catalog = InterpolationCatalog(
     scalars = (:rho, :u),
 )
 
-lines = LineSamples(
-    x_origin,
-    y_origin,
-    z_origin,
-    x_direction,
-    y_direction,
-    z_direction,
+ray_beam = LineSamples(
+    Cartesian,
+    ParallelBeam,
+    frame,
+    xparams,
+    yparams,
 )
 
 line_result = LineSamples_interpolation(
-    backend,
-    lines,
+    ray_beam,
     input,
     line_catalog,
-    itpScatter,
+    lbvh,
 )
 
 Sigma = line_result.grids[1].grid
@@ -424,6 +465,53 @@ u_column = line_result.grids[2].grid
 Since `line_catalog` is constructed with `scalars = (:rho, :u)`, the output order is exactly `(:rho, :u)`, so `line_result.grids[1]` is the line-integrated density and `line_result.grids[2]` is the line-integrated internal energy.
 
 This is the intended path for projected quantities such as column density or line-integrated scalar diagnostics.
+
+
+
+### Example 5: Smoothing-volume interpolation input
+
+If the particle data follow the PHANTOM smoothing-length relation
+
+```math
+\frac{m_b}{\rho_b} = \frac{h_b^D}{h_{\mathrm{fact}}^D},
+```
+
+the density column does not need to be materialized. Pass `hfact` as the first
+argument to `build_input` to construct an `InterpolationSmoothingVolumeInput`
+and its matching catalog:
+
+```julia
+hfact = convert(eltype(x), 1.2)
+
+smoothing_input, smoothing_catalog = build_input(
+    hfact,
+    x,
+    y,
+    z,
+    m,
+    h,
+    (u, vx, vy, vz);
+    column_names = (:u, :vx, :vy, :vz),
+    scalars = (:u, :vx, :vy, :vz),
+    divergences = (:v,),
+    curls = (:v,),
+)
+
+smoothing_lbvh = LinearBVH!(smoothing_input)
+
+smoothing_result = PointSamples_interpolation(
+    plane,
+    smoothing_input,
+    smoothing_catalog,
+    smoothing_lbvh,
+    itpScatter,
+)
+```
+
+The same point-, structured-grid-, and line-sample APIs accept this input type.
+Its interpolation weights use the smoothing-volume relation above instead of a
+stored density array. The input can also be moved with `to_CuVector` or
+`to_MtlVector` for the corresponding GPU path.
 
 
 
@@ -475,36 +563,59 @@ At present, `read_GridDataset` reconstructs `StructuredGrid` and `PointSamples` 
 
 ## GPU capability
 
-`Partia.jl` provides GPU execution through Julia package extensions for [`CUDA.jl`](https://github.com/JuliaGPU/CUDA.jl) and [`Metal.jl`](https://github.com/JuliaGPU/Metal.jl). These are weak dependencies, so the corresponding extension is activated when the backend package is loaded.
+`Partia.jl` provides GPU execution through Julia package extensions for [`CUDA.jl`](https://github.com/JuliaGPU/CUDA.jl) and [`Metal.jl`](https://github.com/JuliaGPU/Metal.jl). These are weak dependencies, so the corresponding extension is activated when the GPU package is loaded.
 
-The available execution backends are:
-
-- `CPUComputeBackend()`
-- `CUDAComputeBackend()`
-- `MetalComputeBackend()`
-
-The interpolation interface is unchanged across backends. For example, a CUDA run uses
+The interpolation methods dispatch from the storage type of the input and sampling grids. For example, a CUDA run uses
 
 ```julia
 using Partia
 using CUDA
 
-backend = CUDAComputeBackend()
+device_input = to_CuVector(input)
+device_samples = to_CuVector(plane)
+threads_per_block = Val(128)
 
 result = PointSamples_interpolation(
-    backend,
-    sample_points,
-    input,
+    device_samples,
+    device_input,
     catalog,
     itpScatter,
+    threads_per_block,
 )
 ```
 
-At present, GPU execution is implemented for the 3D interpolation pipeline:
+The CUDA overload accepts a trailing `Val{ThreadsPerBlock}`, which is optional
+and defaults to `Val(256)`. The Metal overload uses the same position with
+`Val{ThreadsPerGroup}` instead. These backend-specific launch parameters are
+available on `PointSamples_interpolation`, `LineSamples_interpolation`, and
+`StructuredGrid_interpolation`; the CPU wrappers keep their original API.
 
-- `PointSamples_interpolation`
-- `LineSamples_interpolation`
-- `StructuredGrid_interpolation`, which flattens the structured grid to `PointSamples`, dispatches through the selected backend, and restores the structured output afterwards
+For example, the corresponding Metal call can select its threadgroup size with
+`Val(128)`:
+
+```julia
+using Metal
+
+device_input = to_MtlVector(input)
+device_samples = to_MtlVector(plane)
+threads_per_group = Val(128)
+
+result = PointSamples_interpolation(
+    device_samples,
+    device_input,
+    catalog,
+    itpScatter,
+    threads_per_group,
+)
+```
+
+GPU execution is implemented for:
+
+- 2D and 3D `PointSamples_interpolation`
+- 3D `LineSamples_interpolation`
+- 2D and 3D `StructuredGrid_interpolation`, which flattens the structured grid to `PointSamples`, dispatches from its storage type, and restores the structured output afterwards
+
+As on the CPU, 2D device interpolation supports scalar, gradient, and divergence outputs but not curl.
 
 The extension layers also provide explicit data-movement helpers:
 
@@ -518,7 +629,9 @@ In the current implementation, GPU interpolation returns its results to host mem
 
 ## References
 
-David-Cleris T., Laibe G., Lapeyre Y., 2025, MNRAS, 539, 1, [doi:10.1093/mnras/staf444](https://doi.org/10.1093/mnras/staf444)
+Apetrei C., 2014, [doi:10.2312/cgvc.20141206](https://doi.org/10.2312/cgvc.20141206)
+
+David-Cléris T., Laibe G., Lapeyre Y., 2025, MNRAS, 539, 1, [doi:10.1093/mnras/staf444](https://doi.org/10.1093/mnras/staf444)
 
 Karras T., 2012, in High Performance Graphics, p. 33, [doi:10.2312/EGGH/HPG12/033-037](https://doi.org/10.2312/EGGH/HPG12/033-037)
 
@@ -528,4 +641,4 @@ Price D. J., 2007, Publ. Astron. Soc. Aust., 24, 159, [doi:10.1071/AS07022](http
 
 Price D. J., 2012, J. Comput. Phys., 231, 759, [doi:10.1016/j.jcp.2010.12.011](https://doi.org/10.1016/j.jcp.2010.12.011)
 
-Prokopenko A., Lebrun-Grandie D., 2024, ORNL/TM-2024/3259, [doi:10.2172/2301619](https://doi.org/10.2172/2301619)
+Prokopenko A., Lebrun-Grandié D., 2024, ORNL/TM-2024/3259, [doi:10.2172/2301619](https://doi.org/10.2172/2301619)

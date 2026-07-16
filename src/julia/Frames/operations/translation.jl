@@ -1,5 +1,5 @@
 """
-    translate!(::Type{GlobalCoordinates}, frame::Frame{TF}, Δx::TF, Δy::TF, Δz::TF) where {TF <: AbstractFloat}
+    translate!( :: Type{GlobalCoordinates}, frame :: Frame{TF}, Δx :: TF, Δy :: TF, Δz :: TF) where {TF <: AbstractFloat}
 
 Translate `frame` by a displacement expressed along the fixed global axes.
 `GlobalCoordinates` interprets the displacement components along the fixed global x, y, and z axes.
@@ -11,8 +11,11 @@ This method modifies only `frame.x`; it does not modify `frame.Q`.
 - `Δx`: Displacement component along the fixed global x axis.
 - `Δy`: Displacement component along the fixed global y axis.
 - `Δz`: Displacement component along the fixed global z axis.
+
+# Returns
+- `nothing`: `frame` is updated in place.
 """
-@inline function translate!(:: Type{GlobalCoordinates}, frame :: Frame{TF}, Δx :: TF, Δy :: TF, Δz :: TF) where {TF <: AbstractFloat}
+@inline function translate!( :: Type{GlobalCoordinates}, frame :: Frame{TF}, Δx :: TF, Δy :: TF, Δz :: TF) where {TF <: AbstractFloat}
     frame.x[1] += Δx
     frame.x[2] += Δy
     frame.x[3] += Δz
@@ -20,7 +23,7 @@ This method modifies only `frame.x`; it does not modify `frame.Q`.
 end
 
 """
-    translate!(::Type{LocalCoordinates}, frame::Frame{TF}, Δr::TF, Δf::TF, Δu::TF) where {TF <: AbstractFloat}
+    translate!( :: Type{LocalCoordinates}, frame :: Frame{TF}, Δr :: TF, Δf :: TF, Δu :: TF) where {TF <: AbstractFloat}
 
 Translate `frame` by a displacement expressed along the frame's current local directions.
 `LocalCoordinates` interprets the displacement components along the frame's current right, up, and forward directions.
@@ -33,8 +36,11 @@ This method modifies only `frame.x`; it does not modify `frame.Q`.
 - `Δr`: Displacement component along the frame's current right direction.
 - `Δf`: Displacement component along the frame's current forward direction.
 - `Δu`: Displacement component along the frame's current up direction.
+
+# Returns
+- `nothing`: `frame` is updated in place.
 """
-@inline function translate!(:: Type{LocalCoordinates}, frame :: Frame{TF}, Δr :: TF, Δf :: TF, Δu :: TF,) where {TF <: AbstractFloat}
+@inline function translate!( :: Type{LocalCoordinates}, frame :: Frame{TF}, Δr :: TF, Δf :: TF, Δu :: TF,) where {TF <: AbstractFloat}
     Q = frame.Q
 
     # Get the current local basis vectors in global coordinates

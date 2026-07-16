@@ -1,66 +1,161 @@
+######################################################################################
+
+#     Metal PointSamples interpolation drivers
+
+######################################################################################
+
+#     Gather interpolation
+
+######################################################################################
 """
-    PointSamples_interpolation(backend :: MetalComputeBackend, grid_template :: PointSamples{3,TF},
-                          input :: InterpolationInput{3,TF}, catalog :: InterpolationCatalog{3, N, G, Div, C, L},
-                          itp_strategy :: Type{ITPSTRATEGY} = itpScatter)
+    PointSamples_interpolation!(grids, input, catalog_consice, LBVH,
+                                         itpGather,
+                                         ::Val{ThreadsPerGroup}=Val(256))
 
-Performs SPH grid interpolation on the GPU using Apple's Metal backend.
+Launch the prepared 2D Metal gather-interpolation kernel.
 
-This routine mirrors the CPU `PointSamples_interpolation` path: it supports the
-same interpolation catalog and strategy combinations while offloading the point
-evaluation kernel to the GPU.
+# Parameters
+- `grids`: Preallocated Metal point-sample output grids.
+- `input`: Prepared 2D Metal interpolation input.
+- `catalog_consice`: Concise execution catalog with no curl requests.
+- `LBVH`: Prebuilt 2D hierarchy matching `input`.
+- `itpGather`: Gather-strategy dispatch tag.
+- `::Val{ThreadsPerGroup}`: Metal threads per threadgroup.
+
+# Returns
+- `nothing`: The supplied grids are updated in place.
 """
-function Partia.PointSamples_interpolation( :: MetalComputeBackend, grid_template :: PointSamples{3, TF}, input :: InterpolationInput{3, TF}, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, G, Div, C, L, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    grids, LBVH, names, catalog_consice = Partia.initialize_interpolation(Partia.CPUComputeBackend(), grid_template, input, catalog)
-    @info "     SPH Interpolation: Copying interpolated grids to device memory..."
-    input_Mtl = to_MtlVector(input)
-    grids_Mtl = ntuple(i -> to_MtlVector(grids[i]), Val(L))
-    LBVH_Mtl = to_MtlVector(LBVH)
-    @info "     SPH Interpolation: End copying interpolated grids to device memory."
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, MtlVector{TF}}, :: Type{itpGather}, :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, TF <: Float32, VF <: MtlVector{TF}, VC <: NTuple{2, VF}, PS <: PointSamples{2, TF, VF, VC}, INPUT <: AbstractInterpolationInput{2, TF, MtlVector{TF}}}
+    L == 0 && return nothing
 
-    npoints = length(grid_template)
-    @info "     SPH Interpolation: Start interpolation..."
-    @metal threads=(256,) groups=(cld(npoints, 256)) _point_samples_interpolation_kernel!(grids_Mtl, input_Mtl, catalog_consice, LBVH_Mtl, itp_strategy)
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
+    end
+
+    npoints = length(grids[1])
+    npoints == 0 && return nothing
+
+    @metal threads=(ThreadsPerGroup,) groups=(cld(npoints, ThreadsPerGroup)) _point_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpGather)
     Metal.synchronize()
-    @info "     SPH Interpolation: End interpolation."
-    @info "     SPH Interpolation: Copying interpolated grids back to host memory..."
-    grids_result = ntuple(i -> Partia.to_HostVector(grids_Mtl[i]), Val(L))
-    @info "     SPH Interpolation: End copying interpolated grids back to host memory."
-    return GridBundle(grids_result, names)
+
+    return nothing
 end
 
 """
-    PointSamples_interpolation(backend :: MetalComputeBackend, grid_template :: PointSamples{3,TF},
-                               input :: InterpolationInput{3,TF}, LBVH :: LinearBVH{3,TF},
-                               catalog :: InterpolationCatalog{3, N, G, Div, C, L},
-                               itp_strategy :: Type{ITPSTRATEGY} = itpScatter)
+    PointSamples_interpolation!(grids, input, catalog_consice, LBVH,
+                                         itpGather,
+                                         ::Val{ThreadsPerGroup}=Val(256))
 
-Performs SPH grid interpolation on the GPU using Apple's Metal backend with an
-externally supplied `LinearBVH`.
+Launch the prepared 3D Metal gather-interpolation kernel.
 
-This routine mirrors the existing Metal point-sample path, but skips LBVH
-construction and instead reuses the provided hierarchy after checking that its
-leaf order matches the current ordering of `input`.
+# Parameters
+- `grids`: Preallocated Metal point-sample output grids.
+- `input`: Prepared 3D Metal interpolation input.
+- `catalog_consice`: Concise execution catalog.
+- `LBVH`: Prebuilt 3D hierarchy matching `input`.
+- `itpGather`: Gather-strategy dispatch tag.
+- `::Val{ThreadsPerGroup}`: Metal threads per threadgroup.
+
+# Returns
+- `nothing`: The supplied grids are updated in place.
 """
-function Partia.PointSamples_interpolation( :: MetalComputeBackend, grid_template :: PointSamples{3, TF}, input :: InterpolationInput{3, TF}, LBVH :: LinearBVH{3, TF}, catalog :: InterpolationCatalog{3, N, G, Div, C, L}, itp_strategy :: Type{ITPSTRATEGY} = itpScatter) where {N, G, Div, C, L, TF <: AbstractFloat, ITPSTRATEGY <: AbstractInterpolationStrategy}
-    Partia.matches_lbvh_leaf_order(input, LBVH) || throw(ArgumentError(
-        "Provided LBVH leaf order does not match the current input ordering. " *
-        "Ensure the LBVH was built from the same Morton-reordered input."
-    ))
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}, :: Type{itpGather}, :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, TF <: Float32, VF <: MtlVector{TF}, VC <: NTuple{3, VF}, PS <: PointSamples{3, TF, VF, VC}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
+    L == 0 && return nothing
 
-    grids, names, catalog_consice = Partia.initialize_interpolation(Partia.CPUComputeBackend(), grid_template, catalog)
-    @info "     SPH Interpolation: Copying interpolated grids to device memory..."
-    input_Mtl = to_MtlVector(input)
-    grids_Mtl = ntuple(i -> to_MtlVector(grids[i]), Val(L))
-    LBVH_Mtl = to_MtlVector(LBVH)
-    @info "     SPH Interpolation: End copying interpolated grids to device memory."
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
+    end
 
-    npoints = length(grid_template)
-    @info "     SPH Interpolation: Start interpolation..."
-    @metal threads=(256,) groups=(cld(npoints, 256)) _point_samples_interpolation_kernel!(grids_Mtl, input_Mtl, catalog_consice, LBVH_Mtl, itp_strategy)
+    npoints = length(grids[1])
+    npoints == 0 && return nothing
+
+    @metal threads=(ThreadsPerGroup,) groups=(cld(npoints, ThreadsPerGroup)) _point_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpGather)
     Metal.synchronize()
-    @info "     SPH Interpolation: End interpolation."
-    @info "     SPH Interpolation: Copying interpolated grids back to host memory..."
-    grids_result = ntuple(i -> Partia.to_HostVector(grids_Mtl[i]), Val(L))
-    @info "     SPH Interpolation: End copying interpolated grids back to host memory."
-    return GridBundle(grids_result, names)
+
+    return nothing
+end
+
+######################################################################################
+
+#     Scatter interpolation
+
+######################################################################################
+"""
+    PointSamples_interpolation!(grids, input, catalog_consice, LBVH,
+                                         itpScatter,
+                                         ::Val{ThreadsPerGroup}=Val(256))
+
+Launch the prepared 2D Metal scatter-interpolation kernel.
+
+# Parameters
+- `grids`: Preallocated Metal point-sample output grids.
+- `input`: Prepared 2D Metal interpolation input.
+- `catalog_consice`: Concise execution catalog with no curl requests.
+- `LBVH`: Prebuilt 2D hierarchy matching `input`.
+- `itpScatter`: Scatter-strategy dispatch tag.
+- `::Val{ThreadsPerGroup}`: Metal threads per threadgroup.
+
+# Returns
+- `nothing`: The supplied grids are updated in place.
+"""
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{2, N, G, Div, 0}, LBVH :: LinearBVH{2, TF, MtlVector{TF}}, :: Type{itpScatter}, :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, L, ThreadsPerGroup, TF <: Float32, VF <: MtlVector{TF}, VC <: NTuple{2, VF}, PS <: PointSamples{2, TF, VF, VC}, INPUT <: AbstractInterpolationInput{2, TF, MtlVector{TF}}}
+    L == 0 && return nothing
+
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
+    end
+
+    npoints = length(grids[1])
+    npoints == 0 && return nothing
+
+    @metal threads=(ThreadsPerGroup,) groups=(cld(npoints, ThreadsPerGroup)) _point_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpScatter)
+    Metal.synchronize()
+
+    return nothing
+end
+
+"""
+    PointSamples_interpolation!(grids, input, catalog_consice, LBVH,
+                                         itpScatter,
+                                         ::Val{ThreadsPerGroup}=Val(256))
+
+Launch the prepared 3D Metal scatter-interpolation kernel.
+
+# Parameters
+- `grids`: Preallocated Metal point-sample output grids.
+- `input`: Prepared 3D Metal interpolation input.
+- `catalog_consice`: Concise execution catalog.
+- `LBVH`: Prebuilt 3D hierarchy matching `input`.
+- `itpScatter`: Scatter-strategy dispatch tag.
+- `::Val{ThreadsPerGroup}`: Metal threads per threadgroup.
+
+# Returns
+- `nothing`: The supplied grids are updated in place.
+"""
+function Partia.PointSamples_interpolation!(grids :: NTuple{L, PS}, input :: INPUT, catalog_consice :: InterpolationCatalogConcise{3, N, G, Div, C}, LBVH :: LinearBVH{3, TF, MtlVector{TF}}, :: Type{itpScatter}, :: Val{ThreadsPerGroup} = Val(256)) where {N, G, Div, C, L, ThreadsPerGroup, TF <: Float32, VF <: MtlVector{TF}, VC <: NTuple{3, VF}, PS <: PointSamples{3, TF, VF, VC}, INPUT <: AbstractInterpolationInput{3, TF, MtlVector{TF}}}
+    L == 0 && return nothing
+
+    if L > 1
+        same_coordinates(grids...) || throw(ArgumentError(
+            "All output PointSamples grids must share the same point coordinates. " *
+            "Expected every grid to reuse the same coordinate vectors."
+        ))
+    end
+
+    npoints = length(grids[1])
+    npoints == 0 && return nothing
+
+    @metal threads=(ThreadsPerGroup,) groups=(cld(npoints, ThreadsPerGroup)) _point_samples_interpolation_kernel!(grids, input, catalog_consice, LBVH, itpScatter)
+    Metal.synchronize()
+
+    return nothing
 end

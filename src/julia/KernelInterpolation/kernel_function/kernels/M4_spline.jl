@@ -3,10 +3,28 @@
 # Type calling of function
 
 ######################################################################################
+"""
+    M4_spline <: AbstractSPHKernel
+
+Cubic B-spline SPH kernel dispatch type with compact-support radius `2h`.
+Instances are callable with dimensionless radius `q`.
+"""
 struct M4_spline <: AbstractSPHKernel end
 struct _dM4_spline <: AbstractSPHKernel end
 
 # Defince parent type of deriviative kernel
+"""
+    parenttype(K::Type{<:AbstractSPHKernel})
+
+Return the non-derivative SPH kernel type associated with derivative-kernel
+type `K`.
+
+# Parameters
+- `K`: Derivative SPH kernel type.
+
+# Returns
+- `Type{<:AbstractSPHKernel}`: Corresponding base kernel type.
+"""
 parenttype( :: Type{_dM4_spline}) = M4_spline
 
 # Kernel Functions
@@ -105,6 +123,13 @@ c64 = KernelFunctionnorm(M4_spline, Val(3), Float64)
 
 Return the value of the derivative of the kernel function at dimensionless radius `q`.
 
+# Parameters
+- `kernel`: SPH kernel type.
+- `q`: Dimensionless radius.
+
+# Returns
+- `T`: Derivative of the dimensionless kernel profile.
+
 # Examples
 ```julia
 dw32 = KernelFunctionDiff(M4_spline, 0.7f0)  # Float32
@@ -117,6 +142,12 @@ dw64 = KernelFunctionDiff(M4_spline, 0.7)    # Float64
     KernelFunctionNneigh( :: Type{ <: AbstractSPHKernel}) -> Int
 
 Return the typical number of neighbors associated with the kernel function.
+
+# Parameters
+- `kernel`: SPH kernel type.
+
+# Returns
+- `Int`: Typical neighbor count.
 
 # Examples
 ```julia

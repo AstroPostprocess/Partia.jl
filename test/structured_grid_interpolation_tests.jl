@@ -259,14 +259,12 @@ end
     flattened_template = Partia.Grids.flatten(Cartesian, structured_template)
 
     point_result = PointSamples_interpolation(
-        CPUComputeBackend(),
         flattened_template,
         input,
         catalog,
         itpScatter,
     )
     structured_result = StructuredGrid_interpolation(
-        CPUComputeBackend(),
         Cartesian,
         structured_template,
         input,
@@ -283,6 +281,32 @@ end
     end
 end
 
+@testset "StructuredGrid interpolation -- smoothing-volume consistency" begin
+    standard_input, smoothing_input, catalog = make_smoothing_volume_grid_interpolation_fixture()
+    structured_template = make_structured_grid_template()
+
+    standard_result = StructuredGrid_interpolation(
+        Cartesian,
+        structured_template,
+        standard_input,
+        catalog,
+        itpScatter,
+    )
+    smoothing_result = StructuredGrid_interpolation(
+        Cartesian,
+        structured_template,
+        smoothing_input,
+        catalog,
+        itpScatter,
+    )
+
+    @test smoothing_result.names == standard_result.names
+    for i in eachindex(standard_result.grids)
+        @test smoothing_result.grids[i].axes == standard_result.grids[i].axes
+        @test approx_with_nan(vec(smoothing_result.grids[i].grid), vec(standard_result.grids[i].grid); atol = 1.0e-12, rtol = 1.0e-10)
+    end
+end
+
 # ── 3b. StructuredGrid interpolation — coordinate-system dispatch ────── #
 
 @testset "StructuredGrid interpolation -- flattened consistency by coordinate system" begin
@@ -295,14 +319,12 @@ end
     )
         flattened_template = Partia.Grids.flatten(coord, template)
         point_result = PointSamples_interpolation(
-            CPUComputeBackend(),
             flattened_template,
             input,
             catalog,
             itpScatter,
         )
         structured_result = StructuredGrid_interpolation(
-            CPUComputeBackend(),
             coord,
             template,
             input,
@@ -320,7 +342,41 @@ end
     end
 end
 
-# ── 3c. StructuredGrid interpolation — analytic regression ───────────── #
+# ── 3c. StructuredGrid interpolation — two-dimensional kernels ───────── #
+
+@testset "StructuredGrid interpolation -- two-dimensional kernels" begin
+    input, _, catalog = make_2d_grid_interpolation_fixture()
+    structured_template = make_2d_structured_grid_template()
+    point_template = Partia.Grids.flatten(Cartesian, structured_template)
+
+    for strategy in (itpGather, itpScatter)
+        point_result = PointSamples_interpolation(
+            point_template,
+            deepcopy(input),
+            catalog,
+            strategy,
+        )
+        structured_result = StructuredGrid_interpolation(
+            Cartesian,
+            structured_template,
+            deepcopy(input),
+            catalog,
+            strategy,
+        )
+
+        @test structured_result.names == catalog.ordered_names
+        for i in eachindex(structured_result.grids)
+            @test isapprox(
+                vec(structured_result.grids[i].grid),
+                point_result.grids[i].grid;
+                atol = 1.0e-12,
+                rtol = 1.0e-10,
+            )
+        end
+    end
+end
+
+# ── 3d. StructuredGrid interpolation — analytic regression ───────────── #
 
 @testset "StructuredGrid interpolation -- analytic linear-field regression" begin
     input, catalog, _ = make_uniform_cloud_3d(12; eta = 1.2, variable_h = true)
@@ -333,7 +389,7 @@ end
             sample_coords = explicit_cartesian_coords(coord, structured_template)
 
             for strategy in (itpGather, itpScatter)
-                result = StructuredGrid_interpolation(CPUComputeBackend(), coord, structured_template, input, catalog, strategy)
+                result = StructuredGrid_interpolation(coord, structured_template, input, catalog, strategy)
 
                 q_grid = vec(result.grids[1].grid)
                 gradx_grid = vec(result.grids[2].grid)

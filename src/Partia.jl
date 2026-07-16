@@ -1,3 +1,9 @@
+"""
+    Partia
+
+Particle-data analysis tools, grid representations, spatial search structures,
+and CPU/GPU kernel interpolation APIs.
+"""
 module Partia
 # Include the Julia Module
 using Logging

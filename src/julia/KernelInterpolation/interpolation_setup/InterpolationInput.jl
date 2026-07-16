@@ -38,7 +38,7 @@ carried in the type rather than inferred from separate `x/y/z` fields.
 - `ρ :: V`: Particle densities.
 - `quant :: NTuple{NCOLUMN,V}`: Tuple of per-field scalar data arrays.
 """
-struct InterpolationInput{D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN}
+struct InterpolationInput{D, T <: AbstractFloat, V <: AbstractVector{T}, K <: AbstractSPHKernel, NCOLUMN} <: AbstractInterpolationInput{D, T, V, K, NCOLUMN}
     Npart :: Int64
     smoothed_kernel :: K
     coord :: NTuple{D, V}
@@ -159,24 +159,6 @@ function InterpolationInput(x :: V, y :: V, z :: V, m :: V, h :: V, ρ :: V, qua
     return InterpolationInput((x, y, z), m, h, ρ, quant; smoothed_kernel = smoothed_kernel)
 end
 
-
-# Some useful function
-## Get "Valid" range of data (the other would be 0)
-@inline Base.length(input :: InterpolationInput) = input.Npart
-
-## Get element type of the input
-@inline Base.eltype( :: InterpolationInput{D, T}) where {D, T <: AbstractFloat} = T
-
-## Get dimension of the input
-@inline spatial_dimension( :: InterpolationInput{D}) where {D} = D
-
-## Coordinate accessors
-@inline get_coord(input :: InterpolationInput{D}) where {D} = input.coord
-@inline get_xcoord(input :: InterpolationInput{D}) where {D} = input.coord[1]
-@inline get_ycoord(input :: InterpolationInput{D}) where {D} = input.coord[2]
-@inline get_zcoord(input :: InterpolationInput{3}) = input.coord[3]
-
-
 # Check the "Valid" length of data for each fields
 function Base.checkbounds(input :: InterpolationInput)
     N = input.Npart
@@ -198,12 +180,14 @@ end
 
 # Input helper for LBVH
 ## 3D path
-function LinearBVH!(input :: InterpolationInput{3}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+function LinearBVH!(input :: InterpolationInput{3}, :: Val{TileSize} = Val(8192);
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
     z = get_zcoord(input)
 
-    enc = MortonEncoding(x, y, z, CodeType = CodeType)
+    enc = MortonEncoding(x, y, z; CodeType)
+    sort_by_morton!(enc, SortWorkSpace, Val(TileSize))
     order = enc.order
 
     Base.permute!(x, order)
@@ -216,16 +200,17 @@ function LinearBVH!(input :: InterpolationInput{3}; CodeType :: Type{TI} = UInt6
         Base.permute!(column, order)
     end
 
-    brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt, BoxScale(input.h, true))
+    return LinearBVH(enc, input.h)
 end
 
 ## 2D path
-function LinearBVH!(input :: InterpolationInput{2}; CodeType :: Type{TI} = UInt64) where {TI <: Unsigned}
+function LinearBVH!(input :: InterpolationInput{2}, :: Val{TileSize} = Val(8192);
+    CodeType :: Type{TI} = UInt64, SortWorkSpace :: OnesweepWorkspace{TI} = OnesweepWorkspace(Vector{CodeType})) where {TileSize, TI <: Unsigned}
     x = get_xcoord(input)
     y = get_ycoord(input)
 
-    enc = MortonEncoding(x, y, CodeType = CodeType)
+    enc = MortonEncoding(x, y; CodeType)
+    sort_by_morton!(enc, SortWorkSpace, Val(TileSize))
     order = enc.order
 
     Base.permute!(x, order)
@@ -237,8 +222,7 @@ function LinearBVH!(input :: InterpolationInput{2}; CodeType :: Type{TI} = UInt6
         Base.permute!(column, order)
     end
 
-    brt = BinaryRadixTree(enc)
-    return LinearBVH(enc, brt, BoxScale(input.h, true))
+    return LinearBVH(enc, input.h)
 end
 """
     matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) where {D}
@@ -258,10 +242,12 @@ stored in `lbvh`.
   treated as the reference ordering.
 
 # Returns
-- `Bool`: `true` if `input.coord[d] == lbvh.leaf_coor[d]` for every spatial
-  dimension `d` and `input.h == lbvh.leaf_scale`; otherwise `false`.
+- `Bool`: `true` when `input.coord` matches the leaf section of
+  `lbvh.aabb.min` and `input.h` matches the leaf section of `lbvh.scale`.
 
 """
 @inline function matches_lbvh_leaf_order(input :: InterpolationInput{D}, lbvh :: LinearBVH{D}) :: Bool where {D}
-    all(input.coord[d] == lbvh.leaf_coor[d] for d in 1:D) && (input.h == lbvh.leaf_scale)
+    leaf_nodes = nleaf(lbvh):(2 * nleaf(lbvh) - 1)
+    all(input.coord[d] == @view(lbvh.aabb.min[d][leaf_nodes]) for d in 1:D) &&
+        input.h == @view(lbvh.scale[leaf_nodes])
 end

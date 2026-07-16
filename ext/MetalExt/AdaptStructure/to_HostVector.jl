@@ -12,22 +12,23 @@ function Partia.to_HostVector(input :: InterpolationInput{D, T, V, K, NCOLUMN}) 
     )
 end
 
+function Partia.to_HostVector(input :: InterpolationSmoothingVolumeInput{D, T, V, K, NCOLUMN}) where {D, T <: Float32, V <: MtlVector{T}, K <: AbstractSPHKernel, NCOLUMN}
+    return InterpolationSmoothingVolumeInput{D, Float32, Vector{Float32}, K, NCOLUMN}(
+        input.Npart,
+        input.hfact,
+        input.smoothed_kernel,
+        ntuple(i -> Vector{Float32}(input.coord[i]), Val(D)),
+        Vector{Float32}(input.m),
+        Vector{Float32}(input.h),
+        ntuple(i -> Vector{Float32}(input.quant[i]), Val(NCOLUMN))
+    )
+end
+
 function Partia.to_HostVector(enc :: MortonEncoding{D, TF, TI, VF, VI}) where {D, TF <: Float32, TI <: Unsigned, VF <: MtlVector{TF}, VI <: MtlVector{TI}}
     return MortonEncoding{D, Float32, TI, Vector{Float32}, Vector{TI}}(
         Vector{TI}(enc.order),
         Vector{TI}(enc.codes),
         ntuple(i -> Vector{Float32}(enc.coord[i]), D)
-    )
-end
-
-function Partia.to_HostVector(brt :: BinaryRadixTree{V}) where {V <: MtlVector{Int32}}
-    return BinaryRadixTree{Vector{Int32}}(
-        brt.root,
-        brt.nleaf,
-        Vector{Int32}(brt.left),
-        Vector{Int32}(brt.right),
-        Vector{Int32}(brt.escape),
-        Vector{Int32}(brt.parent)
     )
 end
 
@@ -40,11 +41,10 @@ end
 
 function Partia.to_HostVector(LBVH :: LinearBVH{D, TF, VF, VB}) where {D, TF <: Float32, VF <: MtlVector{TF}, VB <: MtlVector{Int32}}
     return LinearBVH{D, Float32, Vector{Float32}, Vector{Int32}}(
-        to_HostVector(LBVH.brt),
-        ntuple(i -> Vector{Float32}(LBVH.leaf_coor[i]), D),
-        Vector{Float32}(LBVH.leaf_scale),
-        to_HostVector(LBVH.node_aabb),
-        Vector{Float32}(LBVH.node_scale)
+        Vector{Int32}(LBVH.left),
+        Vector{Int32}(LBVH.escape),
+        to_HostVector(LBVH.aabb),
+        Vector{Float32}(LBVH.scale)
     )
 end
 

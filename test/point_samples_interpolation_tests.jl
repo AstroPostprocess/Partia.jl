@@ -10,7 +10,10 @@
 #  2. LineSamples interpolation
 #     • Scatter-only line-integrated interpolation against direct references.
 #     • Externally supplied LBVH dispatch and unsupported-mode errors.
-#  3. Analytic regression
+#  3. Two-dimensional interpolation
+#     • Scalar, gradient, and divergence outputs across Gather and Scatter.
+#     • Standard and smoothing-volume input consistency without curl.
+#  4. Analytic regression
 #     • Linear manufactured field checked across Gather and Scatter
 #       strategies for scalar, gradient, divergence, and curl outputs.
 
@@ -53,7 +56,7 @@ end
 @testset "PointSamples interpolation -- CPU consistency" begin
     input, catalog, LBVH = make_grid_interpolation_fixture()
     grid_template = make_point_samples_template()
-    result = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog)
+    result = PointSamples_interpolation(grid_template, input, catalog)
 
     scalar_slot = ki_mod.scalar_index(catalog, :temp)
     div_slots = ki_mod.div_slots(catalog, :v)
@@ -78,14 +81,42 @@ end
     end
 end
 
+@testset "PointSamples interpolation -- smoothing-volume CPU consistency" begin
+    standard_input, smoothing_input, catalog = make_smoothing_volume_grid_interpolation_fixture()
+    grid_template = make_point_samples_template()
+
+    standard_result = PointSamples_interpolation(grid_template, standard_input, catalog, itpScatter)
+    smoothing_result = PointSamples_interpolation(grid_template, smoothing_input, catalog, itpScatter)
+
+    @test smoothing_result.names == standard_result.names
+    @test length(smoothing_result.grids) == length(standard_result.grids)
+    for i in eachindex(standard_result.grids)
+        @test smoothing_result.grids[i].coor == standard_result.grids[i].coor
+        @test approx_with_nan(smoothing_result.grids[i].grid, standard_result.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
+    end
+
+    standard_input_lbvh, smoothing_input_lbvh, catalog_lbvh = make_smoothing_volume_grid_interpolation_fixture()
+    standard_lbvh = LinearBVH!(standard_input_lbvh)
+    smoothing_lbvh = LinearBVH!(smoothing_input_lbvh)
+
+    standard_manual = PointSamples_interpolation(grid_template, standard_input_lbvh, catalog_lbvh, standard_lbvh, itpScatter)
+    smoothing_manual = PointSamples_interpolation(grid_template, smoothing_input_lbvh, catalog_lbvh, smoothing_lbvh, itpScatter)
+
+    @test smoothing_manual.names == standard_manual.names
+    for i in eachindex(standard_manual.grids)
+        @test smoothing_manual.grids[i].coor == standard_manual.grids[i].coor
+        @test approx_with_nan(smoothing_manual.grids[i].grid, standard_manual.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
+    end
+end
+
 # ── 1c. PointSamples — externally supplied LBVH ──────────────────────── #
 
 @testset "PointSamples interpolation -- externally supplied LBVH" begin
     input, catalog, LBVH = make_grid_interpolation_fixture()
     grid_template = make_point_samples_template()
 
-    result_auto = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog)
-    result_manual = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, LBVH, catalog)
+    result_auto = PointSamples_interpolation(grid_template, input, catalog)
+    result_manual = PointSamples_interpolation(grid_template, input, catalog, LBVH)
 
     @test result_manual.names == result_auto.names
     @test length(result_manual.grids) == length(result_auto.grids)
@@ -107,11 +138,10 @@ end
     end
 
     @test_throws ArgumentError PointSamples_interpolation(
-        CPUComputeBackend(),
         grid_template,
         mismatched_input,
-        LBVH,
         catalog,
+        LBVH,
         itpScatter,
     )
 end
@@ -121,7 +151,7 @@ end
 @testset "LineSamples interpolation -- CPU scatter consistency" begin
     input, catalog, _ = make_line_interpolation_fixture()
     grid_template = make_line_samples_template()
-    result = LineSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, itpScatter)
+    result = LineSamples_interpolation(grid_template, input, catalog)
 
     scalar_slots = catalog.scalar_slots
 
@@ -154,14 +184,44 @@ end
     end
 end
 
+@testset "LineSamples interpolation -- smoothing-volume CPU scatter consistency" begin
+    standard_input, smoothing_input, catalog = make_smoothing_volume_line_interpolation_fixture()
+    grid_template = make_line_samples_template()
+
+    standard_result = LineSamples_interpolation(grid_template, standard_input, catalog)
+    smoothing_result = LineSamples_interpolation(grid_template, smoothing_input, catalog)
+
+    @test smoothing_result.names == standard_result.names
+    @test length(smoothing_result.grids) == length(standard_result.grids)
+    for i in eachindex(standard_result.grids)
+        @test smoothing_result.grids[i].origin == standard_result.grids[i].origin
+        @test smoothing_result.grids[i].direction == standard_result.grids[i].direction
+        @test approx_with_nan(smoothing_result.grids[i].grid, standard_result.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
+    end
+
+    standard_input_lbvh, smoothing_input_lbvh, catalog_lbvh = make_smoothing_volume_line_interpolation_fixture()
+    standard_lbvh = LinearBVH!(standard_input_lbvh)
+    smoothing_lbvh = LinearBVH!(smoothing_input_lbvh)
+
+    standard_manual = LineSamples_interpolation(grid_template, standard_input_lbvh, catalog_lbvh, standard_lbvh)
+    smoothing_manual = LineSamples_interpolation(grid_template, smoothing_input_lbvh, catalog_lbvh, smoothing_lbvh)
+
+    @test smoothing_manual.names == standard_manual.names
+    for i in eachindex(standard_manual.grids)
+        @test smoothing_manual.grids[i].origin == standard_manual.grids[i].origin
+        @test smoothing_manual.grids[i].direction == standard_manual.grids[i].direction
+        @test approx_with_nan(smoothing_manual.grids[i].grid, standard_manual.grids[i].grid; atol = 1.0e-12, rtol = 1.0e-10)
+    end
+end
+
 # ── 2b. LineSamples — externally supplied LBVH ───────────────────────── #
 
 @testset "LineSamples interpolation -- externally supplied LBVH" begin
     input, catalog, LBVH = make_line_interpolation_fixture()
     grid_template = make_line_samples_template()
 
-    result_auto = LineSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, itpScatter)
-    result_manual = LineSamples_interpolation(CPUComputeBackend(), grid_template, input, LBVH, catalog, itpScatter)
+    result_auto = LineSamples_interpolation(grid_template, input, catalog)
+    result_manual = LineSamples_interpolation(grid_template, input, catalog, LBVH)
 
     @test result_manual.names == result_auto.names
     @test length(result_manual.grids) == length(result_auto.grids)
@@ -184,12 +244,10 @@ end
     end
 
     @test_throws ArgumentError LineSamples_interpolation(
-        CPUComputeBackend(),
         grid_template,
         mismatched_input,
-        LBVH,
         catalog,
-        itpScatter,
+        LBVH,
     )
 end
 
@@ -199,20 +257,70 @@ end
     line_input, line_catalog, _ = make_line_interpolation_fixture()
     line_template = make_line_samples_template()
 
-    @test_throws ArgumentError LineSamples_interpolation(CPUComputeBackend(), line_template, line_input, line_catalog, itpGather)
+    @test_throws MethodError LineSamples_interpolation(line_template, line_input, line_catalog, itpGather)
 
     point_input, point_catalog, _ = make_grid_interpolation_fixture()
-    @test_throws MethodError LineSamples_interpolation(CPUComputeBackend(), line_template, point_input, point_catalog, itpScatter)
+    @test_throws MethodError LineSamples_interpolation(line_template, point_input, point_catalog)
 end
 
-# ── 3. PointSamples — analytic linear-field regression ───────────────── #
+# ── 3. PointSamples — two-dimensional kernels ────────────────────────── #
+
+@testset "PointSamples interpolation -- two-dimensional kernels" begin
+    standard_input, smoothing_input, catalog = make_2d_grid_interpolation_fixture()
+    grid_template = make_2d_point_samples_template()
+
+    @test catalog isa InterpolationCatalog{2, 1, 1, 1, 0, 4}
+    @test catalog.ordered_names == (:scalar, :∇scalarˣ, :∇scalarʸ, Symbol("∇⋅v"))
+
+    for strategy in (itpGather, itpScatter)
+        standard_result = PointSamples_interpolation(
+            grid_template,
+            deepcopy(standard_input),
+            catalog,
+            strategy,
+        )
+        smoothing_result = PointSamples_interpolation(
+            grid_template,
+            deepcopy(smoothing_input),
+            catalog,
+            strategy,
+        )
+
+        @test standard_result.names == catalog.ordered_names
+        @test smoothing_result.names == catalog.ordered_names
+        @test all(all(isfinite, grid.grid) for grid in standard_result.grids)
+        @test all(all(isfinite, grid.grid) for grid in smoothing_result.grids)
+
+        for i in eachindex(standard_result.grids)
+            @test isapprox(
+                standard_result.grids[i].grid,
+                smoothing_result.grids[i].grid;
+                atol = 1.0e-12,
+                rtol = 1.0e-10,
+            )
+        end
+    end
+
+    curl_catalog = InterpolationCatalog(
+        (:scalar, :vx, :vy), Val(2);
+        curls = (:v,),
+    )
+    @test_throws MethodError PointSamples_interpolation(
+        grid_template,
+        deepcopy(standard_input),
+        curl_catalog,
+        itpScatter,
+    )
+end
+
+# ── 4. PointSamples — analytic linear-field regression ───────────────── #
 
 @testset "PointSamples interpolation -- analytic linear-field regression" begin
     input, catalog, h = make_uniform_cloud_3d(12; eta = 1.2, variable_h = true)
     grid_template = make_analytic_point_samples()
 
     for strategy in (itpGather, itpScatter)
-        result = PointSamples_interpolation(CPUComputeBackend(), grid_template, input, catalog, strategy)
+        result = PointSamples_interpolation(grid_template, input, catalog, strategy)
 
         for i in eachindex(grid_template.grid)
             point = (

@@ -28,7 +28,7 @@ end
 
 
 """
-    Frame(x::NTuple{3, TF}, f0::NTuple{3, TF}, u0::NTuple{3, TF}) where {TF <: AbstractFloat}
+    Frame(x :: NTuple{3, TF}, f0 :: NTuple{3, TF}, u0 :: NTuple{3, TF}) where {TF <: AbstractFloat}
 
 Construct a `Frame` from a global position and explicit initial forward and up directions.
 The initial forward and up directions are normalized and must be nonzero and orthogonal.
@@ -38,6 +38,9 @@ The initial right direction is derived from the normalized forward and up direct
 - `x`: Initial frame position in global coordinates.
 - `f0`: Initial forward direction.
 - `u0`: Initial up direction.
+
+# Returns
+- `Frame{TF}`: Frame with an identity orientation quaternion.
 """
 function Frame(x :: NTuple{3, TF}, f0 :: NTuple{3, TF}, u0 :: NTuple{3, TF}) where {TF <: AbstractFloat}
     # normalization
@@ -78,7 +81,7 @@ function Frame(x :: NTuple{3, TF}, f0 :: NTuple{3, TF}, u0 :: NTuple{3, TF}) whe
 end
 
 """
-    Frame(x::TF, y::TF, z::TF) where {TF <: AbstractFloat}
+    Frame(x :: TF, y :: TF, z :: TF) where {TF <: AbstractFloat}
 
 Construct a `Frame` at the global position `(x, y, z)` with its initial forward direction pointing toward the origin.
 The initial up direction is chosen tangent to the sphere through the position and oriented toward the polar direction, with a pole-safe fallback.
@@ -88,6 +91,9 @@ The initial right direction is derived from the initial forward and up direction
 - `x`: Initial global x coordinate.
 - `y`: Initial global y coordinate.
 - `z`: Initial global z coordinate.
+
+# Returns
+- `Frame{TF}`: Frame initially oriented toward the origin.
 """
 function Frame(x :: TF, y :: TF, z :: TF) where {TF <: AbstractFloat}
     # line of sight would initial set towards the origin
@@ -135,64 +141,79 @@ end
 
 
 """
-    frame_position(frame::Frame{TF}) where {TF <: AbstractFloat}
+    frame_position(frame :: Frame{TF}) where {TF <: AbstractFloat}
 
 Return the current frame position as a tuple in global coordinates.
 
 # Parameters
 - `frame`: Frame whose current position is returned.
+
+# Returns
+- `NTuple{3,TF}`: Current global frame position.
 """
 @inline function frame_position(frame :: Frame{TF}) where {TF <: AbstractFloat}
     return Tuple(frame.x)
 end
 
 """
-    frame_right(frame::Frame{TF}) where {TF <: AbstractFloat}
+    frame_right(frame :: Frame{TF}) where {TF <: AbstractFloat}
 
 Return the frame's current right direction as a tuple in global coordinates.
 The current right direction is obtained by rotating `frame.r0` using `frame.Q`.
 
 # Parameters
 - `frame`: Frame whose current right direction is returned.
+
+# Returns
+- `NTuple{3,TF}`: Current global right direction.
 """
 @inline function frame_right(frame :: Frame{TF}) where {TF <: AbstractFloat}
     return Tuple(_rotate(frame.Q, frame.r0))
 end
 
 """
-    frame_forward(frame::Frame{TF}) where {TF <: AbstractFloat}
+    frame_forward(frame :: Frame{TF}) where {TF <: AbstractFloat}
 
 Return the frame's current forward direction as a tuple in global coordinates.
 The current forward direction is obtained by rotating `frame.f0` using `frame.Q`.
 
 # Parameters
 - `frame`: Frame whose current forward direction is returned.
+
+# Returns
+- `NTuple{3,TF}`: Current global forward direction.
 """
 @inline function frame_forward(frame :: Frame{TF}) where {TF <: AbstractFloat}
     return Tuple(_rotate(frame.Q, frame.f0))
 end
 
 """
-    frame_up(frame::Frame{TF}) where {TF <: AbstractFloat}
+    frame_up(frame :: Frame{TF}) where {TF <: AbstractFloat}
 
 Return the frame's current up direction as a tuple in global coordinates.
 The current up direction is obtained by rotating `frame.u0` using `frame.Q`.
 
 # Parameters
 - `frame`: Frame whose current up direction is returned.
+
+# Returns
+- `NTuple{3,TF}`: Current global up direction.
 """
 @inline function frame_up(frame :: Frame{TF}) where {TF <: AbstractFloat}
     return Tuple(_rotate(frame.Q, frame.u0))
 end
 
 """
-    frame_basis(frame::Frame{TF}) where {TF <: AbstractFloat}
+    frame_basis(frame :: Frame{TF}) where {TF <: AbstractFloat}
 
 Return the frame's current local basis directions as a named tuple in global coordinates.
 The current right, forward, and up directions are obtained by rotating `frame.r0`, `frame.f0`, and `frame.u0` using `frame.Q`.
 
 # Parameters
 - `frame`: Frame whose current local basis directions are returned.
+
+# Returns
+- `NamedTuple`: Current right, forward, and up directions.
 """
 @inline function frame_basis(frame :: Frame{TF}) where {TF <: AbstractFloat}
     Q = frame.Q

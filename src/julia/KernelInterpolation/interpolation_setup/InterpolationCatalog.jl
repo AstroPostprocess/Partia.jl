@@ -23,6 +23,19 @@ struct InterpolationCatalog{D, N, G, Div, C, L}
     ordered_names :: NTuple{L,Symbol}
 end
 
+"""
+    InterpolationCatalogConcise{D, N, G, Div, C}
+
+Execution-oriented interpolation catalog containing only column slots and
+scalar normalization flags.
+
+# Fields
+- `scalar_slots`: Scalar quantity column indices.
+- `scalar_snormalization`: Shepard-normalization flags for scalar quantities.
+- `grad_slots`: Gradient target column indices.
+- `div_slots`: Component column indices for divergence targets.
+- `curl_slots`: Component column indices for curl targets.
+"""
 struct InterpolationCatalogConcise{D, N, G, Div,C}
     scalar_slots :: NTuple{N,Int}
     scalar_snormalization :: NTuple{N,Bool}         # Shepard normalization flags
@@ -49,6 +62,9 @@ This constructor groups scalar fields, gradient fields, divergence targets, and
 curl targets into a single statically-typed catalog. It also computes the
 ordered expanded output quantity names and the Shepard-normalization flags for
 all scalar quantities.
+
+# Parameters
+- `::Val{D}`: Spatial dimension of the interpolation catalog.
 
 # Keyword Arguments
 | Keyword | Type | Default | Description |
@@ -224,18 +240,77 @@ end
     return ntuple(i -> scalar_names[i] ∈ no_norm ? false : true, N)
 end
 
+"""
+    scalar_index(cat::InterpolationCatalog, name::Symbol)
+
+Return the source-column index for scalar quantity `name`.
+
+# Parameters
+- `cat`: Full interpolation catalog.
+- `name`: Requested scalar quantity name.
+
+# Returns
+- `Int`: Source-column index.
+"""
 scalar_index(cat :: InterpolationCatalog, name :: Symbol) =
     cat.scalar_slots[findfirst(==(name), cat.scalar_names)]
 
+"""
+    grad_slot(cat::InterpolationCatalog, name::Symbol)
+
+Return the source-column index for gradient target `name`.
+
+# Parameters
+- `cat`: Full interpolation catalog.
+- `name`: Requested gradient target name.
+
+# Returns
+- `Int`: Source-column index.
+"""
 grad_slot(cat :: InterpolationCatalog, name :: Symbol) =
     cat.grad_slots[findfirst(==(name), cat.grad_names)]
 
+"""
+    div_slots(cat::InterpolationCatalog, name::Symbol)
+
+Return component source-column indices for divergence target `name`.
+
+# Parameters
+- `cat`: Full interpolation catalog.
+- `name`: Requested divergence target name.
+
+# Returns
+- `NTuple`: Component source-column indices.
+"""
 div_slots(cat :: InterpolationCatalog, name :: Symbol) =
     cat.div_slots[findfirst(==(name), cat.div_names)]
 
+"""
+    curl_slots(cat::InterpolationCatalog, name::Symbol)
+
+Return component source-column indices for curl target `name`.
+
+# Parameters
+- `cat`: Full interpolation catalog.
+- `name`: Requested curl target name.
+
+# Returns
+- `NTuple`: Component source-column indices.
+"""
 curl_slots(cat :: InterpolationCatalog, name :: Symbol) =
     cat.curl_slots[findfirst(==(name), cat.curl_names)]
 
+"""
+    ordered_quantity_names(cat::InterpolationCatalog)
+
+Return interpolation output names in catalog storage order.
+
+# Parameters
+- `cat`: Full interpolation catalog.
+
+# Returns
+- `Tuple{Vararg{Symbol}}`: Ordered output quantity names.
+"""
 ordered_quantity_names(cat :: InterpolationCatalog) = cat.ordered_names
 
 """

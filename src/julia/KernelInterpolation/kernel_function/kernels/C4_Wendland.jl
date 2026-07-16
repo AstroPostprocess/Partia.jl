@@ -3,6 +3,12 @@
 # Type calling of function
 
 ######################################################################################
+"""
+    C4_Wendland <: AbstractSPHKernel
+
+Wendland C4 SPH kernel dispatch type with compact-support radius `2h`.
+Instances are callable with dimensionless radius `q`.
+"""
 struct C4_Wendland <: AbstractSPHKernel end
 struct _dC4_Wendland <: AbstractSPHKernel end
 
@@ -104,6 +110,13 @@ c64 = KernelFunctionnorm(M4_spline, Val(3), Float64)
 
 Return the value of the derivative of the kernel function at dimensionless radius `q`.
 
+# Parameters
+- `kernel`: SPH kernel type.
+- `q`: Dimensionless radius.
+
+# Returns
+- `T`: Derivative of the dimensionless kernel profile.
+
 # Examples
 ```julia
 dw32 = KernelFunctionDiff(M4_spline, 0.7f0)  # Float32
@@ -116,6 +129,12 @@ dw64 = KernelFunctionDiff(M4_spline, 0.7)    # Float64
     KernelFunctionNneigh( :: Type{ <: AbstractSPHKernel}) -> Int
 
 Return the typical number of neighbors associated with the kernel function.
+
+# Parameters
+- `kernel`: SPH kernel type.
+
+# Returns
+- `Int`: Typical neighbor count.
 
 # Examples
 ```julia

@@ -59,6 +59,78 @@ import Partia.Tools: _cart2cylin, _cylin2cart,
     @test ϕ0 ≈ 0.0
 end
 
+# ── 1b. Reusable sample geometry ────────────────────────────────────────── #
+
+@testset "Sample geometry -- reusable build! and update!" begin
+    frame1 = Frame((0.0, 0.0, 2.0), (0.0, 0.0, -1.0), (0.0, 1.0, 0.0))
+    frame2 = Frame((1.0, -2.0, 3.0), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0))
+
+    point_cases = (
+        (Cartesian, ((-1.0, 1.0, 3), (-2.0, 2.0, 4))),
+        (Cartesian, ((-1.0, 1.0, 2), (-2.0, 2.0, 3), (-0.5, 0.5, 4))),
+        (Polar, ((0.0, 2.0, 3), (0.0, 2π, 5))),
+        (Cylindrical, ((0.0, 2.0, 3), (0.0, Float64(π), 4), (-1.0, 1.0, 2))),
+    )
+
+    for (coordinate_system, params) in point_cases
+        sample = PointSamples(coordinate_system, frame1, params...)
+        coord_storage = sample.coor
+        fill!(sample.grid, 7.0)
+        result = Partia.Grids.build!(sample, coordinate_system, frame2, params...)
+        reference = PointSamples(coordinate_system, frame2, params...)
+
+        @test isnothing(result)
+        @test sample.coor == reference.coor
+        @test all(iszero, sample.grid)
+        @test all(sample.coor[d] === coord_storage[d] for d in 1:3)
+
+        larger_params = map(params) do param
+            (param[1], param[2], param[3] + 1)
+        end
+        result = Partia.Grids.update!(sample, coordinate_system, frame1, larger_params...)
+        reference = PointSamples(coordinate_system, frame1, larger_params...)
+        @test result === sample
+        @test sample.coor == reference.coor
+        @test sample.grid == reference.grid
+        @test all(sample.coor[d] === coord_storage[d] for d in 1:3)
+
+        @test_throws DimensionMismatch Partia.Grids.build!(sample, coordinate_system, frame2, params...)
+    end
+
+    line_cases = (
+        (Cartesian, ((-1.0, 1.0, 3), (-2.0, 2.0, 4))),
+        (Polar, ((0.0, 2.0, 3), (0.0, 2π, 5))),
+    )
+
+    for (coordinate_system, params) in line_cases
+        sample = LineSamples(coordinate_system, ParallelBeam, frame1, params...)
+        origin_storage = sample.origin
+        direction_storage = sample.direction
+        fill!(sample.grid, 7.0)
+        result = Partia.Grids.build!(sample, coordinate_system, ParallelBeam, frame2, params...)
+        reference = LineSamples(coordinate_system, ParallelBeam, frame2, params...)
+
+        @test isnothing(result)
+        @test sample.origin == reference.origin
+        @test sample.direction == reference.direction
+        @test all(iszero, sample.grid)
+
+        larger_params = map(params) do param
+            (param[1], param[2], param[3] + 1)
+        end
+        result = Partia.Grids.update!(sample, coordinate_system, ParallelBeam, frame1, larger_params...)
+        reference = LineSamples(coordinate_system, ParallelBeam, frame1, larger_params...)
+        @test result === sample
+        @test sample.origin == reference.origin
+        @test sample.direction == reference.direction
+        @test sample.grid == reference.grid
+        @test all(sample.origin[d] === origin_storage[d] for d in 1:3)
+        @test all(sample.direction[d] === direction_storage[d] for d in 1:3)
+
+        @test_throws DimensionMismatch Partia.Grids.build!(sample, coordinate_system, ParallelBeam, frame2, params...)
+    end
+end
+
 # ── 2. Cartesian ↔ cylindrical vector components ─────────────────────── #
 
 @testset "Coordinate transform -- vector cart <-> cylin round-trip" begin

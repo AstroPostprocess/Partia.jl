@@ -4,13 +4,20 @@ using CUDA
 using Reexport
 using Partia
 
+# Internal CUDA utilities
+include(joinpath(@__DIR__, "CUDAExt", "Tools", "Tools.jl"))
+
+# Linear bounding volume hierarchy
+include(joinpath(@__DIR__, "CUDAExt", "LinearBoundingVolumeHierarchy", "LinearBoundingVolumeHierarchy.jl"))
+@reexport using .LinearBoundingVolumeHierarchy
+
 # Adapt structure
 include(joinpath(@__DIR__, "CUDAExt", "AdaptStructure", "AdaptStructure.jl"))
 @reexport using .AdaptStructure
 
 # Grids
 include(joinpath(@__DIR__, "CUDAExt", "Grids", "Grids.jl"))
-@reexport using .AdaptStructure
+@reexport using .Grids
 
 # Kernel interpolation
 include(joinpath(@__DIR__, "CUDAExt", "KernelInterpolation", "KernelInterpolation.jl"))

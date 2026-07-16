@@ -10,8 +10,7 @@
 
 ######################################################################################
 """
-    build_input( :: CPUComputeBackend,
-                x_col :: AbstractVector,
+    build_input(x_col :: AbstractVector,
                 y_col :: AbstractVector,
                 z_col :: AbstractVector,
                 m_col :: AbstractVector,
@@ -23,7 +22,7 @@
                 gradients :: Tuple{Vararg{Symbol}}=(),
                 divergences :: Tuple{Vararg{Symbol}}=(),
                 curls :: Tuple{Vararg{Symbol}}=(),
-                smoothed_kernel :: Type{K}=M5_spline) where {K <: AbstractSPHKernel,NCOLUMN}
+                smoothed_kernel :: Type{K}=M5_spline) where {NCOLUMN,K <: AbstractSPHKernel}
 
 Construct a CPU-side `InterpolationInput` and its corresponding
 `InterpolationCatalog` from already-materialized particle columns.
@@ -39,8 +38,6 @@ explicitly through positional arguments and are not part of the catalog lookup
 namespace.
 
 # Parameters
-- ` :: CPUComputeBackend`: Compute backend selector for the CPU interpolation
-  path.
 - `x_col :: AbstractVector`: Particle `x` coordinates.
 - `y_col :: AbstractVector`: Particle `y` coordinates.
 - `z_col :: AbstractVector`: Particle `z` coordinates.
@@ -66,7 +63,6 @@ namespace.
   3D interpolation catalog for the requested extra quantities.
 """
 function build_input(
- :: CPUComputeBackend,
     x_col :: AbstractVector,
     y_col :: AbstractVector,
     z_col :: AbstractVector,
@@ -80,7 +76,7 @@ function build_input(
     divergences :: Tuple{Vararg{Symbol}} = (),
     curls :: Tuple{Vararg{Symbol}} = (),
     smoothed_kernel :: Type{K} = M5_spline,
-) where {K <: AbstractSPHKernel,NCOLUMN}
+) where {NCOLUMN, K <: AbstractSPHKernel}
 
     # Promote all columns to a common floating-point type before materialization.
     Tprom = if isempty(quantity_columns)
@@ -132,5 +128,275 @@ function build_input(
         curls = curls,
     )
 
+    return input, catalog
+end
+
+"""
+    build_input(x_col :: AbstractVector,
+                y_col :: AbstractVector,
+                m_col :: AbstractVector,
+                h_col :: AbstractVector,
+                ρ_col :: AbstractVector,
+                quantity_columns :: NTuple{NCOLUMN, <: AbstractVector};
+                column_names :: NTuple{NCOLUMN,Symbol},
+                scalars :: Tuple{Vararg{Symbol}}=(),
+                gradients :: Tuple{Vararg{Symbol}}=(),
+                divergences :: Tuple{Vararg{Symbol}}=(),
+                smoothed_kernel :: Type{K}=M5_spline) where {NCOLUMN,K <: AbstractSPHKernel}
+
+Construct a CPU-side 2D `InterpolationInput` and its corresponding
+`InterpolationCatalog` from already-materialized particle columns.
+
+All columns are promoted to a common element type and materialized as dense CPU
+`Vector`s. The 2D high-level API supports scalar, gradient, and divergence
+requests; curl requests are intentionally omitted.
+
+# Parameters
+- `x_col`, `y_col`: Particle coordinates.
+- `m_col`: Particle masses.
+- `h_col`: Particle smoothing lengths.
+- `ρ_col`: Particle densities.
+- `quantity_columns`: Extra particle quantity columns.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `column_names` | `NTuple{NCOLUMN,Symbol}` | required | Names associated with `quantity_columns`. |
+| `scalars` | `Tuple{Vararg{Symbol}}` | `()` | Scalar quantities to interpolate. |
+| `gradients` | `Tuple{Vararg{Symbol}}` | `()` | Scalar quantities whose gradients are requested. |
+| `divergences` | `Tuple{Vararg{Symbol}}` | `()` | Vector quantities whose divergences are requested. |
+| `smoothed_kernel` | `Type{K}` | `M5_spline` | SPH kernel type. |
+
+# Returns
+- `Tuple{InterpolationInput,InterpolationCatalog}`: The materialized 2D input
+  and its catalog.
+"""
+function build_input(
+    x_col :: AbstractVector,
+    y_col :: AbstractVector,
+    m_col :: AbstractVector,
+    h_col :: AbstractVector,
+    ρ_col :: AbstractVector,
+    quantity_columns :: NTuple{NCOLUMN, <: AbstractVector};
+    column_names :: NTuple{NCOLUMN,Symbol},
+    scalars :: Tuple{Vararg{Symbol}} = (),
+    gradients :: Tuple{Vararg{Symbol}} = (),
+    divergences :: Tuple{Vararg{Symbol}} = (),
+    smoothed_kernel :: Type{K} = M5_spline,
+) where {NCOLUMN, K <: AbstractSPHKernel}
+
+    # Promote all columns to a common floating-point type before materialization.
+    Tprom = if isempty(quantity_columns)
+        promote_type(
+            eltype(x_col),
+            eltype(y_col),
+            eltype(m_col),
+            eltype(h_col),
+            eltype(ρ_col),
+        )
+    else
+        promote_type(
+            eltype(x_col),
+            eltype(y_col),
+            eltype(m_col),
+            eltype(h_col),
+            eltype(ρ_col),
+            (eltype(column) for column in quantity_columns)...,
+        )
+    end
+
+    x = Vector{Tprom}(x_col)
+    y = Vector{Tprom}(y_col)
+    m = Vector{Tprom}(m_col)
+    h = Vector{Tprom}(h_col)
+    ρ = Vector{Tprom}(ρ_col)
+    quant = ntuple(i -> Vector{Tprom}(quantity_columns[i]), NCOLUMN)
+
+    input = InterpolationInput(
+        x,
+        y,
+        m,
+        h,
+        ρ,
+        quant;
+        smoothed_kernel = smoothed_kernel,
+    )
+
+    catalog = InterpolationCatalog(
+        column_names,
+        Val(2);
+        scalars = scalars,
+        gradients = gradients,
+        divergences = divergences,
+    )
+    return input, catalog
+end
+
+
+"""
+    build_input(hfact :: T,
+                x_col :: AbstractVector,
+                y_col :: AbstractVector,
+                z_col :: AbstractVector,
+                m_col :: AbstractVector,
+                h_col :: AbstractVector,
+                quantity_columns :: NTuple{NCOLUMN, <: AbstractVector};
+                column_names :: NTuple{NCOLUMN,Symbol},
+                scalars :: Tuple{Vararg{Symbol}}=(),
+                gradients :: Tuple{Vararg{Symbol}}=(),
+                divergences :: Tuple{Vararg{Symbol}}=(),
+                curls :: Tuple{Vararg{Symbol}}=(),
+                smoothed_kernel :: Type{K}=M5_spline) where {NCOLUMN,T <: AbstractFloat,K <: AbstractSPHKernel}
+
+Construct a CPU-side 3D smoothing-volume interpolation input and matching
+catalog from already-materialized particle columns.
+
+The returned input omits a stored density column and uses
+`m_b / ρ_b = h_b^3 / hfact^3` as its volume element.
+
+# Parameters
+- `hfact :: T`: Smoothing-length ratio used by the smoothing-volume relation.
+- `x_col`, `y_col`, `z_col`: Particle coordinates.
+- `m_col`: Particle masses.
+- `h_col`: Particle smoothing lengths.
+- `quantity_columns`: Extra particle quantity columns.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `column_names` | `NTuple{NCOLUMN,Symbol}` | required | Names associated with `quantity_columns`. |
+| `scalars` | `Tuple{Vararg{Symbol}}` | `()` | Scalar quantities to interpolate. |
+| `gradients` | `Tuple{Vararg{Symbol}}` | `()` | Scalar quantities whose gradients are requested. |
+| `divergences` | `Tuple{Vararg{Symbol}}` | `()` | Vector quantities whose divergences are requested. |
+| `curls` | `Tuple{Vararg{Symbol}}` | `()` | Vector quantities whose curls are requested. |
+| `smoothed_kernel` | `Type{K}` | `M5_spline` | SPH kernel type. |
+
+# Returns
+- `Tuple{InterpolationSmoothingVolumeInput,InterpolationCatalog}`: The
+  materialized 3D smoothing-volume input and its catalog.
+"""
+function build_input(
+    hfact :: T,
+    x_col :: AbstractVector,
+    y_col :: AbstractVector,
+    z_col :: AbstractVector,
+    m_col :: AbstractVector,
+    h_col :: AbstractVector,
+    quantity_columns :: NTuple{NCOLUMN, <: AbstractVector};
+    column_names :: NTuple{NCOLUMN,Symbol},
+    scalars :: Tuple{Vararg{Symbol}} = (),
+    gradients :: Tuple{Vararg{Symbol}} = (),
+    divergences :: Tuple{Vararg{Symbol}} = (),
+    curls :: Tuple{Vararg{Symbol}} = (),
+    smoothed_kernel :: Type{K} = M5_spline,
+) where {NCOLUMN, T <: AbstractFloat, K <: AbstractSPHKernel}
+
+    # Promote all columns to T.
+    x = Vector{T}(x_col)
+    y = Vector{T}(y_col)
+    z = Vector{T}(z_col)
+    m = Vector{T}(m_col)
+    h = Vector{T}(h_col)
+    quant = ntuple(i -> Vector{T}(quantity_columns[i]), NCOLUMN)
+
+    input = InterpolationSmoothingVolumeInput(
+        hfact,
+        x,
+        y,
+        z,
+        m,
+        h,
+        quant;
+        smoothed_kernel = smoothed_kernel,
+    )
+
+    catalog = InterpolationCatalog(
+        column_names,
+        Val(3);
+        scalars = scalars,
+        gradients = gradients,
+        divergences = divergences,
+        curls = curls,
+    )
+
+    return input, catalog
+end
+
+"""
+    build_input(hfact :: T,
+                x_col :: AbstractVector,
+                y_col :: AbstractVector,
+                m_col :: AbstractVector,
+                h_col :: AbstractVector,
+                quantity_columns :: NTuple{NCOLUMN, <: AbstractVector};
+                column_names :: NTuple{NCOLUMN,Symbol},
+                scalars :: Tuple{Vararg{Symbol}}=(),
+                gradients :: Tuple{Vararg{Symbol}}=(),
+                divergences :: Tuple{Vararg{Symbol}}=(),
+                smoothed_kernel :: Type{K}=M5_spline) where {NCOLUMN,T <: AbstractFloat,K <: AbstractSPHKernel}
+
+Construct a CPU-side 2D smoothing-volume interpolation input and matching
+catalog from already-materialized particle columns.
+
+The returned input uses `m_b / ρ_b = h_b^2 / hfact^2`. The 2D high-level API
+supports scalar, gradient, and divergence requests; curl requests are omitted.
+
+# Parameters
+- `hfact`: Smoothing-length ratio used by the smoothing-volume relation.
+- `x_col`, `y_col`: Particle coordinates.
+- `m_col`: Particle masses.
+- `h_col`: Particle smoothing lengths.
+- `quantity_columns`: Extra particle quantity columns.
+
+# Keyword Arguments
+| Keyword | Type | Default | Description |
+|---|---|---|---|
+| `column_names` | `NTuple{NCOLUMN,Symbol}` | required | Names associated with `quantity_columns`. |
+| `scalars` | `Tuple{Vararg{Symbol}}` | `()` | Scalar quantities to interpolate. |
+| `gradients` | `Tuple{Vararg{Symbol}}` | `()` | Scalar quantities whose gradients are requested. |
+| `divergences` | `Tuple{Vararg{Symbol}}` | `()` | Vector quantities whose divergences are requested. |
+| `smoothed_kernel` | `Type{K}` | `M5_spline` | SPH kernel type. |
+
+# Returns
+- `Tuple{InterpolationSmoothingVolumeInput,InterpolationCatalog}`: The
+  materialized 2D smoothing-volume input and its catalog.
+"""
+function build_input(
+    hfact :: T,
+    x_col :: AbstractVector,
+    y_col :: AbstractVector,
+    m_col :: AbstractVector,
+    h_col :: AbstractVector,
+    quantity_columns :: NTuple{NCOLUMN, <: AbstractVector};
+    column_names :: NTuple{NCOLUMN,Symbol},
+    scalars :: Tuple{Vararg{Symbol}} = (),
+    gradients :: Tuple{Vararg{Symbol}} = (),
+    divergences :: Tuple{Vararg{Symbol}} = (),
+    smoothed_kernel :: Type{K} = M5_spline,
+) where {NCOLUMN, T <: AbstractFloat, K <: AbstractSPHKernel}
+    # Promote all columns to T.
+    x = Vector{T}(x_col)
+    y = Vector{T}(y_col)
+    m = Vector{T}(m_col)
+    h = Vector{T}(h_col)
+    quant = ntuple(i -> Vector{T}(quantity_columns[i]), NCOLUMN)
+
+    input = InterpolationSmoothingVolumeInput(
+        hfact,
+        x,
+        y,
+        m,
+        h,
+        quant;
+        smoothed_kernel = smoothed_kernel,
+    )
+
+    catalog = InterpolationCatalog(
+        column_names,
+        Val(2);
+        scalars = scalars,
+        gradients = gradients,
+        divergences = divergences,
+    )
     return input, catalog
 end

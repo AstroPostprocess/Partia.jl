@@ -1,0 +1,79 @@
+######################################################################################
+
+# General Grid definition
+
+######################################################################################
+"""
+    AbstractGrid{TF}
+
+Abstract supertype for Partia grid and sample containers with floating-point
+value type `TF`.
+"""
+abstract type AbstractGrid{TF <: AbstractFloat} end
+
+"""
+    Base.length(grid :: GRID) where {GRID <: AbstractGrid}
+
+Return the number of elements stored in the grid values array.
+
+This delegates to `length(grid.grid)`, i.e. the length of the internal
+storage vector for grid values.
+
+# Parameters
+- `grid :: GRID` : Any concrete subtype of `AbstractGrid`.
+
+# Returns
+- `Int` : The number of stored grid values.
+"""
+@inline Base.length(grid :: GRID) where {GRID <: AbstractGrid} = length(grid.grid)
+
+"""
+    datatype( :: Type{GRID}) where {TF <: AbstractFloat, GRID <: AbstractGrid{TF}}
+
+Return the floating-point element type parameter `TF` of an `AbstractGrid{TF}` type.
+
+This method extracts `TF` purely from the parametric type, without inspecting any
+stored arrays or values.
+
+# Parameters
+- ` :: Type{GRID}`: A concrete grid type `GRID <: AbstractGrid{TF}`.
+
+# Returns
+- `Type{TF}`: The floating-point element type parameter of the grid type.
+"""
+@inline datatype( :: Type{GRID}) where {TF <: AbstractFloat, GRID <: AbstractGrid{TF}} = TF
+
+"""
+    datatype( :: GRID) where {TF <: AbstractFloat, GRID <: AbstractGrid{TF}}
+
+Return the floating-point element type parameter `TF` of an `AbstractGrid{TF}` instance.
+
+This method extracts `TF` purely from the parametric type, without inspecting any
+stored arrays or values.
+
+# Parameters
+- ` :: GRID`: An grid with concrete grid type `GRID <: AbstractGrid{TF}`.
+
+# Returns
+- `Type{TF}`: The floating-point element type parameter of the grid type.
+"""
+@inline datatype( :: GRID) where {TF <: AbstractFloat, GRID <: AbstractGrid{TF}} = TF
+
+"""
+    same_coordinates()
+    same_coordinates(grid :: AbstractGrid)
+
+Return `true` for the empty and single-grid cases.
+
+Concrete grid types provide multi-grid methods that check whether all supplied
+grids share the same coordinate storage. For zero or one grid, the condition is
+vacuously true.
+
+# Parameters
+- `grid`: Optional single grid.
+
+# Returns
+- `Bool`: Always `true` for zero or one grid.
+"""
+@inline same_coordinates() = true
+@inline same_coordinates( :: AbstractGrid) = true
