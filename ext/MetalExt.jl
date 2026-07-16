@@ -2,7 +2,7 @@ module MetalExt
 using Dates
 using Metal
 using Reexport
-import Partia
+using Partia
 
 # Internal Metal utilities
 include(joinpath(@__DIR__, "MetalExt", "Tools", "Tools.jl"))
