@@ -23,11 +23,11 @@
 
 ## Installation
 
-`Partia.jl` is not registered in the General registry. If you want to install it directly from this repository, use
+Install from Julia's General registry:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/AstroPostprocess/Partia.jl")
+Pkg.add("Partia")
 ```
 
 If you already have this repository locally and want a development checkout, use
