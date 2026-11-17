@@ -514,3 +514,322 @@ end
         return δ * δ
     end
 end
+
+# ============================================================
+# Generic ND line–AABB distance
+# ============================================================
+
+"""
+Construct a symmetric box in line-origin-relative coordinates. Every subtraction
+is enclosed outwards, including the distances from the rounded centre to the
+endpoints. Thus, in real arithmetic, `c-e <= min-origin <= max-origin <= c+e`.
+The returned box can be slightly larger than the input (also for point boxes).
+"""
+@inline function _line_aabb_local_box(origin :: NTuple{D,T}, aabb_min, aabb_max, idx :: Int) where {D,T <: AbstractFloat}
+    bounds = ntuple(D) do d
+        a = prevfloat(aabb_min[d][idx] - origin[d])
+        b = nextfloat(aabb_max[d][idx] - origin[d])
+        # A finite-input subtraction can exceed the floating-point range.
+        # An unbounded axis still encloses that exact relative interval.
+        if !isfinite(a) || !isfinite(b)
+            return (zero(T), T(Inf))
+        end
+        # Halve first to avoid overflow in a+b. Extents below account for any
+        # rounding here, including half-subnormal underflow.
+        c = a / T(2) + b / T(2)
+        e = max(nextfloat(c - a), nextfloat(b - c))
+        (c, e)
+    end
+    return ntuple(d -> bounds[d][1], D), ntuple(d -> bounds[d][2], D)
+end
+
+# Evaluate a*b*c/d without overflowing or underflowing intermediate products.
+# The caller supplies finite values and positive d; only the final result may
+# overflow. In particular we never form the unscaled line parameter t.
+@inline function _line_box_scaled_product(a :: T, b :: T, c :: T, d :: T) where {T <: AbstractFloat}
+    (iszero(a) || iszero(b) || iszero(c)) && return zero(T)
+    ma, ea = frexp(a)
+    mb, eb = frexp(b)
+    mc, ec = frexp(c)
+    md, ed = frexp(d)
+    return ldexp(((ma * mb) * mc) / md, ea + eb + ec - ed)
+end
+
+@inline function _line_box_half_derivative(t :: T, p :: NTuple{D,T}, v :: NTuple{D,T}, e :: NTuple{D,T}) where {D, T <: AbstractFloat}
+    # F(t) = sum((p[i] + t*v[i] - clamp(p[i] + t*v[i], -e[i], e[i]))^2)
+    # g(t) = F'(t)/2
+
+    g = zero(T)
+    for d in 1:D
+        x = muladd(t, v[d], p[d])
+        δ = x - clamp(x, -e[d], e[d])
+        g = muladd(v[d], δ, g)
+    end
+    return g
+end
+
+@inline function _squared_distance_line_aabb_nd(origin :: NTuple{D,TF}, direction :: NTuple{D,TF}, aabb_min :: NTuple{D,VF}, aabb_max :: NTuple{D,VF}, idx :: Int) where {D, TF <: AbstractFloat, VF <: AbstractVector{TF}}
+    zero_T = zero(TF)
+    half_T = inv(TF(2))
+
+    c, e = _line_aabb_local_box(origin, aabb_min, aabb_max, idx)
+    o = ntuple(d -> -c[d], D)
+
+    # Reflect direction to the positive orthant
+    p = ntuple(d -> direction[d] < zero_T ? -o[d] : o[d], D)
+    v = ntuple(d -> abs(direction[d]), D)
+
+    # Determine the initial minimiser interval
+    t_enter = -TF(Inf)
+    t_exit = TF(Inf)
+    fixed_d2 = zero_T
+
+    for d in 1:D
+        if iszero(v[d])
+            δ = max(abs(p[d]) - e[d], zero_T)
+            fixed_d2 = muladd(δ, δ, fixed_d2)
+        else
+            t_enter = max(t_enter, (-e[d] - p[d]) / v[d])
+            t_exit = min(t_exit, (e[d] - p[d]) / v[d])
+        end
+    end
+
+    if t_enter <= t_exit
+        return fixed_d2
+    end
+
+    # Bracket the minimiser
+    lo, hi = t_exit, t_enter
+
+    for i in 1:D
+        if !iszero(v[i])
+            for bound in (-e[i], e[i])
+                tb = (bound - p[i]) / v[i]
+
+                if lo < tb < hi
+                    g = _line_box_half_derivative(tb, p, v, e)
+
+                    if g < zero_T
+                        lo = tb
+                    elseif g > zero_T
+                        hi = tb
+                    else
+                        lo = tb
+                        hi = tb
+                    end
+                end
+            end
+        end
+    end
+
+    # Solve the minimiser within the final quadratic interval
+    tstar = if lo == hi
+        lo
+    else
+        glo = _line_box_half_derivative(lo, p, v, e)
+        ghi = _line_box_half_derivative(hi, p, v, e)
+        slope = ghi - glo
+        iszero(slope) ? lo + (hi - lo) * half_T : clamp(lo - glo * (hi - lo) / slope, lo, hi)
+    end
+
+    # Evaluate the squared distance at the minimiser
+    d2 = zero_T
+    for d in 1:D
+        x = muladd(tstar, v[d], p[d])
+        δ = max(abs(x) - e[d], zero_T)
+        d2 = muladd(δ, δ, d2)
+    end
+
+    return d2
+end
+
+
+# ============================================================
+# 3D line–AABB distance (Eberly-style)
+#
+# Reference:
+# David Eberly, Geometric Tools
+# GTE/Mathematics/DistLine3CanonicalBox3.h
+# https://github.com/davideberly/GeometricTools/blob/master/GTE/Mathematics/DistLine3CanonicalBox3.h
+#
+# Adapted for squared-distance-only queries.
+# The edge calculations are simplified rather than
+# a line-by-line translation of the original Face().
+# ============================================================
+
+@inline function _squared_distance_line_box_edge3d(p :: NTuple{3,T}, v :: NTuple{3,T}, e :: NTuple{3,T}, i :: Int, j :: Int, k :: Int, bj :: T, bk :: T) where {T <: AbstractFloat}
+    # The edge varies along axis i.
+    # Its fixed coordinates are q[j] = bj and q[k] = bk.
+    # The direction v must be a unit vector.
+
+    δj = p[j] - bj
+    δk = p[k] - bk
+
+    # Scale transverse direction before squaring; at least one component of w
+    # is exactly one even when both input components are subnormal. No nonzero
+    # component is classified as zero by an angular threshold.
+    s = max(v[j], v[k])
+    wj, wk = v[j] / s, v[k] / s
+    den = muladd(wj, wj, wk * wk)
+    h = max(abs(δj), abs(δk))
+    h = iszero(h) ? one(T) : h
+    qj, qk = δj / h, δk / h
+    tau = -muladd(wj, qj, wk * qk) / den # t*s/h, not t
+    u = p[i] + _line_box_scaled_product(tau, h, v[i], s)
+
+    if -e[i] <= u <= e[i]
+        # The closest point lies inside the edge
+        dj = h * muladd(tau, wj, qj)
+        dk = h * muladd(tau, wk, qk)
+        return muladd(dj, dj, dk * dk)
+    else
+        # The closest point is an endpoint of the edge
+        δi = p[i] - clamp(u, -e[i], e[i])
+        h = max(abs(δi), abs(δj), abs(δk))
+        iszero(h) && return zero(T)
+        qi, qj, qk = δi / h, δj / h, δk / h
+        norm2 = muladd(v[i], v[i], muladd(v[j], v[j], v[k] * v[k]))
+        tau = -muladd(v[i], qi, muladd(v[j], qj, v[k] * qk)) / norm2
+        # A unit direction produced by floating-point normalization need not
+        # have an exactly unit norm. Divide by its computed norm above.
+        di = h * muladd(tau, v[i], qi)
+        dj = h * muladd(tau, v[j], qj)
+        dk = h * muladd(tau, v[k], qk)
+
+        return muladd(di, di, muladd(dj, dj, dk * dk))
+    end
+end
+
+@inline function _squared_distance_line_box_face3d(p :: NTuple{3,T}, v :: NTuple{3,T}, e :: NTuple{3,T}, i0 :: Int, i1 :: Int, i2 :: Int) where {T <: AbstractFloat}
+    # The selected positive face is x[i0] = e[i0].
+    # All components of v must be positive.
+
+    pm = p[i0] - e[i0]
+
+    inside1 = v[i0] * (p[i1] + e[i1]) >= v[i1] * pm
+    inside2 = v[i0] * (p[i2] + e[i2]) >= v[i2] * pm
+
+    if inside1 && inside2
+        # The line intersects the box
+        return zero(T)
+    elseif inside1
+        # Closest point lies on the i1-edge or its endpoints
+        return _squared_distance_line_box_edge3d(p, v, e, i1, i0, i2, e[i0], -e[i2])
+    elseif inside2
+        # Closest point lies on the i2-edge or its endpoints
+        return _squared_distance_line_box_edge3d(p, v, e, i2, i0, i1, e[i0], -e[i1])
+    else
+        # Both negative-side edges are candidates
+        d1 = _squared_distance_line_box_edge3d(p, v, e, i1, i0, i2, e[i0], -e[i2])
+        d2 = _squared_distance_line_box_edge3d(p, v, e, i2, i0, i1, e[i0], -e[i1])
+        return min(d1, d2)
+    end
+end
+
+@inline function _squared_distance_line_box_2d(p :: NTuple{3,T}, v :: NTuple{3,T}, e :: NTuple{3,T}, i :: Int, j :: Int, k :: Int) where {T <: AbstractFloat}
+    # v[i] > 0, v[j] > 0, v[k] == 0
+
+    dk = max(abs(p[k]) - e[k], zero(T))
+
+    # Exact 2D line–rectangle distance
+    sc = muladd(p[i], v[j], -p[j] * v[i])
+    r = muladd(e[i], v[j], e[j] * v[i])
+
+    δ = max(abs(sc) - r, zero(T))
+    return muladd(dk, dk, δ * δ / (v[i] * v[i] + v[j] * v[j]))
+end
+
+@inline function _squared_distance_line_box_1d(p :: NTuple{3,T}, e :: NTuple{3,T}, i :: Int, j :: Int) where {T <: AbstractFloat}
+    # Only the remaining axis has a nonzero direction
+
+    di = max(abs(p[i]) - e[i], zero(T))
+    dj = max(abs(p[j]) - e[j], zero(T))
+
+    return muladd(di, di, dj * dj)
+end
+
+@inline function _squared_distance_line_aabb_eberly3d(origin :: NTuple{3,TF}, direction :: NTuple{3,TF}, aabb_min :: NTuple{3,VF}, aabb_max :: NTuple{3,VF}, idx :: Int) where {TF <: AbstractFloat, VF <: AbstractVector{TF}}
+    zero_T = zero(TF)
+
+    c, e = _line_aabb_local_box(origin, aabb_min, aabb_max, idx)
+    o = ntuple(d -> -c[d], 3)
+
+    # Reflect direction to the positive octant
+    p = ntuple(d -> direction[d] < zero_T ? -o[d] : o[d], 3)
+    v = ntuple(d -> abs(direction[d]), 3)
+
+    if v[1] > zero_T
+        if v[2] > zero_T
+            if v[3] > zero_T
+                # Select the first positive face, following Eberly
+                pm = ntuple(d -> p[d] - e[d], 3)
+
+                if v[2] * pm[1] >= v[1] * pm[2]
+                    if v[3] * pm[1] >= v[1] * pm[3]
+                        return _squared_distance_line_box_face3d(p, v, e, 1, 2, 3)
+                    else
+                        return _squared_distance_line_box_face3d(p, v, e, 3, 1, 2)
+                    end
+                else
+                    if v[3] * pm[2] >= v[2] * pm[3]
+                        return _squared_distance_line_box_face3d(p, v, e, 2, 3, 1)
+                    else
+                        return _squared_distance_line_box_face3d(p, v, e, 3, 1, 2)
+                    end
+                end
+            else
+                return _squared_distance_line_box_2d(p, v, e, 1, 2, 3)
+            end
+        elseif v[3] > zero_T
+            return _squared_distance_line_box_2d(p, v, e, 1, 3, 2)
+        else
+            return _squared_distance_line_box_1d(p, e, 2, 3)
+        end
+    elseif v[2] > zero_T
+        if v[3] > zero_T
+            return _squared_distance_line_box_2d(p, v, e, 2, 3, 1)
+        else
+            return _squared_distance_line_box_1d(p, e, 1, 3)
+        end
+    elseif v[3] > zero_T
+        return _squared_distance_line_box_1d(p, e, 1, 2)
+    else
+        # Degenerate zero direction; outside the unit-vector contract
+        d2 = zero_T
+        for d in 1:3
+            δ = max(abs(p[d]) - e[d], zero_T)
+            d2 = muladd(δ, δ, d2)
+        end
+        return d2
+    end
+end
+
+# Generic ND fallback. 
+@inline function _squared_distance_line_aabb(origin :: NTuple{D,TF}, direction :: NTuple{D,TF}, aabb_min :: NTuple{D,VF}, aabb_max :: NTuple{D,VF}, idx :: Int) where {D, TF <: AbstractFloat, VF <: AbstractVector{TF}}
+    return _squared_distance_line_aabb_nd(origin, direction, aabb_min, aabb_max, idx)
+end
+
+# 2D specialised implementation
+@inline function _squared_distance_line_aabb(origin :: NTuple{2,TF}, direction :: NTuple{2,TF}, aabb_min :: NTuple{2,VF}, aabb_max :: NTuple{2,VF}, idx :: Int) where {TF <: AbstractFloat, VF <: AbstractVector{TF}}
+    zero_T = zero(TF)
+
+    c, e = _line_aabb_local_box(origin, aabb_min, aabb_max, idx)
+
+    # Unit normal to the line
+    nx, ny = direction[2], -direction[1]
+
+    # Signed centre projection and projected half extent
+    sc = muladd(c[1], nx, c[2] * ny)
+    # An unbounded axis parallel to the line contributes zero, not Inf*0.
+    rx = iszero(nx) ? zero_T : e[1] * abs(nx)
+    ry = iszero(ny) ? zero_T : e[2] * abs(ny)
+    r = rx + ry
+
+    δ = max(abs(sc) - r, zero_T)
+    return δ * δ
+end
+
+# 3D specialised implementation
+@inline function _squared_distance_line_aabb(origin :: NTuple{3,TF}, direction :: NTuple{3,TF}, aabb_min :: NTuple{3,VF}, aabb_max :: NTuple{3,VF}, idx :: Int) where {TF <: AbstractFloat, VF <: AbstractVector{TF}}
+    return _squared_distance_line_aabb_eberly3d(origin, direction, aabb_min, aabb_max, idx)
+end
