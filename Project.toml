@@ -1,6 +1,6 @@
 name = "Partia"
 uuid = "5c2dedaf-db9e-41c2-b778-b9f601995017"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Wei-Shan Su <weishansu011017@gmail.com>"]
 
 [deps]
@@ -10,7 +10,6 @@ Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
-Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Quaternions = "94ee1d12-ae83-5a48-8b1c-48b8ff168ae0"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
@@ -36,7 +35,6 @@ HDF5 = "0.17"
 LinearAlgebra = "1"
 Logging = "1"
 Metal = "1.9"
-Pkg = "1"
 Quaternions = "0.7"
 Random = "1"
 Reexport = "1"

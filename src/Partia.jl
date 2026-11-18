@@ -7,7 +7,6 @@ and CPU/GPU kernel interpolation APIs.
 module Partia
 # Include the Julia Module
 using Logging
-using Pkg
 using Reexport
 
 ##################### Core #####################
