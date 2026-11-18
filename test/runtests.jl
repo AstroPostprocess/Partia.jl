@@ -33,7 +33,6 @@ include("coordinate_tests.jl")
 include("frame_tests.jl")
 
 # ========================== Spatial data structures ========================= #
-
 include("neighbor_search_tests.jl")
 
 # ========================== Kernel functions ================================ #
